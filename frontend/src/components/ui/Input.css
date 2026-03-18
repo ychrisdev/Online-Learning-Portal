@@ -1,0 +1,100 @@
+/* src/components/ui/Input.css
+   Palette: 0D1B2A / 1B263B / 415A77 / 778DA9 / E0E1DD
+*/
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.input-label {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: rgba(224, 225, 221, 0.75);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.input-required {
+  color: #E05C5C;
+  font-size: 0.9em;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-field {
+  width: 100%;
+  background: rgba(13, 27, 42, 0.6);
+  border: 1.5px solid rgba(119, 141, 169, 0.2);
+  border-radius: var(--radius-md);
+  color: #E0E1DD;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+  outline: none;
+}
+
+/* Sizes */
+.input-group--sm .input-field { padding: 0.45em 0.8em; font-size: var(--text-xs); }
+.input-group--md .input-field { padding: 0.6em 0.9em;  font-size: var(--text-sm); }
+.input-group--lg .input-field { padding: 0.75em 1.1em; font-size: var(--text-base); }
+
+.input-field::placeholder { color: rgba(224, 225, 221, 0.25); }
+
+.input-field:focus {
+  border-color: rgba(119, 141, 169, 0.55);
+  background: rgba(13, 27, 42, 0.9);
+  box-shadow: 0 0 0 3px rgba(65, 90, 119, 0.2);
+}
+
+.input-field:disabled {
+  background: rgba(27, 38, 59, 0.4);
+  color: rgba(224, 225, 221, 0.3);
+  cursor: not-allowed;
+}
+
+/* With icon */
+.input-wrapper--icon-left  .input-field { padding-left: 2.5em; }
+.input-wrapper--icon-right .input-field { padding-right: 2.5em; }
+
+.input-icon {
+  position: absolute;
+  color: rgba(224, 225, 221, 0.3);
+  display: flex;
+  align-items: center;
+  font-size: 1em;
+  pointer-events: none;
+  z-index: 1;
+}
+.input-icon--left  { left: 0.75em; }
+.input-icon--right { right: 0.75em; }
+
+/* Error state */
+.input-group--error .input-field {
+  border-color: rgba(224, 80, 80, 0.55);
+}
+.input-group--error .input-field:focus {
+  box-shadow: 0 0 0 3px rgba(224, 80, 80, 0.15);
+}
+
+.input-error {
+  font-size: var(--text-xs);
+  color: #E05C5C;
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+.input-error::before { content: '⚠'; }
+
+.input-hint {
+  font-size: var(--text-xs);
+  color: rgba(224, 225, 221, 0.35);
+}

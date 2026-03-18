@@ -1,121 +1,106 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+// src/App.tsx
+import React, { useState } from 'react';
+import Navbar   from './components/layout/Navbar';
+import Footer   from './components/layout/Footer';
 
-function App() {
-  const [count, setCount] = useState(0)
+import HomePage     from './pages/HomePage';
+import AuthPage     from './pages/AuthPage';
+
+import './styles/global.css';
+
+type Page =
+  | 'home'
+  | 'courses'
+  | 'course-detail'
+  | 'learning'
+  | 'dashboard'
+  | 'auth';
+
+// Các trang ẩn Navbar + Footer
+const NO_CHROME: Page[] = ['learning', 'auth'];
+
+const App: React.FC = () => {
+  const [currentPage, setCurrentPage]       = useState<Page>('home');
+  const [activeCourseId, setActiveCourseId] = useState<string>('c1');
+  const [isLoggedIn, setIsLoggedIn]         = useState(false);
+  const [authMode, setAuthMode]             = useState<'login' | 'register'>('login');
+  // trang trước khi chuyển sang auth — để quay lại sau khi đăng nhập thành công
+  const [returnPage, setReturnPage]         = useState<Page>('home');
+
+  const navigate = (page: string, courseId?: string) => {
+    // Bảo vệ trang learning
+    if (page === 'learning' && !isLoggedIn) {
+      setReturnPage(currentPage);
+      setAuthMode('login');
+      setCurrentPage('auth');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (courseId) setActiveCourseId(courseId);
+    setCurrentPage(page as Page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAuthOpen = (mode: 'login' | 'register') => {
+    setReturnPage(currentPage);
+    setAuthMode(mode);
+    setCurrentPage('auth');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAuthSuccess = () => {
+    setIsLoggedIn(true);
+    // Quay về trang trước hoặc home
+    setCurrentPage(returnPage === 'auth' ? 'home' : returnPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const hideChrome = NO_CHROME.includes(currentPage);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app">
+      {!hideChrome && (
+        <Navbar
+          currentPage={currentPage}
+          onNavigate={navigate}
+          isLoggedIn={isLoggedIn}
+          onAuthOpen={handleAuthOpen}
+        />
+      )}
 
-      <div className="ticks"></div>
+      <main style={{ minHeight: hideChrome ? '100vh' : `calc(100vh - var(--navbar-height))` }}>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {currentPage === 'auth' && (
+          <AuthPage
+            initialMode={authMode}
+            onSuccess={handleAuthSuccess}
+            onNavigate={navigate}
+          />
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+        {currentPage === 'home' && <HomePage onNavigate={navigate} />}
 
-export default App
+        {currentPage === 'courses' && <CoursesPage onNavigate={navigate} />}
+
+        {currentPage === 'course-detail' && (
+          <CourseDetail
+            courseId={activeCourseId}
+            onNavigate={navigate}
+            isLoggedIn={isLoggedIn}
+          />
+        )}
+
+        {currentPage === 'learning' && (
+          <LearningPage courseId={activeCourseId} onNavigate={navigate} />
+        )}
+
+        {currentPage === 'dashboard' && <Dashboard onNavigate={navigate} />}
+
+      </main>
+
+      {!hideChrome && <Footer onNavigate={navigate} />}
+    </div>
+  );
+};
+
+export default App;

@@ -1,0 +1,92 @@
+/* src/components/ui/Modal.css
+   Palette: 0D1B2A / 1B263B / 415A77 / 778DA9 / E0E1DD
+*/
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  animation: modal-overlay-in var(--transition-base) forwards;
+}
+
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal {
+  background: #1B263B;
+  border: 1px solid rgba(119, 141, 169, 0.18);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modal-in var(--transition-bounce) forwards;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(119, 141, 169, 0.25) transparent;
+}
+
+.modal::-webkit-scrollbar { width: 5px; }
+.modal::-webkit-scrollbar-track { background: transparent; }
+.modal::-webkit-scrollbar-thumb {
+  background: rgba(119, 141, 169, 0.25);
+  border-radius: 3px;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Sizes */
+.modal--sm  { max-width: 400px; }
+.modal--md  { max-width: 560px; }
+.modal--lg  { max-width: 760px; }
+.modal--xl  { max-width: 960px; }
+
+/* Header */
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6) var(--space-6) 0;
+}
+
+.modal__title {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-bold);
+  color: #E0E1DD;
+  letter-spacing: -0.02em;
+}
+
+.modal__close {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(224, 225, 221, 0.45);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: rgba(119, 141, 169, 0.1);
+  border: 1px solid rgba(119, 141, 169, 0.15);
+}
+.modal__close:hover {
+  background: rgba(119, 141, 169, 0.2);
+  color: #E0E1DD;
+  border-color: rgba(119, 141, 169, 0.3);
+}
+
+/* Body */
+.modal__body {
+  padding: var(--space-6);
+}
