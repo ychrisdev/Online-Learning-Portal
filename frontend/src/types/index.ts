@@ -1,14 +1,6 @@
-export type CourseLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
+// src/types/index.ts
 
-export type CourseCategory =
-  | 'Web Development'
-  | 'Data Science'
-  | 'Design'
-  | 'Mobile Dev'
-  | 'DevOps'
-  | 'Machine Learning'
-  | 'Cybersecurity'
-  | 'Business';
+export type CourseLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
 
 export interface Instructor {
   id: string;
@@ -24,7 +16,7 @@ export interface Instructor {
 export interface Lesson {
   id: string;
   title: string;
-  duration: string; // e.g. "12:34"
+  duration: string;
   type: 'video' | 'quiz' | 'article' | 'project';
   isPreview: boolean;
   isCompleted?: boolean;
@@ -45,7 +37,7 @@ export interface Course {
   thumbnail: string;
   previewVideo?: string;
   instructor: Instructor;
-  category: CourseCategory;
+  category: string;          // string thay vì union cứng — khớp mockData mới
   level: CourseLevel;
   rating: number;
   reviewCount: number;
@@ -53,7 +45,7 @@ export interface Course {
   price: number;
   originalPrice?: number;
   currency: string;
-  duration: string; // total e.g. "24h 30m"
+  duration: string;
   lessonCount: number;
   language: string;
   lastUpdated: string;
@@ -87,27 +79,36 @@ export interface User {
 
 export interface EnrolledCourse {
   course: Course;
-  progress: number; // 0–100
+  progress: number;       // 0–100
   lastAccessedAt: string;
   completedLessons: string[];
 }
 
 export interface Category {
   id: string;
-  name: CourseCategory;
+  name: string;           // string — không giới hạn union
   icon: string;
   courseCount: number;
   color: string;
 }
 
-// ── UI types ──────────────────────────────
+export interface Testimonial {
+  id: string;
+  name: string;
+  avatar: string;
+  role: string;
+  quote: string;
+  rating: number;
+}
+
+// ── UI types ─────────────────────────────────────────────────
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 export type ButtonSize    = 'sm' | 'md' | 'lg';
 export type InputSize     = 'sm' | 'md' | 'lg';
 
 export interface FilterState {
-  category: CourseCategory | '';
+  category: string;
   level: CourseLevel | '';
   priceRange: 'all' | 'free' | 'paid';
   rating: number;
