@@ -1,4 +1,3 @@
-/* src/components/layout/Sidebar.css */
 .sidebar {
   width: var(--sidebar-width);
   height: calc(100vh - var(--navbar-height));

@@ -1,7 +1,3 @@
-// ============================================
-// TYPES — Learning Portal
-// ============================================
-
 export type CourseLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
 
 export type CourseCategory =

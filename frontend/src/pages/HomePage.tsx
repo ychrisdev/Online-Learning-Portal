@@ -219,7 +219,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 key={t.id}
                 className={`testimonial-card${i === 1 ? ' testimonial-card--featured' : ''}`}
               >
-                <div className="testimonial-card__stars">{'★'.repeat(t.rating)}</div>
                 <p className="testimonial-card__quote">"{t.quote}"</p>
                 <div className="testimonial-card__author">
                   <img src={t.avatar} alt={t.name} className="testimonial-card__avatar" />

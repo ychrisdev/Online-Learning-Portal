@@ -329,7 +329,7 @@ export const TESTIMONIALS = [
   {
     id: 't1',
     name: 'Nguyễn Minh Tú',
-    avatar: 'https://i.pravatar.cc/80?img=11',
+    avatar: 'https://img.bgstatic.com/multiLang/web/605120c4719cc92a226e9ac6f3049631.jpg',
     role: 'Nhân viên văn phòng · Từ A2 lên B1',
     quote: 'Trước đây tôi học mãi mà không thấy tiến bộ. Từ khi học theo cấp độ ở đây, tôi biết rõ mình đang ở đâu và cần làm gì tiếp theo. Chỉ sau 2 tháng tôi đã lên được B1.',
     rating: 5,
@@ -337,7 +337,7 @@ export const TESTIMONIALS = [
   {
     id: 't2',
     name: 'Trần Bảo Châu',
-    avatar: 'https://i.pravatar.cc/80?img=5',
+    avatar: 'https://media.tenor.com/1W-HKNvj8UoAAAAM/cat.gif',
     role: 'Sinh viên năm 3 · Từ B1 lên B2',
     quote: 'Các bài học ngắn, dễ theo dõi và không bị nhàm. Tôi học 15 phút mỗi tối trước khi ngủ, vậy mà sau 3 tháng ngữ pháp và từ vựng cải thiện rõ rệt.',
     rating: 5,
@@ -345,7 +345,7 @@ export const TESTIMONIALS = [
   {
     id: 't3',
     name: 'Lê Hoàng Phúc',
-    avatar: 'https://i.pravatar.cc/80?img=33',
+    avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ80frjKwGOjBKVTzse_Yk1ptwJYzclni4WYw&s',
     role: 'Kỹ sư phần mềm · Từ B2 lên C1',
     quote: 'Tôi cần tiếng Anh để đọc tài liệu kỹ thuật và làm việc với khách nước ngoài. Lộ trình ở đây thực tế và sát nhu cầu, không học những thứ không cần thiết.',
     rating: 5,

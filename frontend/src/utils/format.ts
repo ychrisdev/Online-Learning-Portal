@@ -1,5 +1,3 @@
-// src/utils/format.ts
-
 export const formatPrice = (price: number, currency: string = 'VND'): string => {
   if (price === 0) return 'Miễn phí';
   if (currency === 'VND') {
