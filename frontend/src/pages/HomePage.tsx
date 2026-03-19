@@ -245,9 +245,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               </p>
             </div>
             <div className="cta-banner__actions">
-              <button className="btn-cta-primary" onClick={() => onNavigate('courses')}>
-                Học thử miễn phí
-              </button>
               <button className="btn-cta-outline" onClick={() => onNavigate('courses')}>
                 Xem lộ trình
               </button>

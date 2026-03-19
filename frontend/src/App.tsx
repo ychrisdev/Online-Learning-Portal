@@ -4,6 +4,7 @@ import Navbar   from './components/layout/Navbar';
 import Footer   from './components/layout/Footer';
 
 import HomePage     from './pages/HomePage';
+import CoursesPage  from './pages/CoursesPage';
 import AuthPage     from './pages/AuthPage';
 
 import './styles/global.css';
@@ -16,7 +17,6 @@ type Page =
   | 'dashboard'
   | 'auth';
 
-// Các trang ẩn Navbar + Footer
 const NO_CHROME: Page[] = ['learning', 'auth'];
 
 const App: React.FC = () => {
@@ -24,11 +24,9 @@ const App: React.FC = () => {
   const [activeCourseId, setActiveCourseId] = useState<string>('c1');
   const [isLoggedIn, setIsLoggedIn]         = useState(false);
   const [authMode, setAuthMode]             = useState<'login' | 'register'>('login');
-  // trang trước khi chuyển sang auth — để quay lại sau khi đăng nhập thành công
   const [returnPage, setReturnPage]         = useState<Page>('home');
 
   const navigate = (page: string, courseId?: string) => {
-    // Bảo vệ trang learning
     if (page === 'learning' && !isLoggedIn) {
       setReturnPage(currentPage);
       setAuthMode('login');
@@ -50,7 +48,6 @@ const App: React.FC = () => {
 
   const handleAuthSuccess = () => {
     setIsLoggedIn(true);
-    // Quay về trang trước hoặc home
     setCurrentPage(returnPage === 'auth' ? 'home' : returnPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -69,7 +66,6 @@ const App: React.FC = () => {
       )}
 
       <main style={{ minHeight: hideChrome ? '100vh' : `calc(100vh - var(--navbar-height))` }}>
-
         {currentPage === 'auth' && (
           <AuthPage
             initialMode={authMode}
@@ -77,25 +73,9 @@ const App: React.FC = () => {
             onNavigate={navigate}
           />
         )}
-
-        {currentPage === 'home' && <HomePage onNavigate={navigate} />}
-
+        {currentPage === 'home'    && <HomePage    onNavigate={navigate} />}
         {currentPage === 'courses' && <CoursesPage onNavigate={navigate} />}
-
-        {currentPage === 'course-detail' && (
-          <CourseDetail
-            courseId={activeCourseId}
-            onNavigate={navigate}
-            isLoggedIn={isLoggedIn}
-          />
-        )}
-
-        {currentPage === 'learning' && (
-          <LearningPage courseId={activeCourseId} onNavigate={navigate} />
-        )}
-
-        {currentPage === 'dashboard' && <Dashboard onNavigate={navigate} />}
-
+        {/* course-detail, learning, dashboard — thêm sau */}
       </main>
 
       {!hideChrome && <Footer onNavigate={navigate} />}

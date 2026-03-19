@@ -618,28 +618,6 @@
   flex-shrink: 0;
 }
 
-.btn-cta-primary {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.9em 2em;
-  background: #E0E1DD;
-  color: #0D1B2A;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: var(--fw-bold);
-  font-family: var(--font-body);
-  border: none;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  letter-spacing: -0.01em;
-}
-
-.btn-cta-primary:hover {
-  background: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-}
-
 .btn-cta-outline {
   display: inline-flex;
   align-items: center;
@@ -683,7 +661,7 @@
   .categories-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
   .hero__cta-group { flex-direction: column; align-items: flex-start; }
   .cta-banner__actions { flex-direction: column; width: 100%; }
-  .btn-cta-primary, .btn-cta-outline { justify-content: center; }
+  .btn-cta-outline { justify-content: center; }
 }
 
 /* ── Levels section (added) ─────────────────────────────────── */
