@@ -1,12 +1,12 @@
-// src/components/layout/Navbar.tsx
 import React, { useState, useEffect } from 'react';
-import './Navbar.css';
 
 interface NavbarProps {
   currentPage: string;
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, courseId?: string, searchQuery?: string) => void;
   isLoggedIn?: boolean;
   onAuthOpen?: (mode: 'login' | 'register') => void;
+  onSearch?: (query: string) => void;   // callback khi search ở trang courses
+  searchValue?: string;                  // sync giá trị từ CoursesPage
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -14,6 +14,8 @@ const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   isLoggedIn = false,
   onAuthOpen,
+  onSearch,
+  searchValue,
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,8 +34,20 @@ const Navbar: React.FC<NavbarProps> = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) onNavigate('courses');
+    const q = searchQuery.trim();
+    if (currentPage === 'courses') {
+      // Đang ở courses → update trực tiếp, kể cả khi rỗng để clear
+      onSearch?.(q);
+    } else {
+      // Trang khác → chỉ navigate khi có từ khóa
+      if (q) onNavigate('courses', undefined, q);
+    }
   };
+
+  // Sync input khi searchValue prop thay đổi từ bên ngoài
+  React.useEffect(() => {
+    if (searchValue !== undefined) setSearchQuery(searchValue);
+  }, [searchValue]);
 
   return (
     <header className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>

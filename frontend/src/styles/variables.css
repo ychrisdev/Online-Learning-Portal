@@ -1,108 +1,112 @@
 :root {
-  /* ── Colors ── */
-  --color-primary:        #2563EB;
-  --color-primary-hover:  #1D4ED8;
-  --color-primary-light:  #EFF6FF;
-  --color-primary-subtle: #DBEAFE;
+  --color-navy-deepest: #0d1b2a;
+  --color-navy-dark: #1b263b;
+  --color-navy-mid: #415a77;
+  --color-navy-light: #778da9;
+  --color-off-white: #e0e1dd;
 
-  --color-secondary:      #F59E0B;
-  --color-secondary-hover:#D97706;
-  --color-secondary-light:#FFFBEB;
+  --color-primary: #415a77;
+  --color-primary-hover: #4f6d8f;
+  --color-primary-light: rgba(65, 90, 119, 0.2);
+  --color-primary-subtle: rgba(65, 90, 119, 0.1);
 
-  --color-success:        #10B981;
-  --color-danger:         #EF4444;
-  --color-warning:        #F59E0B;
-  --color-info:           #3B82F6;
+  --color-secondary: #f59e0b;
+  --color-secondary-hover: #d97706;
+  --color-secondary-light: #fffbeb;
 
-  /* Neutrals */
-  --color-white:          #FFFFFF;
-  --color-gray-50:        #F9FAFB;
-  --color-gray-100:       #F3F4F6;
-  --color-gray-200:       #E5E7EB;
-  --color-gray-300:       #D1D5DB;
-  --color-gray-400:       #9CA3AF;
-  --color-gray-500:       #6B7280;
-  --color-gray-600:       #4B5563;
-  --color-gray-700:       #374151;
-  --color-gray-800:       #1F2937;
-  --color-gray-900:       #111827;
+  --color-success: #4caf82;
+  --color-danger: #e05c5c;
+  --color-warning: #f59e0b;
+  --color-info: #778da9;
 
-  /* ── Typography ── */
-  --font-display:  'Clash Display', 'DM Sans', sans-serif;
-  --font-body:     'DM Sans', 'Plus Jakarta Sans', sans-serif;
-  --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+  --color-white: #e0e1dd;
+  --color-surface: #1b263b;
+  --color-surface-raised: #243347;
+  --color-surface-overlay: #0d1b2a;
 
-  --text-xs:   0.75rem;
-  --text-sm:   0.875rem;
+  --color-gray-50: #0d1b2a;
+  --color-gray-100: #1b263b;
+  --color-gray-200: rgba(119, 141, 169, 0.2);
+  --color-gray-300: rgba(119, 141, 169, 0.35);
+  --color-gray-400: rgba(224, 225, 221, 0.35);
+  --color-gray-500: rgba(224, 225, 221, 0.5);
+  --color-gray-600: rgba(224, 225, 221, 0.6);
+  --color-gray-700: rgba(224, 225, 221, 0.75);
+  --color-gray-800: rgba(224, 225, 221, 0.88);
+  --color-gray-900: #e0e1dd;
+
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Nunito", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
   --text-base: 1rem;
-  --text-lg:   1.125rem;
-  --text-xl:   1.25rem;
-  --text-2xl:  1.5rem;
-  --text-3xl:  1.875rem;
-  --text-4xl:  2.25rem;
-  --text-5xl:  3rem;
-  --text-6xl:  3.75rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
 
   --fw-regular: 400;
-  --fw-medium:  500;
-  --fw-semibold:600;
-  --fw-bold:    700;
-  --fw-extrabold:800;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
 
-  --leading-tight:  1.25;
-  --leading-snug:   1.375;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
   --leading-normal: 1.5;
-  --leading-relaxed:1.625;
+  --leading-relaxed: 1.625;
 
-  /* ── Spacing ── */
-  --space-1:  0.25rem;
-  --space-2:  0.5rem;
-  --space-3:  0.75rem;
-  --space-4:  1rem;
-  --space-5:  1.25rem;
-  --space-6:  1.5rem;
-  --space-8:  2rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
   --space-16: 4rem;
   --space-20: 5rem;
   --space-24: 6rem;
 
-  /* ── Radii ── */
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
-  --radius-2xl:2rem;
+  --radius-2xl: 2rem;
   --radius-full: 9999px;
 
-  /* ── Shadows ── */
-  --shadow-xs:  0 1px 2px rgba(0,0,0,0.05);
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04);
-  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
-  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
-  --shadow-card:0 2px 12px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
-  --shadow-hover:0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.12);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -2px rgba(0, 0, 0, 0.12);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(0, 0, 0, 0.15);
+  --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
 
-  /* ── Transitions ── */
-  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base:   250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* ── Layout ── */
-  --container-max:  1280px;
-  --container-pad:  1.5rem;
-  --navbar-height:  68px;
-  --sidebar-width:  300px;
+  --container-max: 1280px;
+  --container-pad: 1.5rem;
+  --navbar-height: 68px;
+  --sidebar-width: 300px;
 
-  /* ── Z-index ── */
-  --z-base:    0;
-  --z-above:   10;
-  --z-dropdown:100;
-  --z-sticky:  200;
+  --z-base: 0;
+  --z-above: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
   --z-overlay: 300;
-  --z-modal:   400;
-  --z-toast:   500;
+  --z-modal: 400;
+  --z-toast: 500;
 }

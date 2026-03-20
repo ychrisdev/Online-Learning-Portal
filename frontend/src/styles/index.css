@@ -1,0 +1,13 @@
+@import './variables.css';
+@import './global.css';
+
+@import './components/Button.css';
+@import './components/Input.css';
+@import './components/Modal.css';
+@import './components/Navbar.css';
+@import './components/Footer.css';
+
+@import './pages/HomePage.css';
+@import './pages/CoursesPage.css';
+@import './pages/CourseDetail.css';
+@import './pages/AuthPage.css';

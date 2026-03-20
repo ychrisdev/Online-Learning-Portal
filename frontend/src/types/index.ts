@@ -1,5 +1,3 @@
-// src/types/index.ts
-
 export type CourseLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
 
 export interface Instructor {
@@ -37,7 +35,7 @@ export interface Course {
   thumbnail: string;
   previewVideo?: string;
   instructor: Instructor;
-  category: string;          // string thay vì union cứng — khớp mockData mới
+  category: string;
   level: CourseLevel;
   rating: number;
   reviewCount: number;
@@ -86,8 +84,7 @@ export interface EnrolledCourse {
 
 export interface Category {
   id: string;
-  name: string;           // string — không giới hạn union
-  icon: string;
+  name: string;
   courseCount: number;
   color: string;
 }

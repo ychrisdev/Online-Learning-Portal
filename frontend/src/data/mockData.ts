@@ -1,11 +1,5 @@
-// ============================================
-// MOCK DATA — EnglishHub Learning Portal
-// Nền tảng học tiếng Anh theo cấp độ A1–C2
-// ============================================
-
 import type { Course, Category, Review, Instructor, EnrolledCourse } from '../types';
 
-// ── Instructors ──────────────────────────────────────────────
 export const MOCK_INSTRUCTORS: Instructor[] = [
   {
     id: 'i1',
@@ -49,7 +43,6 @@ export const MOCK_INSTRUCTORS: Instructor[] = [
   },
 ];
 
-// ── Courses ──────────────────────────────────────────────────
 export const MOCK_COURSES: Course[] = [
   {
     id: 'c1',
@@ -277,19 +270,17 @@ export const MOCK_COURSES: Course[] = [
   },
 ];
 
-// ── Categories ───────────────────────────────────────────────
 export const MOCK_CATEGORIES: Category[] = [
-  { id: 'cat1', name: 'Cấp độ A1',   icon: '🔤', courseCount: 12, color: '#4CAF82' },
-  { id: 'cat2', name: 'Cấp độ A2',   icon: '💬', courseCount: 15, color: '#5BA4CF' },
-  { id: 'cat3', name: 'Cấp độ B1',   icon: '📖', courseCount: 18, color: '#778DA9' },
-  { id: 'cat4', name: 'Cấp độ B2',   icon: '✍️',  courseCount: 14, color: '#415A77' },
-  { id: 'cat5', name: 'Cấp độ C1',   icon: '🎓', courseCount: 10, color: '#2E4A6B' },
-  { id: 'cat6', name: 'Phát âm',     icon: '🔊', courseCount: 8,  color: '#E07B54' },
-  { id: 'cat7', name: 'Từ vựng',     icon: '📚', courseCount: 20, color: '#9B6DFF' },
-  { id: 'cat8', name: 'Ngữ pháp',    icon: '📝', courseCount: 16, color: '#F59E0B' },
+  { id: 'cat1', name: 'Cấp độ A1', courseCount: 12, color: '#4CAF82' },
+  { id: 'cat2', name: 'Cấp độ A2', courseCount: 15, color: '#5BA4CF' },
+  { id: 'cat3', name: 'Cấp độ B1', courseCount: 18, color: '#778DA9' },
+  { id: 'cat4', name: 'Cấp độ B2',  courseCount: 14, color: '#415A77' },
+  { id: 'cat5', name: 'Cấp độ C1', courseCount: 10, color: '#2E4A6B' },
+  { id: 'cat6', name: 'Phát âm', courseCount: 8,  color: '#E07B54' },
+  { id: 'cat7', name: 'Từ vựng', courseCount: 20, color: '#9B6DFF' },
+  { id: 'cat8', name: 'Ngữ pháp', courseCount: 16, color: '#F59E0B' },
 ];
 
-// ── Reviews ──────────────────────────────────────────────────
 export const MOCK_REVIEWS: Review[] = [
   {
     id: 'r1',
@@ -317,14 +308,12 @@ export const MOCK_REVIEWS: Review[] = [
   },
 ];
 
-// ── Enrolled Courses ─────────────────────────────────────────
 export const MOCK_ENROLLED_COURSES: EnrolledCourse[] = [
   { course: MOCK_COURSES[0], progress: 72, lastAccessedAt: '2024-12-01', completedLessons: ['l1','l2','l3','l4','l5','l6'] },
   { course: MOCK_COURSES[2], progress: 35, lastAccessedAt: '2024-11-28', completedLessons: ['l1','l2'] },
   { course: MOCK_COURSES[5], progress: 100, lastAccessedAt: '2024-10-20', completedLessons: ['l1','l2'] },
 ];
 
-// ── Testimonials ─────────────────────────────────────────────
 export const TESTIMONIALS = [
   {
     id: 't1',

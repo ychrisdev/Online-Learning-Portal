@@ -1,6 +1,4 @@
-// src/components/layout/Footer.tsx
 import React from 'react';
-import './Footer.css';
 
 interface FooterProps {
   onNavigate: (page: string) => void;

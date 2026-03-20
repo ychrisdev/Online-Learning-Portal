@@ -1,6 +1,4 @@
-// src/pages/AuthPage.tsx
 import React, { useState } from 'react';
-import './AuthPage.css';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'register';

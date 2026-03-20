@@ -1,21 +1,14 @@
 // src/App.tsx
 import React, { useState } from 'react';
-import Navbar   from './components/layout/Navbar';
-import Footer   from './components/layout/Footer';
-
-import HomePage     from './pages/HomePage';
+import Navbar      from './components/layout/Navbar';
+import Footer      from './components/layout/Footer';
+import HomePage    from './pages/HomePage';
 import CoursesPage  from './pages/CoursesPage';
-import AuthPage     from './pages/AuthPage';
+import CourseDetail from './pages/CourseDetail';
+import AuthPage    from './pages/AuthPage';
+import './styles/index.css';
 
-import './styles/global.css';
-
-type Page =
-  | 'home'
-  | 'courses'
-  | 'course-detail'
-  | 'learning'
-  | 'dashboard'
-  | 'auth';
+type Page = 'home' | 'courses' | 'course-detail' | 'learning' | 'dashboard' | 'auth';
 
 const NO_CHROME: Page[] = ['learning', 'auth'];
 
@@ -26,7 +19,10 @@ const App: React.FC = () => {
   const [authMode, setAuthMode]             = useState<'login' | 'register'>('login');
   const [returnPage, setReturnPage]         = useState<Page>('home');
 
-  const navigate = (page: string, courseId?: string) => {
+  // Search query được chia sẻ giữa Navbar và CoursesPage
+  const [navSearchQuery, setNavSearchQuery] = useState('');
+
+  const navigate = (page: string, courseId?: string, searchQuery?: string) => {
     if (page === 'learning' && !isLoggedIn) {
       setReturnPage(currentPage);
       setAuthMode('login');
@@ -35,6 +31,8 @@ const App: React.FC = () => {
       return;
     }
     if (courseId) setActiveCourseId(courseId);
+    // Nếu navigate kèm searchQuery → truyền xuống CoursesPage
+    if (searchQuery !== undefined) setNavSearchQuery(searchQuery);
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -52,6 +50,11 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Khi CoursesPage tự clear search → sync về navbar
+  const handleCoursesSearchChange = (query: string) => {
+    setNavSearchQuery(query);
+  };
+
   const hideChrome = NO_CHROME.includes(currentPage);
 
   return (
@@ -62,6 +65,10 @@ const App: React.FC = () => {
           onNavigate={navigate}
           isLoggedIn={isLoggedIn}
           onAuthOpen={handleAuthOpen}
+          // Khi search ở navbar trong lúc đang ở courses → update trực tiếp
+          onSearch={handleCoursesSearchChange}
+          // Sync giá trị hiển thị trong input navbar
+          searchValue={currentPage === 'courses' ? navSearchQuery : undefined}
         />
       )}
 
@@ -73,9 +80,21 @@ const App: React.FC = () => {
             onNavigate={navigate}
           />
         )}
-        {currentPage === 'home'    && <HomePage    onNavigate={navigate} />}
-        {currentPage === 'courses' && <CoursesPage onNavigate={navigate} />}
-        {/* course-detail, learning, dashboard — thêm sau */}
+        {currentPage === 'home' && <HomePage onNavigate={navigate} />}
+        {currentPage === 'courses' && (
+          <CoursesPage
+            onNavigate={navigate}
+            initialSearch={navSearchQuery}
+            onSearchChange={handleCoursesSearchChange}
+          />
+        )}
+        {currentPage === 'course-detail' && (
+          <CourseDetail
+            courseId={activeCourseId}
+            onNavigate={navigate}
+            isLoggedIn={isLoggedIn}
+          />
+        )}
       </main>
 
       {!hideChrome && <Footer onNavigate={navigate} />}

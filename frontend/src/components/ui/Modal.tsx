@@ -1,6 +1,4 @@
-// src/components/ui/Modal.tsx
 import React, { useEffect, useCallback } from 'react';
-import './Modal.css';
 
 interface ModalProps {
   isOpen: boolean;

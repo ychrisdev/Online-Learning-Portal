@@ -14,7 +14,7 @@
 }
 
 .input-required {
-  color: #E05C5C;
+  color: #e05c5c;
   font-size: 0.9em;
 }
 
@@ -29,7 +29,7 @@
   background: rgba(13, 27, 42, 0.6);
   border: 1.5px solid rgba(119, 141, 169, 0.2);
   border-radius: var(--radius-md);
-  color: #E0E1DD;
+  color: #e0e1dd;
   font-size: var(--text-sm);
   font-family: var(--font-body);
   transition:
@@ -39,12 +39,22 @@
   outline: none;
 }
 
-/* Sizes */
-.input-group--sm .input-field { padding: 0.45em 0.8em; font-size: var(--text-xs); }
-.input-group--md .input-field { padding: 0.6em 0.9em;  font-size: var(--text-sm); }
-.input-group--lg .input-field { padding: 0.75em 1.1em; font-size: var(--text-base); }
+.input-group--sm .input-field {
+  padding: 0.45em 0.8em;
+  font-size: var(--text-xs);
+}
+.input-group--md .input-field {
+  padding: 0.6em 0.9em;
+  font-size: var(--text-sm);
+}
+.input-group--lg .input-field {
+  padding: 0.75em 1.1em;
+  font-size: var(--text-base);
+}
 
-.input-field::placeholder { color: rgba(224, 225, 221, 0.25); }
+.input-field::placeholder {
+  color: rgba(224, 225, 221, 0.25);
+}
 
 .input-field:focus {
   border-color: rgba(119, 141, 169, 0.55);
@@ -58,9 +68,12 @@
   cursor: not-allowed;
 }
 
-/* With icon */
-.input-wrapper--icon-left  .input-field { padding-left: 2.5em; }
-.input-wrapper--icon-right .input-field { padding-right: 2.5em; }
+.input-wrapper--icon-left .input-field {
+  padding-left: 2.5em;
+}
+.input-wrapper--icon-right .input-field {
+  padding-right: 2.5em;
+}
 
 .input-icon {
   position: absolute;
@@ -71,10 +84,13 @@
   pointer-events: none;
   z-index: 1;
 }
-.input-icon--left  { left: 0.75em; }
-.input-icon--right { right: 0.75em; }
+.input-icon--left {
+  left: 0.75em;
+}
+.input-icon--right {
+  right: 0.75em;
+}
 
-/* Error state */
 .input-group--error .input-field {
   border-color: rgba(224, 80, 80, 0.55);
 }
@@ -84,12 +100,14 @@
 
 .input-error {
   font-size: var(--text-xs);
-  color: #E05C5C;
+  color: #e05c5c;
   display: flex;
   align-items: center;
   gap: 0.3em;
 }
-.input-error::before { content: '⚠'; }
+.input-error::before {
+  content: "⚠";
+}
 
 .input-hint {
   font-size: var(--text-xs);

@@ -1,6 +1,4 @@
-// src/components/ui/Input.tsx
 import React from 'react';
-import './Input.css';
 
 interface InputProps {
   label?: string;

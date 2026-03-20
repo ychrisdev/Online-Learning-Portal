@@ -1,7 +1,5 @@
-// src/pages/HomePage.tsx
 import React from 'react';
 import { MOCK_COURSES, MOCK_CATEGORIES, TESTIMONIALS } from '../data/mockData';
-import './HomePage.css';
 
 interface HomePageProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -209,7 +207,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       <section className="section section--sm testimonials-section">
         <div className="container">
           <div className="section-header-center">
-            <span className="section-eyebrow">Học viên nói gì</span>
+            <span className="section-eyebrow">Học viên nói gì ?</span>
             <h2 className="section-title">Họ đã tiến bộ.<br></br>Bạn cũng vậy.</h2>
           </div>
 

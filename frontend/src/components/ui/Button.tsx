@@ -1,7 +1,5 @@
-// src/components/ui/Button.tsx
 import React from 'react';
 import type { ButtonVariant, ButtonSize } from '../../types';
-import './Button.css';
 
 interface ButtonProps {
   variant?: ButtonVariant;
