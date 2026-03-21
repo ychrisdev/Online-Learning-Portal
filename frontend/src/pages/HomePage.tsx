@@ -73,7 +73,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   return (
     <div className="home-page">
 
-      {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="hero">
         <div className="hero__noise" aria-hidden="true" />
         <div className="hero__glow hero__glow--1" aria-hidden="true" />
@@ -111,7 +110,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ── Level roadmap ─────────────────────────────────────── */}
       <section className="section section--sm levels-section">
         <div className="container">
           <div className="section-header">
@@ -166,7 +164,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section> */}
 
-      {/* ── Why us ───────────────────────────────────────────── */}
       <section className="section why-section">
         <div className="container">
           <div className="why-inner">
@@ -203,7 +200,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ── Testimonials ─────────────────────────────────────── */}
       <section className="section section--sm testimonials-section">
         <div className="container">
           <div className="section-header-center">
@@ -231,7 +227,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ── CTA Banner ───────────────────────────────────────── */}
       <section className="cta-banner">
         <div className="cta-banner__bg-lines" aria-hidden="true" />
         <div className="container">

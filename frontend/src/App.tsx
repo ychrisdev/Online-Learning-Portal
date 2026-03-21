@@ -1,25 +1,27 @@
-// src/App.tsx
 import React, { useState } from 'react';
-import Navbar      from './components/layout/Navbar';
-import Footer      from './components/layout/Footer';
-import HomePage    from './pages/HomePage';
-import CoursesPage  from './pages/CoursesPage';
-import CourseDetail from './pages/CourseDetail';
-import AuthPage    from './pages/AuthPage';
+import Navbar              from './components/layout/Navbar';
+import Footer              from './components/layout/Footer';
+import HomePage            from './pages/HomePage';
+import CoursesPage         from './pages/CoursesPage';
+import CourseDetail        from './pages/CourseDetail';
+import StudentDashboard    from './pages/StudentDashboard';
+import InstructorDashboard from './pages/InstructorDashboard';
+import AdminDashboard      from './pages/AdminDashboard';
+import AuthPage            from './pages/AuthPage';
 import './styles/index.css';
 
 type Page = 'home' | 'courses' | 'course-detail' | 'learning' | 'dashboard' | 'auth';
+type Role = 'student' | 'instructor' | 'admin';
 
 const NO_CHROME: Page[] = ['learning', 'auth'];
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage]       = useState<Page>('home');
+  const [currentPage, setCurrentPage]       = useState<Page>('dashboard');
   const [activeCourseId, setActiveCourseId] = useState<string>('c1');
   const [isLoggedIn, setIsLoggedIn]         = useState(false);
+  const [userRole, setUserRole]             = useState<Role>('admin');
   const [authMode, setAuthMode]             = useState<'login' | 'register'>('login');
   const [returnPage, setReturnPage]         = useState<Page>('home');
-
-  // Search query được chia sẻ giữa Navbar và CoursesPage
   const [navSearchQuery, setNavSearchQuery] = useState('');
 
   const navigate = (page: string, courseId?: string, searchQuery?: string) => {
@@ -31,7 +33,6 @@ const App: React.FC = () => {
       return;
     }
     if (courseId) setActiveCourseId(courseId);
-    // Nếu navigate kèm searchQuery → truyền xuống CoursesPage
     if (searchQuery !== undefined) setNavSearchQuery(searchQuery);
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -50,12 +51,15 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Khi CoursesPage tự clear search → sync về navbar
-  const handleCoursesSearchChange = (query: string) => {
-    setNavSearchQuery(query);
-  };
+  const handleCoursesSearchChange = (query: string) => setNavSearchQuery(query);
 
   const hideChrome = NO_CHROME.includes(currentPage);
+
+  const renderDashboard = () => {
+    if (userRole === 'admin')      return <AdminDashboard onNavigate={navigate} />;
+    if (userRole === 'instructor') return <InstructorDashboard onNavigate={navigate} />;
+    return <StudentDashboard onNavigate={navigate} />;
+  };
 
   return (
     <div className="app">
@@ -65,36 +69,24 @@ const App: React.FC = () => {
           onNavigate={navigate}
           isLoggedIn={isLoggedIn}
           onAuthOpen={handleAuthOpen}
-          // Khi search ở navbar trong lúc đang ở courses → update trực tiếp
           onSearch={handleCoursesSearchChange}
-          // Sync giá trị hiển thị trong input navbar
           searchValue={currentPage === 'courses' ? navSearchQuery : undefined}
         />
       )}
 
+
       <main style={{ minHeight: hideChrome ? '100vh' : `calc(100vh - var(--navbar-height))` }}>
         {currentPage === 'auth' && (
-          <AuthPage
-            initialMode={authMode}
-            onSuccess={handleAuthSuccess}
-            onNavigate={navigate}
-          />
+          <AuthPage initialMode={authMode} onSuccess={handleAuthSuccess} onNavigate={navigate} />
         )}
         {currentPage === 'home' && <HomePage onNavigate={navigate} />}
         {currentPage === 'courses' && (
-          <CoursesPage
-            onNavigate={navigate}
-            initialSearch={navSearchQuery}
-            onSearchChange={handleCoursesSearchChange}
-          />
+          <CoursesPage onNavigate={navigate} initialSearch={navSearchQuery} onSearchChange={handleCoursesSearchChange} />
         )}
         {currentPage === 'course-detail' && (
-          <CourseDetail
-            courseId={activeCourseId}
-            onNavigate={navigate}
-            isLoggedIn={isLoggedIn}
-          />
+          <CourseDetail courseId={activeCourseId} onNavigate={navigate} isLoggedIn={isLoggedIn} />
         )}
+        {currentPage === 'dashboard' && renderDashboard()}
       </main>
 
       {!hideChrome && <Footer onNavigate={navigate} />}
