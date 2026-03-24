@@ -25,7 +25,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       <div className="container">
         <div className="footer__grid">
 
-          {/* Brand */}
           <div className="footer__brand">
             <div className="footer__logo">
               <div className="footer__logo-icon">E</div>
@@ -36,7 +35,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </p>
           </div>
 
-          {/* Product */}
           <div className="footer__col">
             <h4 className="footer__col-title">Sản phẩm</h4>
             <ul className="footer__links">
@@ -50,7 +48,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Support */}
           <div className="footer__col">
             <h4 className="footer__col-title">Hỗ trợ</h4>
             <ul className="footer__links">
@@ -64,7 +61,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Newsletter */}
           <div className="footer__col">
             <h4 className="footer__col-title">Nhận thông báo</h4>
             <p className="footer__newsletter-text">
@@ -87,7 +83,6 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Bottom bar */}
         <div className="footer__bottom">
           <p>© {currentYear} EnglishHub. All rights reserved.</p>
           <div className="footer__bottom-badges">

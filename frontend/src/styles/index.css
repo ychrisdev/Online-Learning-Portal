@@ -10,4 +10,7 @@
 @import './pages/HomePage.css';
 @import './pages/CoursesPage.css';
 @import './pages/CourseDetail.css';
+@import './pages/StudentDashboard.css';
+@import './pages/InstructorDashboard.css';
+@import './pages/AdminDashboard.css';
 @import './pages/AuthPage.css';

@@ -43,13 +43,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
     <div className="auth-root">
       <div className="auth-card">
 
-        {/* Logo */}
         <button className="auth-brand" onClick={() => onNavigate('home')}>
           <div className="auth-brand__icon">E</div>
           <span className="auth-brand__name">EnglishHub</span>
         </button>
 
-        {/* Tabs */}
         <div className="auth-tabs">
           <button
             className={`auth-tab${mode === 'login' ? ' auth-tab--active' : ''}`}
@@ -61,7 +59,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
           >Đăng ký</button>
         </div>
 
-        {/* Heading */}
         <div>
           <h1 className="auth-title">
             {mode === 'login' ? 'Chào mừng trở lại' : 'Tạo tài khoản'}
@@ -71,7 +68,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
           </p>
         </div>
 
-        {/* Fields */}
         <div className="auth-fields">
           {mode === 'register' && (
             <div className="auth-field">
