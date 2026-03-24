@@ -96,6 +96,7 @@ class Course(models.Model):
     published_at  = models.DateTimeField('Ngày xuất bản', null=True, blank=True)
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
+    is_featured = models.BooleanField(default=False)
 
     class Meta:
         db_table            = 'courses'

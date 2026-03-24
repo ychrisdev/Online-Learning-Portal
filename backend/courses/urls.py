@@ -17,6 +17,7 @@ from .views import (
     ReviewCreateView,
     SectionListCreateView,
     SubmitCourseReviewView,
+    EnrollCourseView,
 )
 
 urlpatterns = [
@@ -24,6 +25,7 @@ urlpatterns = [
     path('',                        CourseListView.as_view(),              name='course-list'),
     path('categories/',             CategoryListView.as_view(),            name='category-list'),
     path('<slug:slug>/',            CourseDetailView.as_view(),            name='course-detail'),
+    path('<uuid:id>/enroll/',       EnrollCourseView.as_view(),            name='course-enroll'),
     path('<slug:slug>/reviews/',    ReviewCreateView.as_view(),            name='review-create'),
 
     # Instructor — khoá học

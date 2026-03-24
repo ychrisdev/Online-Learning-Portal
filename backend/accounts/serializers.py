@@ -78,7 +78,7 @@ class StudentProfileDetailSerializer(serializers.ModelSerializer):
     Trả về toàn bộ thông tin User + StudentProfile trong một response.
     Dùng ở GET /api/accounts/profile/ khi user là student.
     """
-    student_profile = StudentProfileSerializer(source='student_profile', read_only=True)
+    student_profile = StudentProfileSerializer( read_only=True)
 
     class Meta:
         model  = User
@@ -120,7 +120,7 @@ class InstructorProfileDetailSerializer(serializers.ModelSerializer):
     Trả về toàn bộ thông tin User + InstructorProfile trong một response.
     Dùng ở GET /api/accounts/profile/ khi user là instructor.
     """
-    instructor_profile = InstructorProfileSerializer(source='instructor_profile', read_only=True)
+    instructor_profile = InstructorProfileSerializer(read_only=True)
 
     class Meta:
         model  = User

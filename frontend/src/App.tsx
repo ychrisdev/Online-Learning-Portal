@@ -18,8 +18,10 @@ const NO_CHROME: Page[] = ['learning', 'auth'];
 const App: React.FC = () => {
   const [currentPage, setCurrentPage]       = useState<Page>('dashboard');
   const [activeCourseId, setActiveCourseId] = useState<string>('c1');
-  const [isLoggedIn, setIsLoggedIn]         = useState(false);
-  const [userRole, setUserRole]             = useState<Role>('admin');
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access'));
+  const [userRole, setUserRole] = useState<Role>(
+    (localStorage.getItem('role') as Role) || 'student'
+  );
   const [authMode, setAuthMode]             = useState<'login' | 'register'>('login');
   const [returnPage, setReturnPage]         = useState<Page>('home');
   const [navSearchQuery, setNavSearchQuery] = useState('');
@@ -47,7 +49,12 @@ const App: React.FC = () => {
 
   const handleAuthSuccess = () => {
     setIsLoggedIn(true);
-    setCurrentPage(returnPage === 'auth' ? 'home' : returnPage);
+
+    const role = localStorage.getItem('role') as Role;
+    if (role) setUserRole(role);
+
+    setCurrentPage('dashboard');
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

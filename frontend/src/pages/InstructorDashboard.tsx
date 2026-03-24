@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MOCK_COURSES } from '../data/mockData';
 import { formatPrice } from '../utils/format';
 
@@ -50,6 +50,9 @@ const MOCK_QUIZ_LIST = [
 const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
+  const [user, setUser] = useState<any>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [courseForm, setCourseForm] = useState({ title: '', description: '', level: 'Beginner', price: '' });
 
@@ -58,6 +61,34 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
 
   const [showQuizForm, setShowQuizForm] = useState(false);
   const [quizForm, setQuizForm] = useState({ title: '', courseId: '', questions: [{ question: '', options: ['', '', '', ''], correct: 0 }] });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem('access');
+
+      const res = await fetch('http://127.0.0.1:8000/api/auth/profile/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        localStorage.clear();
+        onNavigate('auth');
+        return;
+      }
+
+      const data = await res.json();
+
+      setUser(data);
+
+      if (data.avatar) {
+        setAvatarUrl(`http://127.0.0.1:8000${data.avatar}`);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const addQuestion = () => {
     setQuizForm(f => ({
@@ -73,14 +104,18 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
         <aside className="id-sidebar">
           <div className="id-profile">
             <div className="id-profile__avatar">
-              <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="32" cy="32" r="32" fill="#1B263B"/>
-                <circle cx="32" cy="24" r="10" fill="#415A77"/>
-                <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#415A77"/>
-              </svg>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" className="db-profile__avatar" />
+              ) : (
+                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="32" cy="32" r="32" fill="#1B263B"/>
+                  <circle cx="32" cy="24" r="10" fill="#415A77"/>
+                  <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#415A77"/>
+                </svg>
+              )}
             </div>
-            <strong className="id-profile__name">{MOCK_INSTRUCTOR.name}</strong>
-            <span className="id-profile__title">{MOCK_INSTRUCTOR.title}</span>
+            <strong className="id-profile__name">{user?.full_name || 'Instructor'}</strong>
+            <span className="id-profile__title">{user?.email || ''}</span>
           </div>
 
           <nav className="id-nav">
@@ -95,8 +130,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
             ))}
           </nav>
 
-          <button className="id-nav__item id-nav__item--back" onClick={() => onNavigate('home')}>
-            Về trang chủ
+          <button className="id-nav__item id-nav__item--back" onClick={() => {localStorage.clear(); onNavigate('home');}} >
+            Đăng xuất
           </button>
         </aside>
 
@@ -105,7 +140,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
           {activeTab === 'overview' && (
             <div className="id-content">
               <div className="id-page-header">
-                <h1 className="id-page-title">Xin chào, {MOCK_INSTRUCTOR.name.split(' ').pop()}</h1>
+                <h1 className="id-page-title">Xin chào, {user?.full_name?.split(' ').pop() || 'Instructor'}</h1>
                 <p className="id-page-sub">Quản lý khóa học và theo dõi học viên của bạn.</p>
               </div>
 

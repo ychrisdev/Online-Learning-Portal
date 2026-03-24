@@ -8,6 +8,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from enrollments.models import Enrollment
 
 from accounts.permissions import IsAdminUser, IsInstructor, IsInstructorOrAdmin
 from .models import Category, Course, Lesson, Review, Section
@@ -273,3 +274,32 @@ class AdminCourseRejectView(APIView):
         course.status = Course.Status.DRAFT
         course.save()
         return Response({'message': f'Khoá học "{course.title}" đã bị từ chối.'})
+    
+
+class EnrollCourseView(APIView):
+    """
+    POST /api/courses/<slug>/enroll/
+    Student đăng ký khóa học
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        course = generics.get_object_or_404(
+            Course,
+            slug=slug,
+            status=Course.Status.PUBLISHED
+        )
+
+        enrollment, created = Enrollment.objects.get_or_create(
+            student=request.user,
+            course=course
+        )
+
+        if created:
+            return Response({
+                "message": "Đăng ký khóa học thành công"
+            }, status=status.HTTP_201_CREATED)
+
+        return Response({
+            "message": "Bạn đã đăng ký khóa học này rồi"
+        }, status=status.HTTP_200_OK)

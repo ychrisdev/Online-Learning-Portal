@@ -21,12 +21,13 @@ from .views import (
 urlpatterns = [
     # ── Xác thực ──────────────────────────────────────────────────
     path('register/',        RegisterView.as_view(),         name='register'),
-    path('login/',           TokenObtainPairView.as_view(),  name='login'),
+    path('token/',           TokenObtainPairView.as_view(),  name='token'),
     path('logout/',          TokenBlacklistView.as_view(),   name='logout'),
     path('token/refresh/',   TokenRefreshView.as_view(),     name='token-refresh'),
 
     # ── Hồ sơ ─────────────────────────────────────────────────────
     # Trả về User + nested profile theo role (student/instructor/admin)
+    path('me/', ProfileView.as_view(), name='me'),  # ✅ chuẩn
     path('profile/',             ProfileView.as_view(),          name='profile'),
     path('change-password/',     ChangePasswordView.as_view(),   name='change-password'),
 
