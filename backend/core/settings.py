@@ -37,9 +37,30 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third-party
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+
+    'django_filters',
+    'drf_spectacular',     # Swagger / OpenAPI docs
+    'corsheaders',
+
+    # Local apps
+    'accounts',
+    'courses',
+    'enrollments',
+    'quizzes',
+    'payments',
 ]
 
+# Trỏ User model về accounts app
+AUTH_USER_MODEL = 'accounts.User'
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',   # phải đứng đầu
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -83,6 +104,43 @@ DATABASES = {
     }
 }
 
+# ── DRF ───────────────────────────────────────────────────────────────────────
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+
+ 
+# ── JWT ───────────────────────────────────────────────────────────────────────
+from datetime import timedelta
+ 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS':  True,    # refresh mới mỗi lần dùng
+    'BLACKLIST_AFTER_ROTATION': True,  # vô hiệu refresh cũ sau khi rotate
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+ 
+# ── Swagger ───────────────────────────────────────────────────────────────────
+SPECTACULAR_SETTINGS = {
+    'TITLE':       'E-Learning API',
+    'DESCRIPTION': 'API cho hệ thống học trực tuyến',
+    'VERSION':     '1.0.0',
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -124,3 +182,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ── Media (avatar, thumbnail, video, certificate) ─────────────────────────────
+import os
+MEDIA_URL  = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+ 
+# ── CORS (cho React frontend) ───────────────────────────────────────────────── 
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',   # Vite dev server
+    'http://localhost:3000',   # CRA dev server
+]

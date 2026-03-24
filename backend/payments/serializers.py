@@ -1,0 +1,38 @@
+"""
+payments/serializers.py
+"""
+from rest_framework import serializers
+from .models import Transaction
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    course_title = serializers.CharField(source='course.title', read_only=True)
+
+    class Meta:
+        model  = Transaction
+        fields = [
+            'id', 'course', 'course_title', 'amount', 'status',
+            'method', 'ref_code', 'gateway_ref', 'note', 'created_at', 'paid_at',
+        ]
+        read_only_fields = [
+            'id', 'status', 'ref_code', 'gateway_ref', 'created_at', 'paid_at',
+        ]
+
+
+class InitiatePaymentSerializer(serializers.Serializer):
+    """Học viên bắt đầu thanh toán — 5.1.5"""
+    course_id = serializers.UUIDField()
+    method    = serializers.ChoiceField(choices=Transaction.Method.choices)
+
+
+class AdminTransactionSerializer(serializers.ModelSerializer):
+    """Admin xem thống kê doanh thu — 5.3.3"""
+    student_name = serializers.CharField(source='student.full_name', read_only=True)
+    course_title = serializers.CharField(source='course.title', read_only=True)
+
+    class Meta:
+        model  = Transaction
+        fields = [
+            'id', 'student_name', 'course_title', 'amount', 'status',
+            'method', 'ref_code', 'created_at', 'paid_at',
+        ]
