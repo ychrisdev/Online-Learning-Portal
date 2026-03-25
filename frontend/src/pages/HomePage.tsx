@@ -2,7 +2,7 @@ import React from 'react';
 import { MOCK_COURSES, MOCK_CATEGORIES, TESTIMONIALS } from '../data/mockData';
 
 interface HomePageProps {
-  onNavigate: (page: string, courseId?: string) => void;
+  onNavigate: (page: string, courseId?: string, searchQuery?: string) => void;
 }
 
 const LEVELS = [
@@ -11,36 +11,42 @@ const LEVELS = [
     name: 'Mới bắt đầu',
     desc: 'Làm quen với bảng chữ cái, phát âm và giao tiếp cơ bản nhất.',
     color: '#4CAF82',
+    filter: 'beginner',
   },
   {
     code: 'A2',
     name: 'Sơ cấp',
     desc: 'Xây dựng vốn từ vựng và câu đơn giản trong cuộc sống hàng ngày.',
     color: '#5BA4CF',
+    filter: 'beginner',
   },
   {
     code: 'B1',
     name: 'Trung cấp',
     desc: 'Giao tiếp tự tin hơn, hiểu nội dung quen thuộc và diễn đạt ý kiến.',
     color: '#778DA9',
+    filter: 'intermediate',
   },
   {
     code: 'B2',
     name: 'Trung cao',
     desc: 'Thảo luận về nhiều chủ đề, đọc hiểu văn bản phức tạp.',
     color: '#415A77',
+    filter: 'intermediate',
   },
   {
     code: 'C1',
     name: 'Nâng cao',
     desc: 'Sử dụng tiếng Anh linh hoạt, hiệu quả trong học thuật và công việc.',
     color: '#2E4A6B',
+    filter: 'advanced',
   },
   {
     code: 'C2',
     name: 'Thành thạo',
     desc: 'Nắm vững tiếng Anh ở mức gần như người bản ngữ.',
     color: '#1B263B',
+    filter: 'advanced',
   },
 ];
 
@@ -124,7 +130,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               <button
                 key={lv.code}
                 className="level-card"
-                onClick={() => onNavigate('courses')}
+                onClick={() => onNavigate('courses', undefined, `cat:${lv.code}`)}
                 style={{ '--lv-color': lv.color } as React.CSSProperties}
               >
                 <div className="level-card__header">
