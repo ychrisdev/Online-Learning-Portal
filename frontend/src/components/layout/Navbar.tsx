@@ -10,6 +10,15 @@ interface NavbarProps {
   searchValue?: string;
 }
 
+const normalizeText = (str: string) => {
+  return str
+    .toLowerCase()
+    .normalize('NFD') // tách dấu
+    .replace(/[\u0300-\u036f]/g, '') // xóa dấu
+    .replace(/\s+/g, ' ') // chuẩn hóa khoảng trắng
+    .trim();
+};
+
 const Navbar: React.FC<NavbarProps> = ({
   currentPage,
   onNavigate,
@@ -35,11 +44,15 @@ const Navbar: React.FC<NavbarProps> = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = searchQuery.trim();
+
+    const raw = searchQuery.trim();
+    if (!raw) return;
+
     if (currentPage === 'courses') {
-      onSearch?.(q);
+      // gửi cả 2 để debug
+      onSearch?.(raw);
     } else {
-      if (q) onNavigate('courses', undefined, q);
+      onNavigate('courses', undefined, raw);
     }
   };
 

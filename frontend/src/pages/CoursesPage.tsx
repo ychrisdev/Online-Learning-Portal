@@ -35,6 +35,15 @@ const SORTS = [
   { value: 'newest',  label: 'Mới nhất'  },
 ] as const;
 
+const normalizeText = (str: string) => {
+  return str
+    .toLowerCase()
+    .normalize('NFD') // tách dấu
+    .replace(/[\u0300-\u036f]/g, '') // xóa dấu
+    .replace(/\s+/g, '') // ❗ bỏ luôn khoảng trắng
+    .trim();
+};
+
 // ── Component ──────────────────────────────────────────────────────────────────
 const CoursesPage: React.FC<CoursesPageProps> = ({
   onNavigate,
@@ -95,12 +104,19 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
     let list = [...courses];
 
     if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(c =>
-        c.title?.toLowerCase().includes(q) ||
-        c.instructor_name?.toLowerCase().includes(q) ||
-        c.category_name?.toLowerCase().includes(q)
-      );
+      const q = normalizeText(search);
+
+      list = list.filter(c => {
+        const title = normalizeText(c.title || '');
+        const instructor = normalizeText(c.instructor_name || '');
+        const category = normalizeText(c.category_name || '');
+
+        return (
+          title.includes(q) ||
+          instructor.includes(q) ||
+          category.includes(q)
+        );
+      });
     }
 
     if (selectedCat)              list = list.filter(c => c.category_name === selectedCat);
