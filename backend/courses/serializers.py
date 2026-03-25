@@ -80,6 +80,7 @@ class CourseListSerializer(serializers.ModelSerializer):
             'price', 'discount_percent', 'sale_price',   # giá gốc + % giảm + giá sau giảm
             'level', 'avg_rating', 'total_students',
             'category_name', 'instructor_name',
+            'is_featured',
         ]
 
 

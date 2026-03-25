@@ -18,8 +18,10 @@ const NO_CHROME: Page[] = ['learning', 'auth'];
 const App: React.FC = () => {
   const [currentPage, setCurrentPage]       = useState<Page>('dashboard');
   const [activeCourseId, setActiveCourseId] = useState<string>('c1');
-  const [isLoggedIn, setIsLoggedIn]         = useState(false);
-  const [userRole, setUserRole]             = useState<Role>('admin');
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access'));
+  const [userRole, setUserRole] = useState<Role>(
+    (localStorage.getItem('role') as Role) || 'student'
+  );
   const [authMode, setAuthMode]             = useState<'login' | 'register'>('login');
   const [returnPage, setReturnPage]         = useState<Page>('home');
   const [navSearchQuery, setNavSearchQuery] = useState('');
@@ -47,7 +49,12 @@ const App: React.FC = () => {
 
   const handleAuthSuccess = () => {
     setIsLoggedIn(true);
-    setCurrentPage(returnPage === 'auth' ? 'home' : returnPage);
+
+    const role = localStorage.getItem('role') as Role;
+    if (role) setUserRole(role);
+
+    setCurrentPage('dashboard');
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -55,11 +62,20 @@ const App: React.FC = () => {
 
   const hideChrome = NO_CHROME.includes(currentPage);
 
-  const renderDashboard = () => {
-    if (userRole === 'admin')      return <AdminDashboard onNavigate={navigate} />;
-    if (userRole === 'instructor') return <InstructorDashboard onNavigate={navigate} />;
-    return <StudentDashboard onNavigate={navigate} />;
+  const handleLogout = () => {
+    ['access', 'refresh', 'role', 'user'].forEach(k => localStorage.removeItem(k));
+    setIsLoggedIn(false);
+    setUserRole('student');
+    navigate('home');
   };
+
+  // Sửa renderDashboard
+  const renderDashboard = () => {
+    if (userRole === 'admin')      return <AdminDashboard onNavigate={navigate} onLogout={handleLogout} />;
+    if (userRole === 'instructor') return <InstructorDashboard onNavigate={navigate} onLogout={handleLogout} />;
+    return <StudentDashboard onNavigate={navigate} onLogout={handleLogout} />;
+  };
+
 
   return (
     <div className="app">

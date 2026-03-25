@@ -4,7 +4,33 @@ accounts/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import User
+from .models import User, StudentProfile, InstructorProfile
+
+
+class StudentProfileInline(admin.StackedInline):
+    model  = StudentProfile
+    can_delete = False
+    verbose_name_plural = 'Hồ sơ học viên'
+    fields = [
+        'phone_number', 'date_of_birth', 'gender', 'country', 'city',
+        'current_level', 'learning_goal', 'target_exam', 'study_hours_per_week',
+        'occupation', 'education',
+        'preferred_language', 'receive_email_notifications', 'receive_sms_notifications',
+        'facebook_url', 'linkedin_url',
+    ]
+
+
+class InstructorProfileInline(admin.StackedInline):
+    model  = InstructorProfile
+    can_delete = False
+    verbose_name_plural = 'Hồ sơ giảng viên'
+    fields = [
+        'title', 'specializations', 'years_experience', 'certifications',
+        'phone_number', 'website_url', 'linkedin_url', 'youtube_url',
+        'total_students', 'total_courses', 'avg_rating',
+        'is_verified', 'verified_at',
+    ]
+    readonly_fields = ['total_students', 'total_courses', 'avg_rating']
 
 
 @admin.register(User)
@@ -24,3 +50,29 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('full_name', 'email', 'role'),
         }),
     )
+
+    def get_inline_instances(self, request, obj=None):
+        """Hiển thị inline tương ứng theo role của user."""
+        if obj is None:
+            return []
+        if obj.role == User.Role.STUDENT:
+            return [StudentProfileInline(self.model, self.admin_site)]
+        if obj.role == User.Role.INSTRUCTOR:
+            return [InstructorProfileInline(self.model, self.admin_site)]
+        return []
+
+
+@admin.register(StudentProfile)
+class StudentProfileAdmin(admin.ModelAdmin):
+    list_display  = ['user', 'current_level', 'learning_goal', 'country', 'updated_at']
+    list_filter   = ['current_level', 'learning_goal', 'gender']
+    search_fields = ['user__username', 'user__email', 'user__full_name']
+    readonly_fields = ['updated_at']
+
+
+@admin.register(InstructorProfile)
+class InstructorProfileAdmin(admin.ModelAdmin):
+    list_display  = ['user', 'title', 'years_experience', 'avg_rating', 'is_verified', 'updated_at']
+    list_filter   = ['is_verified']
+    search_fields = ['user__username', 'user__email', 'user__full_name']
+    readonly_fields = ['total_students', 'total_courses', 'avg_rating', 'verified_at', 'updated_at']

@@ -17,19 +17,22 @@ from .views import (
     ReviewCreateView,
     SectionListCreateView,
     SubmitCourseReviewView,
+    EnrollCourseView,
 )
 
 urlpatterns = [
     # Public
     path('',                        CourseListView.as_view(),              name='course-list'),
     path('categories/',             CategoryListView.as_view(),            name='category-list'),
-    path('<slug:slug>/',            CourseDetailView.as_view(),            name='course-detail'),
-    path('<slug:slug>/reviews/',    ReviewCreateView.as_view(),            name='review-create'),
 
     # Instructor — khoá học
     path('mine/',                   InstructorCourseListView.as_view(),    name='instructor-course-list'),
     path('mine/<uuid:id>/',         InstructorCourseDetailView.as_view(),  name='instructor-course-detail'),
     path('mine/<uuid:id>/submit/',  SubmitCourseReviewView.as_view(),      name='course-submit'),
+
+    path('<slug:slug>/',            CourseDetailView.as_view(),            name='course-detail'),
+    path('<uuid:id>/enroll/',       EnrollCourseView.as_view(),            name='course-enroll'),
+    path('<slug:slug>/reviews/',    ReviewCreateView.as_view(),            name='review-create'),    
 
     # Instructor — sections & lessons
     path('<uuid:course_id>/sections/',          SectionListCreateView.as_view(),  name='section-list'),

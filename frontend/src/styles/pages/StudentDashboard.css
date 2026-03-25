@@ -35,6 +35,11 @@
 .db-profile__avatar-wrap {
   position: relative;
   display: inline-block;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: visible; /* giữ visible để nút ✏️ không bị cắt */
+  flex-shrink: 0;
 }
 
 .db-profile__avatar {
@@ -42,6 +47,7 @@
   height: 72px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
   border: 2px solid rgba(119, 141, 169, 0.3);
   display: block;
 }

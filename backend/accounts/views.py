@@ -7,10 +7,15 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .permissions import IsAdminUser
+from .models import StudentProfile, InstructorProfile
+from .permissions import IsAdminUser, IsStudent, IsInstructor
 from .serializers import (
     ChangePasswordSerializer,
     RegisterSerializer,
+    StudentProfileDetailSerializer,
+    StudentProfileSerializer,
+    InstructorProfileDetailSerializer,
+    InstructorProfileSerializer,
     UserAdminSerializer,
     UserProfileSerializer,
 )
@@ -24,9 +29,10 @@ class RegisterView(generics.CreateAPIView):
     """
     POST /api/accounts/register/
     Đăng ký tài khoản mới (role mặc định: student).
+    Tự động tạo StudentProfile sau khi tạo user.
     """
-    queryset         = User.objects.all()
-    serializer_class = RegisterSerializer
+    queryset           = User.objects.all()
+    serializer_class   = RegisterSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
@@ -44,12 +50,24 @@ class RegisterView(generics.CreateAPIView):
 
 class ProfileView(generics.RetrieveUpdateAPIView):
     """
-    GET  /api/accounts/profile/   — xem hồ sơ
-    PUT  /api/accounts/profile/   — cập nhật toàn bộ
+    GET   /api/accounts/profile/  — xem hồ sơ User (kèm nested profile theo role)
+    PUT   /api/accounts/profile/  — cập nhật toàn bộ
     PATCH /api/accounts/profile/  — cập nhật một phần
+
+    Trả về serializer khác nhau tuỳ role:
+      - student    → StudentProfileDetailSerializer  (User + StudentProfile)
+      - instructor → InstructorProfileDetailSerializer (User + InstructorProfile)
+      - admin      → UserProfileSerializer (chỉ User)
     """
-    serializer_class   = UserProfileSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        user = self.request.user
+        if user.is_student:
+            return StudentProfileDetailSerializer
+        if user.is_instructor:
+            return InstructorProfileDetailSerializer
+        return UserProfileSerializer
 
     def get_object(self):
         return self.request.user
@@ -69,6 +87,43 @@ class ChangePasswordView(APIView):
         return Response({'message': 'Đổi mật khẩu thành công.'})
 
 
+# ── 5.1.1 Hồ sơ mở rộng: Student ─────────────────────────────────────────────
+
+class StudentProfileView(generics.RetrieveUpdateAPIView):
+    """
+    GET   /api/accounts/profile/student/
+    PATCH /api/accounts/profile/student/
+
+    Học viên xem và cập nhật hồ sơ mở rộng của mình:
+    trình độ tiếng Anh, mục tiêu học tập, thông tin cá nhân, v.v.
+    """
+    serializer_class   = StudentProfileSerializer
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get_object(self):
+        # get_or_create phòng trường hợp profile chưa tồn tại
+        profile, _ = StudentProfile.objects.get_or_create(user=self.request.user)
+        return profile
+
+
+# ── Hồ sơ mở rộng: Instructor ─────────────────────────────────────────────────
+
+class InstructorProfileView(generics.RetrieveUpdateAPIView):
+    """
+    GET   /api/accounts/profile/instructor/
+    PATCH /api/accounts/profile/instructor/
+
+    Giảng viên xem và cập nhật hồ sơ chuyên môn của mình.
+    Các trường thống kê (total_students, avg_rating…) là read-only.
+    """
+    serializer_class   = InstructorProfileSerializer
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def get_object(self):
+        profile, _ = InstructorProfile.objects.get_or_create(user=self.request.user)
+        return profile
+
+
 # ── 5.3.1 Admin quản lý người dùng ────────────────────────────────────────────
 
 class UserListView(generics.ListAPIView):
@@ -80,8 +135,8 @@ class UserListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get_queryset(self):
-        qs   = User.objects.all().order_by('-date_joined')
-        role = self.request.query_params.get('role')
+        qs     = User.objects.all().order_by('-date_joined')
+        role   = self.request.query_params.get('role')
         active = self.request.query_params.get('is_active')
         if role:
             qs = qs.filter(role=role)

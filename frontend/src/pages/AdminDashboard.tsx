@@ -94,6 +94,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
           <button className="ad-nav__item ad-nav__item--back" onClick={() => onNavigate('home')}>
             Về trang chủ
           </button>
+
+          <button
+            className="ad-nav__item ad-nav__item--danger"
+            onClick={async () => {
+              const access = localStorage.getItem('access');
+              if (access) {
+                // Gọi API logout để invalidate token trên server
+                await fetch('http://127.0.0.1:8000/api/accounts/logout/', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${access}` },
+                });
+              }
+
+              // Xoá token & thông tin user ở localStorage
+              localStorage.removeItem('access');
+              localStorage.removeItem('refresh');
+              localStorage.removeItem('role');
+              localStorage.removeItem('user');
+
+              // Quay về trang chủ hoặc login
+              onNavigate('home');
+            }}
+          >
+            Đăng xuất
+          </button>
         </aside>
 
         <main className="ad-main">
