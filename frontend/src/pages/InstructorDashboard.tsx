@@ -1,113 +1,160 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_COURSES } from '../data/mockData';
 import { formatPrice } from '../utils/format';
 
 interface InstructorDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
+  onLogout: () => void;
 }
 
 type Tab = 'overview' | 'courses' | 'lessons' | 'quiz' | 'students';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview',  label: 'Tổng quan' },
-  { id: 'courses',   label: 'Khóa học' },
-  { id: 'lessons',   label: 'Bài học' },
-  { id: 'quiz',      label: 'Bài kiểm tra' },
-  { id: 'students',  label: 'Học viên' },
+  { id: 'overview', label: 'Tổng quan' },
+  { id: 'courses',  label: 'Khóa học' },
+  { id: 'lessons',  label: 'Bài học' },
+  { id: 'quiz',     label: 'Bài kiểm tra' },
+  { id: 'students', label: 'Học viên' },
 ];
 
-const MOCK_INSTRUCTOR = {
-  name: 'Ms. Emily Tran',
-  email: 'emily@englishhub.vn',
-  title: 'Giảng viên tiếng Anh · CELTA Cambridge',
-  totalStudents: 32400,
-  totalCourses: 3,
-  totalRevenue: 12450000,
-  avgRating: 4.9,
-};
+const API = 'http://127.0.0.1:8000';
 
-const MOCK_INSTRUCTOR_COURSES = MOCK_COURSES.slice(0, 3).map((c, i) => ({
-  ...c,
-  status: i === 2 ? 'draft' : 'published',
-  revenue: [4200000, 5800000, 2450000][i],
-  enrolledCount: [1840, 2150, 890][i],
-}));
+const authHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('access')}`,
+  'Content-Type': 'application/json',
+});
 
-const MOCK_STUDENTS = [
-  { id: 's1', name: 'Hoàng Minh',    email: 'hminh@gmail.com',   course: 'Tiếng Anh A1', progress: 72, joinedDate: '2024-10-12' },
-  { id: 's2', name: 'Thu Hương',     email: 'thuhuong@gmail.com', course: 'Phát âm chuẩn', progress: 45, joinedDate: '2024-11-03' },
-  { id: 's3', name: 'Quang Huy',     email: 'qhuy@gmail.com',    course: 'Tiếng Anh A1', progress: 100, joinedDate: '2024-09-20' },
-  { id: 's4', name: 'Minh Châu',     email: 'mchau@gmail.com',   course: 'Phát âm chuẩn', progress: 88, joinedDate: '2024-10-30' },
-  { id: 's5', name: 'Bảo Nguyên',    email: 'bnguyen@gmail.com', course: 'Tiếng Anh A1', progress: 23, joinedDate: '2024-11-15' },
-];
+const toList = (data: any): any[] =>
+  Array.isArray(data) ? data : (data?.results ?? []);
 
-const MOCK_QUIZ_LIST = [
-  { id: 'q1', title: 'Kiểm tra phát âm — Chương 1', course: 'Tiếng Anh A1', questions: 10, attempts: 342 },
-  { id: 'q2', title: 'Nguyên âm & Phụ âm', course: 'Phát âm chuẩn', questions: 15, attempts: 198 },
-  { id: 'q3', title: 'Giao tiếp cơ bản', course: 'Tiếng Anh A1', questions: 8, attempts: 567 },
-];
+const thumbSrc = (t: string | null) =>
+  !t ? null : t.startsWith('http') ? t : `${API}${t}`;
 
-const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate }) => {
+const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, onLogout }) => {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
-  const [user, setUser] = useState<any>(null);
+  // ── Profile ────────────────────────────────────────────────────────────────
+  const [user, setUser]           = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  // ── Real data ──────────────────────────────────────────────────────────────
+  const [courses,  setCourses]  = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+
+  const [loadingCourses,  setLoadingCourses]  = useState(true);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+
+  // ── Form states ────────────────────────────────────────────────────────────
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [courseForm, setCourseForm] = useState({ title: '', description: '', level: 'Beginner', price: '' });
 
   const [showLessonForm, setShowLessonForm] = useState(false);
-  const [lessonForm, setLessonForm] = useState({ title: '', courseId: '', type: 'video', file: '' });
+  const [lessonForm, setLessonForm] = useState({ title: '', courseId: '', type: 'video' });
 
   const [showQuizForm, setShowQuizForm] = useState(false);
-  const [quizForm, setQuizForm] = useState({ title: '', courseId: '', questions: [{ question: '', options: ['', '', '', ''], correct: 0 }] });
+  const [quizForm, setQuizForm] = useState({
+    title: '', courseId: '',
+    questions: [{ question: '', options: ['', '', '', ''], correct: 0 }],
+  });
 
+  // ── Fetch profile ──────────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem('access');
-
-      const res = await fetch('http://127.0.0.1:8000/api/auth/profile/', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        localStorage.clear();
-        onNavigate('auth');
-        return;
-      }
-
+    (async () => {
+      const res = await fetch(`${API}/api/auth/profile/`, { headers: authHeaders() });
+      if (!res.ok) { localStorage.clear(); onNavigate('auth'); return; }
       const data = await res.json();
-
       setUser(data);
-
       if (data.avatar) {
-        setAvatarUrl(`http://127.0.0.1:8000${data.avatar}`);
+        setAvatarUrl(data.avatar.startsWith('http') ? data.avatar : `${API}${data.avatar}`);
       }
-    };
-
-    fetchProfile();
+    })();
   }, []);
 
-  const addQuestion = () => {
-    setQuizForm(f => ({
-      ...f,
-      questions: [...f.questions, { question: '', options: ['', '', '', ''], correct: 0 }],
-    }));
-  };
+  // ── Fetch courses — GET /api/courses/mine/ ────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      setLoadingCourses(true);
+      try {
+        const res = await fetch(`${API}/api/courses/mine/`, { headers: authHeaders() });
+        if (res.ok) setCourses(toList(await res.json()));
+      } catch (_) {}
+      setLoadingCourses(false);
+    })();
+  }, []);
 
+  // ── Fetch students — GET /api/enrollments/instructor/<course_id>/students/
+  // Gọi song song cho tất cả courses rồi gộp lại
+  useEffect(() => {
+    if (courses.length === 0) return;
+    (async () => {
+      setLoadingStudents(true);
+      try {
+        const allResults = await Promise.all(
+          courses.map(c =>
+            fetch(`${API}/api/enrollments/instructor/${c.id}/students/`, { headers: authHeaders() })
+              .then(r => r.ok ? r.json() : [])
+              .then(data => toList(data).map((item: any) => ({
+                id:         item.id,
+                name:       item.student?.full_name  ?? item.student_name  ?? '—',
+                email:      item.student?.email      ?? item.student_email ?? '—',
+                course:     c.title,
+                progress:   item.progress            ?? 0,
+                joinedDate: (item.created_at         ?? item.enrolled_at   ?? '').slice(0, 10),
+              })))
+          )
+        );
+        // Gộp + loại trùng theo id
+        const merged = allResults.flat();
+        const unique = merged.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
+        setStudents(unique);
+      } catch (_) {}
+      setLoadingStudents(false);
+    })();
+  }, [courses]);
+
+  // ── Derived stats ──────────────────────────────────────────────────────────
+  const totalRevenue = courses.reduce((a, c) => {
+    const price    = Number(c.sale_price) || Number(c.price) || 0;
+    const students = Number(c.total_students) || 0;
+    return a + price * students;
+  }, 0);
+  const avgRating    = courses.length > 0
+    ? (courses.reduce((a, c) => a + (Number(c.rating) || 0), 0) / courses.length).toFixed(1)
+    : '—';
+
+  // Quiz list: lấy từ curriculum của courses nếu có
+  const quizList = courses.flatMap(c =>
+    (c.curriculum ?? c.sections ?? []).flatMap((s: any) =>
+      (s.lessons ?? [])
+        .filter((l: any) => l.quiz || l.has_quiz)
+        .map((l: any) => ({
+          id:        l.id,
+          title:     l.quiz?.title          ?? l.title,
+          course:    c.title,
+          questions: l.quiz?.questions_count ?? 0,
+          attempts:  l.quiz?.attempts_count  ?? 0,
+        }))
+    )
+  );
+
+  const addQuestion = () => setQuizForm(f => ({
+    ...f,
+    questions: [...f.questions, { question: '', options: ['', '', '', ''], correct: 0 }],
+  }));
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="id-page">
       <div className="container id-layout">
 
+        {/* ── Sidebar ── */}
         <aside className="id-sidebar">
           <div className="id-profile">
             <div className="id-profile__avatar">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="avatar" className="db-profile__avatar" />
               ) : (
-                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"
+                  style={{ width: 64, height: 64, display: 'block' }}>
                   <circle cx="32" cy="32" r="32" fill="#1B263B"/>
                   <circle cx="32" cy="24" r="10" fill="#415A77"/>
                   <path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="#415A77"/>
@@ -130,68 +177,86 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
             ))}
           </nav>
 
-          <button className="id-nav__item id-nav__item--back" onClick={() => {localStorage.clear(); onNavigate('home');}} >
+          <button className="id-nav__item id-nav__item--back" onClick={onLogout}>
             Đăng xuất
           </button>
         </aside>
 
+        {/* ── Main ── */}
         <main className="id-main">
 
+          {/* ════ OVERVIEW ════ */}
           {activeTab === 'overview' && (
             <div className="id-content">
               <div className="id-page-header">
-                <h1 className="id-page-title">Xin chào, {user?.full_name?.split(' ').pop() || 'Instructor'}</h1>
+                <h1 className="id-page-title">
+                  Xin chào, {user?.full_name?.split(' ').pop() || 'Instructor'} 👋
+                </h1>
                 <p className="id-page-sub">Quản lý khóa học và theo dõi học viên của bạn.</p>
               </div>
 
               <div className="id-stats-grid">
                 <div className="id-stat-card">
-                  <span className="id-stat-card__value">{MOCK_INSTRUCTOR.totalCourses}</span>
+                  <span className="id-stat-card__value">{loadingCourses ? '…' : courses.length}</span>
                   <span className="id-stat-card__label">Khóa học</span>
                 </div>
                 <div className="id-stat-card">
-                  <span className="id-stat-card__value">{MOCK_INSTRUCTOR.totalStudents.toLocaleString()}</span>
+                  <span className="id-stat-card__value">{loadingStudents ? '…' : students.length.toLocaleString()}</span>
                   <span className="id-stat-card__label">Học viên</span>
                 </div>
                 <div className="id-stat-card">
-                  <span className="id-stat-card__value">{formatPrice(MOCK_INSTRUCTOR.totalRevenue, 'VND')}</span>
+                  <span className="id-stat-card__value">{loadingCourses ? '…' : formatPrice(totalRevenue, 'VND')}</span>
                   <span className="id-stat-card__label">Doanh thu</span>
                 </div>
                 <div className="id-stat-card">
-                  <span className="id-stat-card__value">{MOCK_INSTRUCTOR.avgRating}</span>
+                  <span className="id-stat-card__value">{loadingCourses ? '…' : avgRating}</span>
                   <span className="id-stat-card__label">Đánh giá TB</span>
                 </div>
               </div>
 
               <h2 className="id-section-title">Khóa học của tôi</h2>
               <div className="id-course-table-wrap">
-                <table className="id-table">
-                  <thead><tr><th>Khóa học</th><th>Học viên</th><th>Doanh thu</th><th>Trạng thái</th></tr></thead>
-                  <tbody>
-                    {MOCK_INSTRUCTOR_COURSES.map(c => (
-                      <tr key={c.id}>
-                        <td className="id-table__title">{c.title}</td>
-                        <td>{c.enrolledCount.toLocaleString()}</td>
-                        <td>{formatPrice(c.revenue, 'VND')}</td>
-                        <td>
-                          <span className={`id-badge id-badge--${c.status}`}>
-                            {c.status === 'published' ? 'Đã đăng' : 'Nháp'}
-                          </span>
-                        </td>
+                {loadingCourses ? (
+                  <p className="id-muted">Đang tải…</p>
+                ) : courses.length === 0 ? (
+                  <p className="id-muted">Chưa có khóa học nào.</p>
+                ) : (
+                  <table className="id-table">
+                    <thead>
+                      <tr>
+                        <th>Khóa học</th>
+                        <th>Học viên</th>
+                        <th>Doanh thu</th>
+                        <th>Trạng thái</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {courses.map(c => (
+                        <tr key={c.id}>
+                          <td className="id-table__title">{c.title}</td>
+                          <td>{(c.total_students ?? 0).toLocaleString()}</td>
+                          <td>{formatPrice((Number(c.sale_price) || Number(c.price) || 0) * (Number(c.total_students) || 0), 'VND')}</td>
+                          <td>
+                            <span className={`id-badge id-badge--${c.status}`}>
+                              {c.status === 'published' ? 'Đã đăng' : 'Nháp'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           )}
 
+          {/* ════ COURSES ════ */}
           {activeTab === 'courses' && (
             <div className="id-content">
               <div className="id-page-header id-page-header--row">
                 <div>
                   <h1 className="id-page-title">Quản lý khóa học</h1>
-                  <p className="id-page-sub">{MOCK_INSTRUCTOR_COURSES.length} khóa học</p>
+                  <p className="id-page-sub">{loadingCourses ? '…' : `${courses.length} khóa học`}</p>
                 </div>
                 <button className="id-btn-primary" onClick={() => setShowCourseForm(v => !v)}>
                   {showCourseForm ? 'Hủy' : '+ Tạo khóa học'}
@@ -205,12 +270,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                     <div className="id-field id-field--full">
                       <label className="id-field__label">Tên khóa học</label>
                       <input className="id-field__input" placeholder="Ví dụ: Tiếng Anh B2 — Nâng cao"
-                        value={courseForm.title} onChange={e => setCourseForm(f => ({ ...f, title: e.target.value }))} />
+                        value={courseForm.title}
+                        onChange={e => setCourseForm(f => ({ ...f, title: e.target.value }))} />
                     </div>
                     <div className="id-field id-field--full">
                       <label className="id-field__label">Mô tả ngắn</label>
                       <textarea className="id-field__textarea" rows={3} placeholder="Mô tả ngắn gọn về khóa học..."
-                        value={courseForm.description} onChange={e => setCourseForm(f => ({ ...f, description: e.target.value }))} />
+                        value={courseForm.description}
+                        onChange={e => setCourseForm(f => ({ ...f, description: e.target.value }))} />
                     </div>
                     <div className="id-field">
                       <label className="id-field__label">Cấp độ</label>
@@ -224,7 +291,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                     <div className="id-field">
                       <label className="id-field__label">Học phí (VND)</label>
                       <input className="id-field__input" type="number" placeholder="0 = Miễn phí"
-                        value={courseForm.price} onChange={e => setCourseForm(f => ({ ...f, price: e.target.value }))} />
+                        value={courseForm.price}
+                        onChange={e => setCourseForm(f => ({ ...f, price: e.target.value }))} />
                     </div>
                   </div>
                   <div className="id-form-actions">
@@ -234,27 +302,38 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                 </div>
               )}
 
-              <div className="id-course-list">
-                {MOCK_INSTRUCTOR_COURSES.map(c => (
-                  <div key={c.id} className="id-course-row">
-                    <img src={c.thumbnail} alt={c.title} className="id-course-row__thumb" />
-                    <div className="id-course-row__info">
-                      <span className="id-course-row__title">{c.title}</span>
-                      <span className="id-course-row__meta">{c.enrolledCount.toLocaleString()} học viên · {formatPrice(c.revenue, 'VND')}</span>
+              {loadingCourses ? (
+                <p className="id-muted">Đang tải…</p>
+              ) : courses.length === 0 ? (
+                <p className="id-muted">Chưa có khóa học nào.</p>
+              ) : (
+                <div className="id-course-list">
+                  {courses.map(c => (
+                    <div key={c.id} className="id-course-row">
+                      {thumbSrc(c.thumbnail) && (
+                        <img src={thumbSrc(c.thumbnail)!} alt={c.title} className="id-course-row__thumb" />
+                      )}
+                      <div className="id-course-row__info">
+                        <span className="id-course-row__title">{c.title}</span>
+                        <span className="id-course-row__meta">
+                          {(c.total_students ?? 0).toLocaleString()} học viên · {formatPrice(Number(c.sale_price) || Number(c.price) || 0, 'VND')}
+                        </span>
+                      </div>
+                      <span className={`id-badge id-badge--${c.status}`}>
+                        {c.status === 'published' ? 'Đã đăng' : 'Nháp'}
+                      </span>
+                      <div className="id-course-row__actions">
+                        <button className="id-btn-sm">Sửa</button>
+                        <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
+                      </div>
                     </div>
-                    <span className={`id-badge id-badge--${c.status}`}>
-                      {c.status === 'published' ? 'Đã đăng' : 'Nháp'}
-                    </span>
-                    <div className="id-course-row__actions">
-                      <button className="id-btn-sm">Sửa</button>
-                      <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
+          {/* ════ LESSONS ════ */}
           {activeTab === 'lessons' && (
             <div className="id-content">
               <div className="id-page-header id-page-header--row">
@@ -276,7 +355,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                       <select className="id-field__input" value={lessonForm.courseId}
                         onChange={e => setLessonForm(f => ({ ...f, courseId: e.target.value }))}>
                         <option value="">Chọn khóa học...</option>
-                        {MOCK_INSTRUCTOR_COURSES.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                       </select>
                     </div>
                     <div className="id-field">
@@ -291,7 +370,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                     <div className="id-field id-field--full">
                       <label className="id-field__label">Tiêu đề bài học</label>
                       <input className="id-field__input" placeholder="Ví dụ: Phát âm nguyên âm đôi"
-                        value={lessonForm.title} onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))} />
+                        value={lessonForm.title}
+                        onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))} />
                     </div>
                     <div className="id-field id-field--full">
                       <label className="id-field__label">
@@ -301,9 +381,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                         <input type="file" style={{ display: 'none' }}
                           accept={lessonForm.type === 'video' ? 'video/*' : '.pdf,.doc,.docx'} />
                         <span className="id-upload-area__icon">↑</span>
-                        <span className="id-upload-area__text">
-                          Kéo thả hoặc bấm để chọn file
-                        </span>
+                        <span className="id-upload-area__text">Kéo thả hoặc bấm để chọn file</span>
                         <span className="id-upload-area__hint">
                           {lessonForm.type === 'video' ? 'MP4, MOV · Tối đa 500MB' : 'PDF, DOC · Tối đa 50MB'}
                         </span>
@@ -317,36 +395,53 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
               )}
 
               <div className="id-lesson-list">
-                {MOCK_INSTRUCTOR_COURSES.map(course => (
-                  <div key={course.id} className="id-lesson-group">
-                    <div className="id-lesson-group__header">
-                      <span className="id-lesson-group__title">{course.title}</span>
-                      <span className="id-lesson-group__count">{course.lessonCount} bài</span>
-                    </div>
-                    {course.curriculum.flatMap(s => s.lessons).slice(0, 3).map((lesson, i) => (
-                      <div key={lesson.id} className="id-lesson-row">
-                        <span className="id-lesson-row__num">{i + 1}</span>
-                        <span className="id-lesson-row__title">{lesson.title}</span>
-                        <span className="id-lesson-row__type">{lesson.type}</span>
-                        <span className="id-lesson-row__duration">{lesson.duration}</span>
-                        <div className="id-lesson-row__actions">
-                          <button className="id-btn-sm">Sửa</button>
-                          <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
+                {loadingCourses ? (
+                  <p className="id-muted">Đang tải…</p>
+                ) : courses.length === 0 ? (
+                  <p className="id-muted">Chưa có bài học nào.</p>
+                ) : (
+                  courses.map(course => {
+                    const allLessons = (course.curriculum ?? course.sections ?? [])
+                      .flatMap((s: any) => s.lessons ?? []);
+                    return (
+                      <div key={course.id} className="id-lesson-group">
+                        <div className="id-lesson-group__header">
+                          <span className="id-lesson-group__title">{course.title}</span>
+                          <span className="id-lesson-group__count">
+                            {course.lesson_count ?? course.total_lessons ?? allLessons.length} bài
+                          </span>
                         </div>
+                        {allLessons.length === 0 ? (
+                          <p className="id-muted" style={{ padding: '8px 0 8px 16px' }}>Chưa có bài học.</p>
+                        ) : (
+                          allLessons.slice(0, 5).map((lesson: any, i: number) => (
+                            <div key={lesson.id} className="id-lesson-row">
+                              <span className="id-lesson-row__num">{i + 1}</span>
+                              <span className="id-lesson-row__title">{lesson.title}</span>
+                              <span className="id-lesson-row__type">{lesson.type ?? lesson.lesson_type}</span>
+                              <span className="id-lesson-row__duration">{lesson.duration ?? ''}</span>
+                              <div className="id-lesson-row__actions">
+                                <button className="id-btn-sm">Sửa</button>
+                                <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
-                    ))}
-                  </div>
-                ))}
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
 
+          {/* ════ QUIZ ════ */}
           {activeTab === 'quiz' && (
             <div className="id-content">
               <div className="id-page-header id-page-header--row">
                 <div>
                   <h1 className="id-page-title">Bài kiểm tra</h1>
-                  <p className="id-page-sub">{MOCK_QUIZ_LIST.length} bài kiểm tra</p>
+                  <p className="id-page-sub">Tạo và quản lý bài kiểm tra theo khóa học</p>
                 </div>
                 <button className="id-btn-primary" onClick={() => setShowQuizForm(v => !v)}>
                   {showQuizForm ? 'Hủy' : '+ Tạo bài kiểm tra'}
@@ -362,16 +457,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                       <select className="id-field__input" value={quizForm.courseId}
                         onChange={e => setQuizForm(f => ({ ...f, courseId: e.target.value }))}>
                         <option value="">Chọn khóa học...</option>
-                        {MOCK_INSTRUCTOR_COURSES.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                       </select>
                     </div>
                     <div className="id-field">
                       <label className="id-field__label">Tiêu đề bài kiểm tra</label>
                       <input className="id-field__input" placeholder="Ví dụ: Kiểm tra chương 1"
-                        value={quizForm.title} onChange={e => setQuizForm(f => ({ ...f, title: e.target.value }))} />
+                        value={quizForm.title}
+                        onChange={e => setQuizForm(f => ({ ...f, title: e.target.value }))} />
                     </div>
                   </div>
-
                   <div className="id-quiz-questions">
                     {quizForm.questions.map((q, qi) => (
                       <div key={qi} className="id-quiz-question">
@@ -388,17 +483,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                         <div className="id-quiz-options">
                           {q.options.map((opt, oi) => (
                             <div key={oi} className="id-quiz-option">
-                              <input
-                                type="radio"
-                                name={`correct-${qi}`}
-                                checked={q.correct === oi}
+                              <input type="radio" name={`correct-${qi}`} checked={q.correct === oi}
                                 onChange={() => setQuizForm(f => {
                                   const qs = [...f.questions];
                                   qs[qi] = { ...qs[qi], correct: oi };
                                   return { ...f, questions: qs };
-                                })}
-                              />
-                              <input className="id-field__input" placeholder={`Đáp án ${String.fromCharCode(65 + oi)}`}
+                                })} />
+                              <input className="id-field__input"
+                                placeholder={`Đáp án ${String.fromCharCode(65 + oi)}`}
                                 value={opt}
                                 onChange={e => setQuizForm(f => {
                                   const qs = [...f.questions];
@@ -415,70 +507,88 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate })
                     ))}
                     <button className="id-btn-secondary" onClick={addQuestion}>+ Thêm câu hỏi</button>
                   </div>
-
                   <div className="id-form-actions">
-                    <button className="id-btn-primary" onClick={() => setShowQuizForm(false)}>Lưu bài kiểm tra</button>
+                    <button className="id-btn-primary" onClick={() => setShowQuizForm(false)}>
+                      Lưu bài kiểm tra
+                    </button>
                   </div>
                 </div>
               )}
 
               <div className="id-quiz-list">
-                {MOCK_QUIZ_LIST.map(q => (
-                  <div key={q.id} className="id-quiz-row">
-                    <div className="id-quiz-row__info">
-                      <span className="id-quiz-row__title">{q.title}</span>
-                      <span className="id-quiz-row__meta">{q.course} · {q.questions} câu · {q.attempts} lượt làm</span>
+                {loadingCourses ? (
+                  <p className="id-muted">Đang tải…</p>
+                ) : quizList.length === 0 ? (
+                  <p className="id-muted">Chưa có bài kiểm tra nào. Nhấn "+ Tạo bài kiểm tra" để bắt đầu.</p>
+                ) : (
+                  quizList.map(q => (
+                    <div key={q.id} className="id-quiz-row">
+                      <div className="id-quiz-row__info">
+                        <span className="id-quiz-row__title">{q.title}</span>
+                        <span className="id-quiz-row__meta">
+                          {q.course} · {q.questions} câu · {q.attempts} lượt làm
+                        </span>
+                      </div>
+                      <div className="id-quiz-row__actions">
+                        <button className="id-btn-sm">Sửa</button>
+                        <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
+                      </div>
                     </div>
-                    <div className="id-quiz-row__actions">
-                      <button className="id-btn-sm">Sửa</button>
-                      <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}
 
+          {/* ════ STUDENTS ════ */}
           {activeTab === 'students' && (
             <div className="id-content">
               <div className="id-page-header">
                 <h1 className="id-page-title">Danh sách học viên</h1>
-                <p className="id-page-sub">{MOCK_STUDENTS.length} học viên đang học</p>
+                <p className="id-page-sub">
+                  {loadingStudents ? '…' : `${students.length} học viên đang học`}
+                </p>
               </div>
 
               <div className="id-table-wrap">
-                <table className="id-table">
-                  <thead>
-                    <tr>
-                      <th>Học viên</th>
-                      <th>Khóa học</th>
-                      <th>Tiến độ</th>
-                      <th>Ngày đăng ký</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {MOCK_STUDENTS.map(s => (
-                      <tr key={s.id}>
-                        <td>
-                          <div className="id-student-cell">
-                            <span className="id-student-cell__name">{s.name}</span>
-                            <span className="id-student-cell__email">{s.email}</span>
-                          </div>
-                        </td>
-                        <td>{s.course}</td>
-                        <td>
-                          <div className="id-progress-cell">
-                            <div className="id-progress-bar">
-                              <div className="id-progress-fill" style={{ width: `${s.progress}%` }} />
-                            </div>
-                            <span>{s.progress}%</span>
-                          </div>
-                        </td>
-                        <td className="id-table__muted">{s.joinedDate}</td>
+                {loadingStudents ? (
+                  <p className="id-muted">Đang tải…</p>
+                ) : students.length === 0 ? (
+                  <p className="id-muted">Chưa có học viên nào.</p>
+                ) : (
+                  <table className="id-table">
+                    <thead>
+                      <tr>
+                        <th>Học viên</th>
+                        <th>Khóa học</th>
+                        <th>Tiến độ</th>
+                        <th>Ngày đăng ký</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {students.map(s => (
+                        <tr key={s.id}>
+                          <td>
+                            <div className="id-student-cell">
+                              <span className="id-student-cell__name">{s.name}</span>
+                              <span className="id-student-cell__email">{s.email}</span>
+                            </div>
+                          </td>
+                          <td>{s.course}</td>
+                          <td>
+                            <div className="id-progress-cell">
+                              <div className="id-progress-bar">
+                                <div className="id-progress-fill" style={{ width: `${s.progress}%` }} />
+                              </div>
+                              <span>{s.progress}%</span>
+                            </div>
+                          </td>
+                          <td className="id-table__muted">{s.joinedDate}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           )}

@@ -9,6 +9,7 @@ Chức năng liên quan:
   - 5.3.2  Quản lý & duyệt khoá học (Admin)
 """
 import uuid
+from decimal import Decimal
 from django.db import models
 from django.conf import settings
 
@@ -122,7 +123,8 @@ class Course(models.Model):
         """
         if not self.discount_percent:
             return int(self.price)
-        return max(int(self.price * (1 - self.discount_percent / 100)), 0)
+        return self.price * (1 - Decimal(str(self.discount_percent)) / Decimal('100'))
+
 
 
 # ─────────────────────────────────────────────────────────────────

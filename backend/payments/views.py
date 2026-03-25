@@ -110,28 +110,14 @@ class PaymentCallbackView(APIView):
 
         return Response({'message': 'Callback nhận thành công.'})
 
-
+#signal thay hàm cũ
 def _activate_enrollment(transaction: Transaction):
-    """Tạo hoặc kích hoạt Enrollment sau khi thanh toán thành công."""
-    transaction.status  = Transaction.Status.SUCCESS
-    transaction.paid_at = transaction.paid_at or timezone.now()
-    transaction.save(update_fields=['status', 'paid_at'])
-
-    Enrollment.objects.get_or_create(
-        student = transaction.student,
-        course  = transaction.course,
-        defaults={
-            'status'      : Enrollment.Status.ACTIVE,
-            'paid_amount' : transaction.amount,
-        },
-    )
-
-    # Cập nhật total_students
-    course = transaction.course
-    course.total_students = course.enrollments.filter(
-        status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED]
-    ).count()
-    course.save(update_fields=['total_students'])
+    """Signal payments/signals.py sẽ tự tạo Enrollment + cập nhật total_students.
+    Hàm này chỉ cần đảm bảo status=SUCCESS được lưu để trigger signal."""
+    if transaction.status != Transaction.Status.SUCCESS:
+        transaction.status  = Transaction.Status.SUCCESS
+        transaction.paid_at = transaction.paid_at or timezone.now()
+        transaction.save(update_fields=['status', 'paid_at'])
 
 
 class MyTransactionListView(generics.ListAPIView):

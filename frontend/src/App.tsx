@@ -62,11 +62,20 @@ const App: React.FC = () => {
 
   const hideChrome = NO_CHROME.includes(currentPage);
 
-  const renderDashboard = () => {
-    if (userRole === 'admin')      return <AdminDashboard onNavigate={navigate} />;
-    if (userRole === 'instructor') return <InstructorDashboard onNavigate={navigate} />;
-    return <StudentDashboard onNavigate={navigate} />;
+  const handleLogout = () => {
+    ['access', 'refresh', 'role', 'user'].forEach(k => localStorage.removeItem(k));
+    setIsLoggedIn(false);
+    setUserRole('student');
+    navigate('home');
   };
+
+  // Sửa renderDashboard
+  const renderDashboard = () => {
+    if (userRole === 'admin')      return <AdminDashboard onNavigate={navigate} onLogout={handleLogout} />;
+    if (userRole === 'instructor') return <InstructorDashboard onNavigate={navigate} onLogout={handleLogout} />;
+    return <StudentDashboard onNavigate={navigate} onLogout={handleLogout} />;
+  };
+
 
   return (
     <div className="app">
