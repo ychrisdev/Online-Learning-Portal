@@ -127,8 +127,18 @@ class CourseWriteSerializer(serializers.ModelSerializer):
 
 
 class CourseAdminSerializer(serializers.ModelSerializer):
-    """Admin duyệt / quản lý khoá học — 5.3.2"""
+    instructor_name = serializers.CharField(source='instructor.full_name', read_only=True)
+    sale_price      = serializers.IntegerField(read_only=True)
+    category_name   = serializers.CharField(source='category.name', read_only=True)  # thêm
+
     class Meta:
         model  = Course
-        fields = ['id', 'title', 'status', 'published_at', 'instructor', 'created_at']
+        fields = [
+            'id', 'title', 'status', 'published_at',
+            'instructor', 'instructor_name',
+            'total_students',
+            'price', 'discount_percent', 'sale_price',
+            'category_name',   # thêm
+            'created_at',
+        ]
         read_only_fields = ['id', 'title', 'instructor', 'created_at']

@@ -303,3 +303,21 @@ class EnrollCourseView(APIView):
         return Response({
             "message": "Bạn đã đăng ký khóa học này rồi"
         }, status=status.HTTP_200_OK)
+    
+class AdminCourseArchiveView(APIView):
+    """PATCH /api/courses/admin/<id>/archive/"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    def patch(self, request, id):
+        course = generics.get_object_or_404(Course, id=id, status=Course.Status.PUBLISHED)
+        course.status = Course.Status.ARCHIVED
+        course.save()
+        return Response({'message': f'Đã ẩn khoá học "{course.title}".'})
+
+class AdminCourseUnarchiveView(APIView):
+    """PATCH /api/courses/admin/<id>/unarchive/"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    def patch(self, request, id):
+        course = generics.get_object_or_404(Course, id=id, status=Course.Status.ARCHIVED)
+        course.status = Course.Status.PUBLISHED
+        course.save()
+        return Response({'message': f'Đã hiện khoá học "{course.title}".'})
