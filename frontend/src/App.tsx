@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage]       = useState<Page>('dashboard');
   const [activeCourseId, setActiveCourseId] = useState<string>('c1');
   const [isLoggedIn, setIsLoggedIn]         = useState(false);
-  const [userRole, setUserRole]             = useState<Role>('admin');
+  const [userRole, setUserRole]             = useState<Role>('instructor');
   const [authMode, setAuthMode]             = useState<'login' | 'register'>('login');
   const [returnPage, setReturnPage]         = useState<Page>('home');
   const [navSearchQuery, setNavSearchQuery] = useState('');
