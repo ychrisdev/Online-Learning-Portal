@@ -15,7 +15,7 @@ export interface Lesson {
   id: string;
   title: string;
   duration: string;
-  type: 'video' | 'quiz' | 'article' | 'project';
+  type: 'theory' | 'quiz' | 'article' | 'project';
   isPreview: boolean;
   isCompleted?: boolean;
 }
