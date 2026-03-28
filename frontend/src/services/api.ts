@@ -4,7 +4,7 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('access');
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -28,13 +28,13 @@ async function request<T>(
 }
 
 export const authService = {
-  login: (email: string, password: string) =>
-    request<{ access: string; refresh: string }>('/auth/token/', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
+  login: (username: string, password: string) =>
+  request<{ access: string; refresh: string }>('/auth/token/', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  }),
 
-  register: (data: { name: string; email: string; password: string }) =>
+  register: (data: {username: string; full_name: string; email: string; password: string;}) =>
     request<{ id: string; email: string }>('/auth/register/', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -47,8 +47,8 @@ export const authService = {
     }),
 
   logout: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('access');
+    localStorage.removeItem('refresh');
   },
 };
 
@@ -85,9 +85,9 @@ export const userService = {
 
 export const progressService = {
   markLesson: (lessonId: string, completed: boolean) =>
-    request<{ progress: number }>('/progress/', {
+    request(`/enrollments/progress/${lessonId}/`, {
       method: 'POST',
-      body: JSON.stringify({ lesson_id: lessonId, completed }),
+      body: JSON.stringify({ completed }),
     }),
 };
 

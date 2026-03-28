@@ -1,0 +1,210 @@
+/* ══════════════════════════════════════════
+   POLICY PAGE
+   Layout: FashionStore 3-col card grid
+   Colors: EnglishHub dark theme
+══════════════════════════════════════════ */
+
+/* ── Page ───────────────────────────────── */
+.pc-page {
+  min-height: 100vh;
+  background: var(--color-bg, #0D1B2A);
+  padding-bottom: 4rem;
+}
+
+/* ── Hero ───────────────────────────────── */
+.pc-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(27, 38, 59, 0.8) 0%,
+    rgba(13, 27, 42, 1) 100%
+  );
+  border-bottom: 1px solid rgba(119, 141, 169, 0.12);
+  padding: var(--space-16, 4rem) 0 var(--space-10, 2.5rem);
+}
+
+.pc-hero__title {
+  font-family: var(--font-display, serif);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: var(--fw-extrabold, 800);
+  color: #E0E1DD;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 var(--space-3, 0.75rem);
+}
+
+.pc-hero__sub {
+  font-size: var(--text-base, 1rem);
+  color: rgba(224, 225, 221, 0.45);
+  line-height: var(--leading-relaxed, 1.625);
+  margin: 0;
+  max-width: 520px;
+}
+
+/* ── Section title ──────────────────────── */
+.pc-section-title {
+  font-family: var(--font-display, serif);
+  font-size: var(--text-xl, 1.25rem);
+  font-weight: var(--fw-bold, 700);
+  color: #E0E1DD;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.25rem;
+}
+
+/* ── Card grid ──────────────────────────── */
+.pc-grid-section {
+  padding: 3rem 0 2rem;
+}
+
+.pc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.pc-card {
+  background: rgba(27, 38, 59, 0.7);
+  border: 1px solid rgba(119, 141, 169, 0.14);
+  border-radius: 16px;
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+}
+
+.pc-card:hover {
+  border-color: rgba(119, 141, 169, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
+}
+
+/* Icon circle */
+.pc-card__icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+
+.pc-card__title {
+  font-size: var(--text-base, 1rem);
+  font-weight: var(--fw-bold, 700);
+  color: #E0E1DD;
+  margin: 0 0 0.6rem;
+  letter-spacing: -0.01em;
+}
+
+.pc-card__desc {
+  font-size: var(--text-sm, 0.875rem);
+  color: rgba(224, 225, 221, 0.5);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ── FAQ ────────────────────────────────── */
+.pc-faq-section {
+  padding: 0 0 2.5rem;
+}
+
+.pc-faq {
+  border: 1px solid rgba(119, 141, 169, 0.14);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.pc-faq__item {
+  border-bottom: 1px solid rgba(119, 141, 169, 0.08);
+}
+
+.pc-faq__item:last-child {
+  border-bottom: none;
+}
+
+.pc-faq__question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.5rem;
+  background: rgba(27, 38, 59, 0.5);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body, sans-serif);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--fw-semibold, 600);
+  color: rgba(224, 225, 221, 0.75);
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pc-faq__question:hover {
+  background: rgba(65, 90, 119, 0.25);
+  color: #E0E1DD;
+}
+
+.pc-faq__item--open .pc-faq__question {
+  color: #E0E1DD;
+  background: rgba(65, 90, 119, 0.2);
+}
+
+.pc-faq__chevron {
+  flex-shrink: 0;
+  color: rgba(119, 141, 169, 0.5);
+  transition: transform 0.2s ease, color 0.15s ease;
+}
+
+.pc-faq__item--open .pc-faq__chevron {
+  transform: rotate(180deg);
+  color: #778DA9;
+}
+
+.pc-faq__answer {
+  padding: 0.85rem 1.5rem 1.1rem;
+  font-size: var(--text-sm, 0.875rem);
+  color: rgba(224, 225, 221, 0.45);
+  line-height: 1.7;
+  background: rgba(13, 27, 42, 0.4);
+  border-top: 1px solid rgba(119, 141, 169, 0.08);
+}
+
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 1024px) {
+  .pc-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+  .pc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pc-card {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .pc-grid-section {
+    padding: 2rem 0 1.5rem;
+  }
+
+  .pc-table th,
+  .pc-table td {
+    padding: 0.7rem 1rem;
+  }
+
+  .pc-faq__question {
+    padding: 0.9rem 1rem;
+    font-size: var(--text-xs, 0.75rem);
+  }
+
+  .pc-faq__answer {
+    padding: 0.75rem 1rem 0.9rem;
+  }
+}

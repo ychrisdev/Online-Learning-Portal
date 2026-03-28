@@ -8,6 +8,7 @@
 @import './components/Footer.css';
 
 @import './pages/HomePage.css';
+@import './pages/PolicyPage.css';
 @import './pages/CoursesPage.css';
 @import './pages/CourseDetail.css';
 @import './pages/StudentDashboard.css';

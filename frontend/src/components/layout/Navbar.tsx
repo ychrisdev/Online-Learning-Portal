@@ -18,9 +18,9 @@ const Navbar: React.FC<NavbarProps> = ({
   onSearch,
   searchValue,
 }) => {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [scrolled,     setScrolled]     = useState(false);
+  const [menuOpen,     setMenuOpen]     = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -28,24 +28,26 @@ const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    if (searchValue !== undefined) setSearchQuery(searchValue);
+  }, [searchValue]);
+
   const navLinks = [
     { id: 'home',    label: 'Trang chủ' },
     { id: 'courses', label: 'Khóa học' },
+    { id: 'policy',  label: 'Chính sách' },
   ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = searchQuery.trim();
+    const raw = searchQuery.trim();
+    if (!raw) return;
     if (currentPage === 'courses') {
-      onSearch?.(q);
+      onSearch?.(raw);
     } else {
-      if (q) onNavigate('courses', undefined, q);
+      onNavigate('courses', undefined, raw);
     }
   };
-
-  React.useEffect(() => {
-    if (searchValue !== undefined) setSearchQuery(searchValue);
-  }, [searchValue]);
 
   return (
     <header className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
@@ -90,10 +92,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="navbar__right">
             <div className="navbar__auth">
               {isLoggedIn ? (
-                <button
-                  className="navbar__btn-profile"
-                  onClick={() => onNavigate('dashboard')}
-                >
+                <button className="navbar__btn-profile" onClick={() => onNavigate('dashboard')}>
                   Hồ sơ
                 </button>
               ) : (

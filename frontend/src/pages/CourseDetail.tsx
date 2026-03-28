@@ -273,9 +273,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           <span className="cd-lesson-row__title">
                             {lesson.title}
                           </span>
-                          <span className="cd-lesson-row__duration">
-                            {lesson.duration}
-                          </span>
                           {lesson.isPreview && (
                             <span className="cd-lesson-row__preview">
                               Xem thử
