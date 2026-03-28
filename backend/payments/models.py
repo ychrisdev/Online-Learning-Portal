@@ -14,10 +14,11 @@ def _gen_ref_code() -> str:
 class Transaction(models.Model):
 
     class Status(models.TextChoices):
-        PENDING  = 'pending',  'Chờ xử lý'
-        SUCCESS  = 'success',  'Thành công'
-        FAILED   = 'failed',   'Thất bại'
-        REFUNDED = 'refunded', 'Đã hoàn tiền'
+        PENDING          = 'pending',          'Chờ xử lý'
+        SUCCESS          = 'success',          'Thành công'
+        FAILED           = 'failed',           'Thất bại'
+        REFUND_REQUESTED = 'refund_requested', 'Yêu cầu hoàn tiền'  # ← THÊM MỚI
+        REFUNDED         = 'refunded',         'Đã hoàn tiền'
 
     class Method(models.TextChoices):
         VNPAY  = 'vnpay',  'VNPay'
@@ -43,10 +44,10 @@ class Transaction(models.Model):
     amount      = models.DecimalField('Số tiền (VNĐ)', max_digits=12, decimal_places=0)
     status      = models.CharField('Trạng thái', max_length=20, choices=Status.choices, default=Status.PENDING)
     method      = models.CharField('Phương thức', max_length=20, choices=Method.choices, default=Method.VNPAY)
-    # blank=True để Django Admin không bắt buộc nhập tay — save() sẽ tự điền
     ref_code    = models.CharField('Mã tham chiếu (gửi gateway)', max_length=64, unique=True, blank=True)
     gateway_ref = models.CharField('Mã giao dịch (gateway trả về)', max_length=128, blank=True)
     note        = models.TextField('Ghi chú', blank=True)
+    refund_reason = models.TextField('Lý do hoàn tiền', blank=True)  # ← THÊM MỚI
     created_at  = models.DateTimeField('Tạo lúc', auto_now_add=True)
     paid_at     = models.DateTimeField('Thanh toán lúc', null=True, blank=True)
 
@@ -61,9 +62,8 @@ class Transaction(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        # Tự sinh ref_code nếu chưa có (tạo mới qua Admin hoặc API)
         if not self.ref_code:
-            for _ in range(10):                         # thử tối đa 10 lần phòng collision
+            for _ in range(10):
                 code = _gen_ref_code()
                 if not Transaction.objects.filter(ref_code=code).exists():
                     self.ref_code = code

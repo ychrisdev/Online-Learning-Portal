@@ -612,6 +612,190 @@
   padding: 0.75em 1.75em !important;
 }
 
+.cd-rv-summary {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid rgba(119, 141, 169, 0.12);
+}
+
+.cd-rv-big-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 100px;
+}
+.cd-rv-big-num {
+  font-size: 3.5rem;
+  font-weight: var(--fw-extrabold);
+  color: #e0e1dd;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.cd-rv-big-stars { color: #f59e0b; font-size: var(--text-lg); }
+.cd-rv-big-sub {
+  font-size: var(--text-xs);
+  color: rgba(224, 225, 221, 0.4);
+  white-space: nowrap;
+}
+
+.cd-rv-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  justify-content: center;
+}
+.cd-rv-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.cd-rv-bar-label {
+  font-size: var(--text-xs);
+  color: rgba(224, 225, 221, 0.45);
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.cd-rv-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(119, 141, 169, 0.15);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.cd-rv-bar-fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+.cd-rv-bar-pct {
+  font-size: var(--text-xs);
+  color: rgba(224, 225, 221, 0.3);
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.cd-rv-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.cd-rv-card {
+  background: #1b263b;
+  border: 1px solid rgba(119, 141, 169, 0.13);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+}
+.cd-rv-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.cd-rv-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(119, 141, 169, 0.2);
+  flex-shrink: 0;
+}
+.cd-rv-name {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: #e0e1dd;
+}
+.cd-rv-date {
+  font-size: var(--text-xs);
+  color: rgba(224, 225, 221, 0.35);
+  margin-top: 2px;
+}
+.cd-rv-stars {
+  margin-left: auto;
+  color: #f59e0b;
+  font-size: var(--text-sm);
+  letter-spacing: 1px;
+}
+.cd-rv-comment {
+  font-size: var(--text-sm);
+  color: rgba(224, 225, 221, 0.65);
+  line-height: var(--leading-relaxed);
+}
+
+.cd-rv-form {
+  background: #1b263b;
+  border: 1px solid rgba(119, 141, 169, 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.cd-rv-form-title {
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  color: #e0e1dd;
+}
+.cd-rv-star-input {
+  display: flex;
+  gap: var(--space-1);
+}
+.cd-rv-star-btn {
+  font-size: 1.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(119, 141, 169, 0.3);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+  line-height: 1;
+  padding: 0;
+  font-family: inherit;
+}
+.cd-rv-star-btn--active { color: #f59e0b; }
+.cd-rv-star-btn:hover { transform: scale(1.2); }
+
+.cd-rv-textarea {
+  width: 100%;
+  background: rgba(13, 27, 42, 0.5);
+  border: 1.5px solid rgba(119, 141, 169, 0.18);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: #e0e1dd;
+  font-family: var(--font-body);
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.cd-rv-textarea::placeholder { color: rgba(224, 225, 221, 0.25); }
+.cd-rv-textarea:focus { border-color: rgba(119, 141, 169, 0.45); }
+
+.cd-rv-submit {
+  align-self: flex-end;
+  width: auto !important;
+  padding: 0.7em 2em !important;
+}
+.cd-rv-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.cd-rv-success {
+  font-size: var(--text-sm);
+  color: #4caf82;
+  background: rgba(76, 175, 130, 0.1);
+  border: 1px solid rgba(76, 175, 130, 0.25);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+}
+
 .cd-sidebar {
   position: static;
   align-self: start;

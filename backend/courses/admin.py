@@ -29,9 +29,7 @@ class CourseAdmin(admin.ModelAdmin):
 
     @admin.display(description='Giá sau giảm')
     def get_sale_price(self, obj):
-        if obj.discount_percent:
-            return f'{obj.sale_price:,}đ'
-        return '—'
+        return obj.sale_price  # gọi property
 
     @admin.action(description='Duyệt khoá học đã chọn')
     def approve_courses(self, request, queryset):

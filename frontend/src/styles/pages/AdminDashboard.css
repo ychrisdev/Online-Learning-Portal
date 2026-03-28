@@ -486,3 +486,9 @@
   color: var(--color-text-primary);
   font-size: 14px;
 }
+.ad-select--role {
+  padding: 4px 8px;
+  font-size: 13px;
+  border-radius: 6px;
+  height: 32px;
+}

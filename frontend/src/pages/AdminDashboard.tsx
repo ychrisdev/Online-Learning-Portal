@@ -13,16 +13,45 @@ const authHeader = () => {
 };
 const toList = (data: any): any[] => Array.isArray(data) ? data : (data?.results ?? []);
 
-type Tab = 'overview' | 'users' | 'courses' | 'stats';
+type Tab = 'overview' | 'users' | 'courses' | 'payments' | 'stats';
+
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Tổng quan'     },
-  { id: 'users',    label: 'Người dùng'    },
-  { id: 'courses',  label: 'Khóa học'      },
-  { id: 'stats',    label: 'Thống kê'      },
+  { id: 'overview',  label: 'Tổng quan'   },
+  { id: 'users',     label: 'Người dùng'  },
+  { id: 'courses',   label: 'Khóa học'    },
+  { id: 'payments',  label: 'Thanh toán'  },
+  { id: 'stats',     label: 'Thống kê'    },
 ];
 
-const ROLE_LABEL:   Record<string, string> = { student: 'Học viên', instructor: 'Giảng viên', admin: 'Admin' };
-const STATUS_LABEL: Record<string, string> = { active: 'Hoạt động', banned: 'Bị khóa', inactive: 'Không HĐ', draft: 'Nháp', review: 'Chờ duyệt', published: 'Đã xuất bản', archived: 'Đã lưu trữ' };
+const ROLE_LABEL: Record<string, string> = {
+  student:    'Học viên',
+  instructor: 'Giảng viên',
+  admin:      'Admin',
+};
+const STATUS_LABEL: Record<string, string> = {
+  active:           'Hoạt động',
+  banned:           'Bị khóa',
+  inactive:         'Không HĐ',
+  draft:            'Nháp',
+  review:           'Chờ duyệt',
+  published:        'Đã xuất bản',
+  archived:         'Đã lưu trữ',
+  // Transaction statuses — khớp với Transaction.Status trong models
+  pending:          'Chờ xử lý',
+  success:          'Thành công',
+  failed:           'Thất bại',
+  refund_requested: 'Yêu cầu hoàn',
+  refunded:         'Đã hoàn tiền',
+};
+
+// Badge CSS class cho trạng thái giao dịch
+const txBadgeClass = (status: string) => {
+  if (status === 'success')          return 'approved';
+  if (status === 'refunded')         return 'banned';
+  if (status === 'failed')           return 'banned';
+  if (status === 'refund_requested') return 'pending';
+  return 'pending';
+};
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout }) => {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -31,14 +60,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
   const [users,        setUsers]        = useState<any[]>([]);
   const [courses,      setCourses]      = useState<any[]>([]);
   const [revenueStats, setRevenueStats] = useState<any>(null);
-  const [loadingUsers,   setLoadingUsers]   = useState(false);
-  const [loadingCourses, setLoadingCourses] = useState(false);
-  const [loadingStats,   setLoadingStats]   = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [paymentStats, setPaymentStats] = useState<any>(null);
+
+  const [loadingUsers,        setLoadingUsers]        = useState(false);
+  const [loadingCourses,      setLoadingCourses]      = useState(false);
+  const [loadingStats,        setLoadingStats]        = useState(false);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
 
   const [searchUser,   setSearchUser]   = useState('');
   const [searchCourse, setSearchCourse] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [sortPrice,    setSortPrice]    = useState('');
+
+  // ── Payment actions confirmation dialog ───────────────────────────────────
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    type: 'refund' | 'reject' | null;
+    txId: string | null;
+    txInfo: { student: string; course: string; amount: number; reason?: string } | null;
+  }>({ open: false, type: null, txId: null, txInfo: null });
+
+  const [filterTxStatus, setFilterTxStatus] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
   // ── Fetch users ───────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
     setLoadingUsers(true);
@@ -54,11 +99,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
     setLoadingCourses(true);
     try {
       const res = await fetch(`${API}/api/courses/admin/`, { headers: authHeader() });
-      console.log('[Admin] GET /api/courses/admin/ →', res.status, res.statusText);
       const data = await res.json();
-      console.log('[Admin] courses data:', data);
       if (res.ok) setCourses(toList(data));
-      else console.error('[Admin] lỗi:', data);
+      else console.error('[Admin] lỗi courses:', data);
     } catch (e) {
       console.error('[Admin] fetch courses exception:', e);
     }
@@ -75,6 +118,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
     setLoadingStats(false);
   }, []);
 
+  // ── Fetch transactions ────────────────────────────────────────────────────
+  // Theo urls.py:
+  //   GET  /api/payments/admin/         → AdminTransactionListView
+  //   GET  /api/payments/admin/stats/   → AdminRevenueStatsView (dùng lại, không cần endpoint riêng)
+  const fetchTransactions = useCallback(async () => {
+    setLoadingTransactions(true);
+    try {
+      const res = await fetch(`${API}/api/payments/admin/`, { headers: authHeader() });
+      if (res.ok) {
+        setTransactions(toList(await res.json()));
+      } else {
+        console.error('[Admin] fetch transactions:', res.status, res.statusText);
+      }
+      // Dùng lại stats endpoint đã có trong urls.py
+      const statsRes = await fetch(`${API}/api/payments/admin/stats/`, { headers: authHeader() });
+      if (statsRes.ok) setPaymentStats(await statsRes.json());
+    } catch (e) {
+      console.error('[Admin] fetch transactions exception:', e);
+    }
+    setLoadingTransactions(false);
+  }, []);
+
   // Load tất cả khi mount
   useEffect(() => {
     fetchUsers();
@@ -82,7 +147,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
     fetchStats();
   }, []);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // Lazy-load transactions chỉ khi vào tab payments
+  useEffect(() => {
+    if (activeTab === 'payments') fetchTransactions();
+  }, [activeTab]);
+
+  // ── Actions: users ────────────────────────────────────────────────────────
   const toggleUserStatus = async (user: any) => {
     const isBanned = user.is_active === false || user.status === 'banned';
     try {
@@ -95,51 +165,105 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
     } catch {}
   };
 
+  // ── Actions: courses ──────────────────────────────────────────────────────
   const approveCourse = async (id: string) => {
     try {
-      await fetch(`${API}/api/courses/admin/${id}/approve/`, {
-        method: 'PATCH',
-        headers: authHeader(),
-      });
+      await fetch(`${API}/api/courses/admin/${id}/approve/`, { method: 'PATCH', headers: authHeader() });
       fetchCourses();
     } catch {}
   };
-
   const rejectCourse = async (id: string) => {
     try {
-      await fetch(`${API}/api/courses/admin/${id}/reject/`, {
-        method: 'PATCH',
-        headers: authHeader(),
-      });
+      await fetch(`${API}/api/courses/admin/${id}/reject/`, { method: 'PATCH', headers: authHeader() });
+      fetchCourses();
+    } catch {}
+  };
+  const archiveCourse = async (id: string) => {
+    try {
+      await fetch(`${API}/api/courses/admin/${id}/archive/`, { method: 'PATCH', headers: authHeader() });
+      fetchCourses();
+    } catch {}
+  };
+  const unarchiveCourse = async (id: string) => {
+    try {
+      await fetch(`${API}/api/courses/admin/${id}/unarchive/`, { method: 'PATCH', headers: authHeader() });
       fetchCourses();
     } catch {}
   };
 
-  const archiveCourse = async (id: string) => {
-  try {
-    await fetch(`${API}/api/courses/admin/${id}/archive/`, {
-      method: 'PATCH', headers: authHeader(),
+  // ── Actions: payments ─────────────────────────────────────────────────────
+  const openConfirm = (type: 'refund' | 'reject', tx: any) => {
+    setConfirmDialog({
+      open: true,
+      type,
+      txId: tx.id,
+      txInfo: {
+        student: tx.student_name ?? '—',
+        course:  tx.course_title ?? '—',
+        amount:  tx.amount ?? 0,
+        reason:  tx.refund_reason ?? '',
+      },
     });
-    fetchCourses();
-  } catch {}
-};
+  };
 
-const unarchiveCourse = async (id: string) => {
-  try {
-    await fetch(`${API}/api/courses/admin/${id}/unarchive/`, {
-      method: 'PATCH', headers: authHeader(),
-    });
-    fetchCourses();
-  } catch {}
-};
+  const closeConfirm = () =>
+    setConfirmDialog({ open: false, type: null, txId: null, txInfo: null });
+
+  // POST /api/payments/admin/<id>/refund/
+  const processRefund = async (id: string) => {
+    setActionLoading(id + '_refund');
+    try {
+      const res = await fetch(`${API}/api/payments/admin/${id}/refund/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      });
+      if (res.ok) {
+        setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: 'refunded' } : tx));
+        fetchTransactions();
+      } else {
+        console.error('[Admin] refund error:', res.status, await res.json());
+      }
+    } catch (e) {
+      console.error('[Admin] processRefund exception:', e);
+    }
+    setActionLoading(null);
+    closeConfirm();
+  };
+
+  // POST /api/payments/admin/<id>/reject-refund/
+  const rejectRefund = async (id: string) => {
+    setActionLoading(id + '_reject');
+    try {
+      const res = await fetch(`${API}/api/payments/admin/${id}/reject-refund/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      });
+      if (res.ok) {
+        setTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status: 'success' } : tx));
+        fetchTransactions();
+      } else {
+        console.error('[Admin] reject-refund error:', res.status, await res.json());
+      }
+    } catch (e) {
+      console.error('[Admin] rejectRefund exception:', e);
+    }
+    setActionLoading(null);
+    closeConfirm();
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmDialog.txId || !confirmDialog.type) return;
+    if (confirmDialog.type === 'refund') processRefund(confirmDialog.txId);
+    else rejectRefund(confirmDialog.txId);
+  };
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const normalize = (s: string) =>
-  s.toLowerCase()
-   .normalize('NFD')
-   .replace(/[\u0300-\u036f]/g, '')  // bỏ dấu
-   .replace(/\s+/g, '');             // bỏ hết khoảng trắng
-   
+    s.toLowerCase()
+     .normalize('NFD')
+     .replace(/[\u0300-\u036f]/g, '')
+     .replace(/\s+/g, '');
+
   const filteredUsers = users.filter(u => {
     const q = normalize(searchUser);
     return (
@@ -167,6 +291,18 @@ const unarchiveCourse = async (id: string) => {
   const totalRevenue    = revenueStats?.total_revenue ?? revenueStats?.revenue ?? 0;
   const activeToday     = revenueStats?.active_today ?? 0;
 
+  const completedTxs        = transactions.filter(t => t.status === 'success');
+  const refundedTxs         = transactions.filter(t => t.status === 'refunded');
+  const refundRequestedTxs  = transactions.filter(t => t.status === 'refund_requested');
+
+  const revenueFromTxs      = paymentStats?.total_revenue  ?? completedTxs.reduce((s, t) => s + (t.amount ?? 0), 0);
+  const refundedAmount      = paymentStats?.total_refunded ?? refundedTxs.reduce((s, t) => s + (t.amount ?? 0), 0);
+  const pendingRefundsCount = paymentStats?.pending_refunds ?? refundRequestedTxs.length;
+
+  const filteredTransactions = filterTxStatus
+    ? transactions.filter(t => t.status === filterTxStatus)
+    : transactions;
+
   const getUserStatus = (u: any) => {
     if (u.status) return u.status;
     return u.is_active === false ? 'banned' : 'active';
@@ -191,7 +327,12 @@ const unarchiveCourse = async (id: string) => {
               <button key={tab.id}
                 className={`ad-nav__item${activeTab === tab.id ? ' ad-nav__item--active' : ''}`}
                 onClick={() => setActiveTab(tab.id)}
-              >{tab.label}</button>
+              >
+                <span>{tab.label}</span>
+                {tab.id === 'payments' && pendingRefundsCount > 0 && (
+                  <span className="ad-nav__badge">{pendingRefundsCount}</span>
+                )}
+              </button>
             ))}
           </nav>
           <button className="ad-nav__item ad-nav__item--back" onClick={() => onNavigate('home')}>
@@ -211,34 +352,24 @@ const unarchiveCourse = async (id: string) => {
                 <h1 className="ad-page-title">Tổng quan hệ thống</h1>
                 <p className="ad-page-sub">Thống kê tổng hợp của nền tảng EnglishHub.</p>
               </div>
-
               <div className="ad-stats-grid">
                 <div className="ad-stat-card">
-                  <span className="ad-stat-card__value">
-                    {loadingUsers ? '…' : users.length.toLocaleString()}
-                  </span>
+                  <span className="ad-stat-card__value">{loadingUsers ? '…' : users.length.toLocaleString()}</span>
                   <span className="ad-stat-card__label">Tổng người dùng</span>
                 </div>
                 <div className="ad-stat-card">
-                  <span className="ad-stat-card__value">
-                    {loadingCourses ? '…' : courses.length}
-                  </span>
+                  <span className="ad-stat-card__value">{loadingCourses ? '…' : courses.length}</span>
                   <span className="ad-stat-card__label">Khóa học</span>
                 </div>
                 <div className="ad-stat-card">
-                  <span className="ad-stat-card__value">
-                    {loadingStats ? '…' : formatPrice(totalRevenue, 'VND')}
-                  </span>
+                  <span className="ad-stat-card__value">{loadingStats ? '…' : formatPrice(totalRevenue, 'VND')}</span>
                   <span className="ad-stat-card__label">Doanh thu</span>
                 </div>
                 <div className="ad-stat-card">
-                  <span className="ad-stat-card__value">
-                    {loadingStats ? '…' : activeToday.toLocaleString()}
-                  </span>
+                  <span className="ad-stat-card__value">{loadingStats ? '…' : activeToday.toLocaleString()}</span>
                   <span className="ad-stat-card__label">Hoạt động hôm nay</span>
                 </div>
               </div>
-
               <div className="ad-overview-grid">
                 <div>
                   <h2 className="ad-section-title">Chờ duyệt ({pendingCourses.length})</h2>
@@ -263,9 +394,7 @@ const unarchiveCourse = async (id: string) => {
                     ) : users.slice(0, 4).map(u => (
                       <div key={u.id} className="ad-recent-user">
                         <div>
-                          <span className="ad-recent-user__name">
-                            {u.full_name ?? u.name ?? u.username}
-                          </span>
+                          <span className="ad-recent-user__name">{u.full_name ?? u.name ?? u.username}</span>
                           <span className="ad-recent-user__email">{u.email}</span>
                         </div>
                         <span className={`ad-badge ad-badge--role-${u.role}`}>
@@ -284,14 +413,11 @@ const unarchiveCourse = async (id: string) => {
             <div className="ad-content">
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Quản lý người dùng</h1>
-                <p className="ad-page-sub">
-                  {loadingUsers ? 'Đang tải…' : `${users.length} người dùng`}
-                </p>
+                <p className="ad-page-sub">{loadingUsers ? 'Đang tải…' : `${users.length} người dùng`}</p>
               </div>
               <input className="ad-search" type="search"
                 placeholder="Tìm theo tên hoặc email..."
-                value={searchUser}
-                onChange={e => setSearchUser(e.target.value)}
+                value={searchUser} onChange={e => setSearchUser(e.target.value)}
               />
               <div className="ad-table-wrap">
                 <table className="ad-table">
@@ -305,11 +431,9 @@ const unarchiveCourse = async (id: string) => {
                     {loadingUsers ? (
                       <tr><td colSpan={5} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
                     ) : filteredUsers.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-                          🔍 Không tìm thấy người dùng phù hợp.
-                        </td>
-                      </tr>
+                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                        🔍 Không tìm thấy người dùng phù hợp.
+                      </td></tr>
                     ) : filteredUsers.map(u => {
                       const status = getUserStatus(u);
                       return (
@@ -364,8 +488,7 @@ const unarchiveCourse = async (id: string) => {
               <div className="ad-filters">
                 <input className="ad-search" type="search"
                   placeholder="Tìm theo tên khóa học, giảng viên..."
-                  value={searchCourse}
-                  onChange={e => setSearchCourse(e.target.value)}
+                  value={searchCourse} onChange={e => setSearchCourse(e.target.value)}
                 />
                 <select className="ad-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                   <option value="">Tất cả trạng thái</option>
@@ -396,57 +519,268 @@ const unarchiveCourse = async (id: string) => {
               <div className="ad-table-wrap">
                 <table className="ad-table">
                   <thead>
-                    <tr><th>Khóa học</th><th>Giảng viên</th><th>Học viên</th><th>Học phí</th><th>Trạng thái</th><th>Hành động</th></tr>
+                    <tr>
+                      <th>Khóa học</th><th>Giảng viên</th><th>Học viên</th>
+                      <th>Học phí</th><th>Doanh thu</th><th>Trạng thái</th><th>Hành động</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {loadingCourses ? (
-                      <tr><td colSpan={6} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                      <tr><td colSpan={7} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
                     ) : filteredCourses.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-                          🔍 Không tìm thấy khóa học phù hợp.
-                        </td>
-                      </tr>
-                    ) : filteredCourses.map(c => (
-                      <tr key={c.id}>
-                        <td className="ad-table__title">{c.title}</td>
-                        <td>{c.instructor_name ?? c.instructor?.name ?? '—'}</td>
-                        <td>{(c.total_students ?? c.enrolled_count ?? 0).toLocaleString()}</td>
-                        <td>{c.sale_price === 0 ? 'Miễn phí' : formatPrice(c.sale_price ?? c.price ?? 0, 'VND')}</td>
-                        <td>
-                          <span className={`ad-badge ad-badge--${c.status}`}>
-                            {STATUS_LABEL[c.status] ?? c.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="ad-actions">
-                            {c.status === 'review' && (
-                              <>
-                                <button className="ad-btn-sm ad-btn-sm--approve" onClick={() => approveCourse(c.id)}>
-                                  Duyệt
-                                </button>
-                                <button className="ad-btn-sm ad-btn-sm--ban" onClick={() => rejectCourse(c.id)}>
-                                  Từ chối
-                                </button>
-                              </>
-                            )}
-                            {c.status === 'published' && (
-                              <button className="ad-btn-sm ad-btn-sm--ban" onClick={() => archiveCourse(c.id)}>
-                                Ẩn
-                              </button>
-                            )}
-                            {c.status === 'archived' && (
-                              <button className="ad-btn-sm ad-btn-sm--restore" onClick={() => unarchiveCourse(c.id)}>
-                                Hiện
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                      <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                        🔍 Không tìm thấy khóa học phù hợp.
+                      </td></tr>
+                    ) : filteredCourses.map(c => {
+                      const students = c.total_students ?? c.enrolled_count ?? 0;
+                      const price    = c.sale_price ?? c.price ?? 0;
+                      const revenue  = price * students;
+                      return (
+                        <tr key={c.id}>
+                          <td className="ad-table__title">{c.title}</td>
+                          <td>{c.instructor_name ?? c.instructor?.name ?? '—'}</td>
+                          <td>{students.toLocaleString()}</td>
+                          <td>{price === 0 ? 'Miễn phí' : formatPrice(price, 'VND')}</td>
+                          <td style={{ fontWeight: 600, color: revenue > 0 ? 'var(--color-success, #4CAF82)' : 'var(--color-text-secondary)' }}>
+                            {revenue > 0 ? formatPrice(revenue, 'VND') : '—'}
+                          </td>
+                          <td>
+                            <span className={`ad-badge ad-badge--${c.status}`}>
+                              {STATUS_LABEL[c.status] ?? c.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="ad-actions">
+                              {c.status === 'review' && (
+                                <>
+                                  <button className="ad-btn-sm ad-btn-sm--approve" onClick={() => approveCourse(c.id)}>Duyệt</button>
+                                  <button className="ad-btn-sm ad-btn-sm--ban" onClick={() => rejectCourse(c.id)}>Từ chối</button>
+                                </>
+                              )}
+                              {c.status === 'published' && (
+                                <button className="ad-btn-sm ad-btn-sm--ban" onClick={() => archiveCourse(c.id)}>Ẩn</button>
+                              )}
+                              {c.status === 'archived' && (
+                                <button className="ad-btn-sm ad-btn-sm--restore" onClick={() => unarchiveCourse(c.id)}>Hiện</button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* ── Payments ── */}
+          {activeTab === 'payments' && (
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Quản lý thanh toán</h1>
+                <p className="ad-page-sub">
+                  {loadingTransactions ? 'Đang tải…' : `${filteredTransactions.length} / ${transactions.length} giao dịch`}
+                </p>
+              </div>
+
+              {/* Stats */}
+              <div className="ad-stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <div className="ad-stat-card">
+                  <span className="ad-stat-card__value">
+                    {loadingTransactions ? '…' : formatPrice(revenueFromTxs, 'VND')}
+                  </span>
+                  <span className="ad-stat-card__label">Doanh thu tháng này</span>
+                </div>
+                <div className="ad-stat-card">
+                  <span className="ad-stat-card__value">
+                    {loadingTransactions ? '…' : pendingRefundsCount}
+                  </span>
+                  <span className="ad-stat-card__label">Chờ xét hoàn</span>
+                </div>
+                <div className="ad-stat-card">
+                  <span className="ad-stat-card__value">
+                    {loadingTransactions ? '…' : formatPrice(refundedAmount, 'VND')}
+                  </span>
+                  <span className="ad-stat-card__label">Đã hoàn tháng này</span>
+                </div>
+              </div>
+
+              {/* Filter bar */}
+              <div className="ad-filters">
+                {[
+                  { value: '',                 label: 'Tất cả'        },
+                  { value: 'success',          label: 'Thành công'    },
+                  { value: 'refund_requested', label: 'Yêu cầu hoàn' },
+                  { value: 'refunded',         label: 'Đã hoàn tiền' },
+                  { value: 'pending',          label: 'Chờ xử lý'    },
+                  { value: 'failed',           label: 'Thất bại'      },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`sort-btn${filterTxStatus === opt.value ? ' sort-btn--active' : ''}`}
+                    onClick={() => setFilterTxStatus(opt.value)}
+                  >
+                    {opt.label}
+                    {opt.value === 'refund_requested' && pendingRefundsCount > 0 && (
+                      <span style={{
+                        marginLeft: 5, background: '#e55353', color: '#fff',
+                        borderRadius: 9, padding: '0 6px', fontSize: 11, fontWeight: 700,
+                      }}>{pendingRefundsCount}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Table */}
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Học viên</th>
+                      <th>Khóa học</th>
+                      <th>Số tiền</th>
+                      <th>Phương thức</th>
+                      <th>Ngày</th>
+                      <th>Trạng thái</th>
+                      <th>Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingTransactions ? (
+                      <tr><td colSpan={7} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                    ) : filteredTransactions.length === 0 ? (
+                      <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                        Không có giao dịch nào.
+                      </td></tr>
+                    ) : filteredTransactions.map(tx => {
+                      const date = tx.created_at ?? tx.paid_at ?? '';
+                      const isLoadingRefund = actionLoading === tx.id + '_refund';
+                      const isLoadingReject = actionLoading === tx.id + '_reject';
+                      return (
+                        <tr key={tx.id}>
+                          <td>
+                            <span className="ad-user-cell__name">{tx.student_name ?? '—'}</span>
+                          </td>
+                          <td className="ad-table__title">{tx.course_title ?? '—'}</td>
+                          <td style={{ color: '#e0e1dd', fontWeight: 600 }}>
+                            {formatPrice(tx.amount ?? 0, 'VND')}
+                          </td>
+                          <td className="ad-table__muted">{tx.method ?? '—'}</td>
+                          <td className="ad-table__muted">
+                            {date ? new Date(date).toLocaleDateString('vi-VN') : '—'}
+                          </td>
+                          <td>
+                            <span className={`ad-badge ad-badge--${txBadgeClass(tx.status)}`}>
+                              {STATUS_LABEL[tx.status] ?? tx.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="ad-actions">
+                              {/* Yêu cầu hoàn: admin duyệt hoặc từ chối */}
+                              {tx.status === 'refund_requested' && (
+                                <>
+                                  <button
+                                    className="ad-btn-sm ad-btn-sm--approve"
+                                    disabled={!!actionLoading}
+                                    onClick={() => openConfirm('refund', tx)}
+                                    title={tx.refund_reason ? `Lý do: ${tx.refund_reason}` : undefined}
+                                  >
+                                    {isLoadingRefund ? '…' : '✓ Hoàn tiền'}
+                                  </button>
+                                  <button
+                                    className="ad-btn-sm ad-btn-sm--ban"
+                                    disabled={!!actionLoading}
+                                    onClick={() => openConfirm('reject', tx)}
+                                  >
+                                    {isLoadingReject ? '…' : '✕ Từ chối'}
+                                  </button>
+                                </>
+                              )}
+                              {/* Giao dịch thành công: admin có thể chủ động hoàn */}
+                              {tx.status === 'success' && (
+                                <button
+                                  className="ad-btn-sm ad-btn-sm--restore"
+                                  disabled={!!actionLoading}
+                                  onClick={() => openConfirm('refund', tx)}
+                                >
+                                  {isLoadingRefund ? '…' : '↩ Hoàn tiền'}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ── Confirmation Dialog ── */}
+              {confirmDialog.open && confirmDialog.txInfo && (
+                <div style={{
+                  position: 'fixed', inset: 0, zIndex: 1000,
+                  background: 'rgba(0,0,0,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{
+                    background: 'var(--color-bg-card, #1b263b)',
+                    border: '1px solid var(--color-border, #2e4a6b)',
+                    borderRadius: 12, padding: '2rem', maxWidth: 440,
+                    width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                  }}>
+                    <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem', color: 'var(--color-text, #e0e1dd)' }}>
+                      {confirmDialog.type === 'refund' ? '💸 Xác nhận hoàn tiền' : '✕ Từ chối yêu cầu hoàn tiền'}
+                    </h3>
+                    <p style={{ margin: '0 0 1.25rem', fontSize: 14, color: 'var(--color-text-secondary, #778da9)', lineHeight: 1.6 }}>
+                      {confirmDialog.type === 'refund'
+                        ? 'Xác nhận hoàn tiền cho giao dịch này. Enrollment của học viên sẽ bị huỷ.'
+                        : 'Từ chối yêu cầu hoàn tiền. Giao dịch sẽ trở về trạng thái Thành công.'}
+                    </p>
+                    <div style={{
+                      background: 'var(--color-bg-row, #0d1b2a)',
+                      borderRadius: 8, padding: '0.75rem 1rem',
+                      marginBottom: '1.5rem', fontSize: 13, lineHeight: 1.9,
+                    }}>
+                      <div><strong style={{ color: 'var(--color-text-secondary)' }}>Học viên:</strong> {confirmDialog.txInfo.student}</div>
+                      <div><strong style={{ color: 'var(--color-text-secondary)' }}>Khóa học:</strong> {confirmDialog.txInfo.course}</div>
+                      <div><strong style={{ color: 'var(--color-text-secondary)' }}>Số tiền:</strong>{' '}
+                        <span style={{ color: '#e55353', fontWeight: 700 }}>
+                          {formatPrice(confirmDialog.txInfo.amount, 'VND')}
+                        </span>
+                      </div>
+                      {confirmDialog.txInfo.reason && (
+                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                          <strong style={{ color: 'var(--color-text-secondary)' }}>Lý do học viên:</strong>{' '}
+                          <span style={{ fontStyle: 'italic' }}>{confirmDialog.txInfo.reason}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                      <button
+                        className="ad-btn-sm ad-btn-sm--restore"
+                        style={{ padding: '6px 18px' }}
+                        onClick={closeConfirm}
+                        disabled={!!actionLoading}
+                      >
+                        Huỷ
+                      </button>
+                      <button
+                        className={`ad-btn-sm ${confirmDialog.type === 'refund' ? 'ad-btn-sm--approve' : 'ad-btn-sm--ban'}`}
+                        style={{ padding: '6px 18px' }}
+                        onClick={handleConfirmAction}
+                        disabled={!!actionLoading}
+                      >
+                        {actionLoading
+                          ? '⏳ Đang xử lý…'
+                          : confirmDialog.type === 'refund'
+                            ? 'Xác nhận hoàn tiền'
+                            : 'Xác nhận từ chối'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -459,15 +793,11 @@ const unarchiveCourse = async (id: string) => {
               </div>
               <div className="ad-stats-grid">
                 <div className="ad-stat-card">
-                  <span className="ad-stat-card__value">
-                    {users.filter(u => u.role === 'student').length}
-                  </span>
+                  <span className="ad-stat-card__value">{users.filter(u => u.role === 'student').length}</span>
                   <span className="ad-stat-card__label">Học viên</span>
                 </div>
                 <div className="ad-stat-card">
-                  <span className="ad-stat-card__value">
-                    {users.filter(u => u.role === 'instructor').length}
-                  </span>
+                  <span className="ad-stat-card__value">{users.filter(u => u.role === 'instructor').length}</span>
                   <span className="ad-stat-card__label">Giảng viên</span>
                 </div>
                 <div className="ad-stat-card">
@@ -479,7 +809,6 @@ const unarchiveCourse = async (id: string) => {
                   <span className="ad-stat-card__label">Chờ duyệt</span>
                 </div>
               </div>
-
               <div className="ad-stats-breakdown">
                 <h2 className="ad-section-title">Phân bổ học viên theo danh mục</h2>
                 <div className="ad-bar-chart">
@@ -490,27 +819,21 @@ const unarchiveCourse = async (id: string) => {
                     };
                     const totalStudents = courses.reduce((sum, c) => sum + (c.total_students ?? 0), 0);
                     if (totalStudents === 0) return <p className="ad-empty">Chưa có dữ liệu học viên.</p>;
-
-                    // Gộp total_students theo category_name
                     const catMap: Record<string, number> = {};
                     courses.forEach(c => {
                       const cat = c.category_name ?? 'Khác';
                       catMap[cat] = (catMap[cat] ?? 0) + (c.total_students ?? 0);
                     });
-
                     return Object.entries(catMap)
                       .sort((a, b) => b[1] - a[1])
                       .map(([label, count]) => ({
-                        label,
-                        value: Math.round((count / totalStudents) * 100),
-                        color: colors[label] ?? '#888',
+                        label, value: Math.round((count / totalStudents) * 100), color: colors[label] ?? '#888',
                       }))
                       .map(item => (
                         <div key={item.label} className="ad-bar-item">
                           <span className="ad-bar-item__label">{item.label}</span>
                           <div className="ad-bar-item__track">
-                            <div className="ad-bar-item__fill"
-                              style={{ width: `${item.value}%`, background: item.color }} />
+                            <div className="ad-bar-item__fill" style={{ width: `${item.value}%`, background: item.color }} />
                           </div>
                           <span className="ad-bar-item__value">{item.value}%</span>
                         </div>
@@ -518,7 +841,6 @@ const unarchiveCourse = async (id: string) => {
                   })()}
                 </div>
               </div>
-
               <div className="ad-stats-breakdown">
                 <h2 className="ad-section-title">Doanh thu ước tính theo danh mục</h2>
                 <div className="ad-bar-chart">
@@ -527,32 +849,23 @@ const unarchiveCourse = async (id: string) => {
                       A1: '#4CAF82', A2: '#5BA4CF', B1: '#778DA9',
                       B2: '#415A77', C1: '#2E4A6B', C2: '#1B263B',
                     };
-
-                    // Tính doanh thu ước tính = sale_price × total_students mỗi khóa
                     const catMap: Record<string, number> = {};
                     courses.forEach(c => {
-                      const cat      = c.category_name ?? 'Khác';
-                      const revenue  = (c.sale_price ?? c.price ?? 0) * (c.total_students ?? 0);
-                      catMap[cat] = (catMap[cat] ?? 0) + revenue;
+                      const cat = c.category_name ?? 'Khác';
+                      catMap[cat] = (catMap[cat] ?? 0) + (c.sale_price ?? c.price ?? 0) * (c.total_students ?? 0);
                     });
-
                     const totalRevenueCat = Object.values(catMap).reduce((a, b) => a + b, 0);
                     if (totalRevenueCat === 0) return <p className="ad-empty">Chưa có dữ liệu doanh thu.</p>;
-
                     return Object.entries(catMap)
                       .sort((a, b) => b[1] - a[1])
                       .map(([label, revenue]) => ({
-                        label,
-                        value: Math.round((revenue / totalRevenueCat) * 100),
-                        revenue,
-                        color: colors[label] ?? '#888',
+                        label, value: Math.round((revenue / totalRevenueCat) * 100), revenue, color: colors[label] ?? '#888',
                       }))
                       .map(item => (
                         <div key={item.label} className="ad-bar-item">
                           <span className="ad-bar-item__label">{item.label}</span>
                           <div className="ad-bar-item__track">
-                            <div className="ad-bar-item__fill"
-                              style={{ width: `${item.value}%`, background: item.color }} />
+                            <div className="ad-bar-item__fill" style={{ width: `${item.value}%`, background: item.color }} />
                           </div>
                           <span className="ad-bar-item__value">
                             {formatPrice(item.revenue, 'VND')} ({item.value}%)
