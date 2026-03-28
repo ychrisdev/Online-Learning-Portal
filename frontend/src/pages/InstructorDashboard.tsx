@@ -17,6 +17,7 @@ type QAFilter = 'all' | 'pending' | 'resolved';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview',  label: 'Tổng quan' },
+  { id: 'profile',   label: 'Hồ sơ cá nhân' },
   { id: 'revenue',   label: 'Doanh thu' },
   { id: 'courses',   label: 'Khóa học' },
   { id: 'lessons',   label: 'Bài học' },
@@ -24,7 +25,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'students',  label: 'Học viên' },
   { id: 'qa',        label: 'Hỏi & Đáp' },
   { id: 'reviews',   label: 'Đánh giá' },
-  { id: 'profile',   label: 'Hồ sơ cá nhân' },
 ];
 
 const API = 'http://127.0.0.1:8000';
@@ -100,11 +100,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
   };
 
   // ── Real data ─────────────────────────────────────────────────────────────
-  const [courses,        setCourses]        = useState<any[]>([]);
-  const [students,       setStudents]       = useState<any[]>([]);
-  const [qaList,         setQaList]         = useState<any[]>([]);
-  const [reviews,        setReviews]        = useState<any[]>([]);
-  const [monthlyData,    setMonthlyData]    = useState<any[]>([]);
+  const [courses,     setCourses]     = useState<any[]>([]);
+  const [students,    setStudents]    = useState<any[]>([]);
+  const [qaList,      setQaList]      = useState<any[]>([]);
+  const [reviews,     setReviews]     = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   const [loadingCourses,  setLoadingCourses]  = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(true);
@@ -124,19 +124,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     questions: [{ question: '', options: ['', '', '', ''], correct: 0, explanation: '' }],
   });
 
+  // ── Course filter states ───────────────────────────────────────────────────
+  const [courseSearch, setCourseSearch] = useState('');
+  const [courseStatusFilter, setCourseStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+
   // ── QA states ─────────────────────────────────────────────────────────────
   const [qaFilter,   setQaFilter]   = useState<QAFilter>('all');
   const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [openReply,  setOpenReply]  = useState<string | null>(null);
 
   // ── Review states ─────────────────────────────────────────────────────────
-  const [reviewReply,     setReviewReply]     = useState<Record<string, string>>({});
-  const [openReviewReply, setOpenReviewReply] = useState<string | null>(null);
-
-  // ── Chat states ───────────────────────────────────────────────────────────
-  const [chatStudentId, setChatStudentId] = useState<string | null>(null);
-  const [chatMessages,  setChatMessages]  = useState<Record<string, { from: string; text: string; time: string }[]>>({});
-  const [chatInput,     setChatInput]     = useState('');
+  const [reviewReply,       setReviewReply]       = useState<Record<string, string>>({});
+  const [openReviewReply,   setOpenReviewReply]   = useState<string | null>(null);
+  const [reviewCourseFilter, setReviewCourseFilter] = useState<string>('all');
 
   // ── Fetch profile ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -149,12 +149,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
         setAvatarUrl(data.avatar.startsWith('http') ? data.avatar : `${API}${data.avatar}`);
       }
       setProfileForm({
-        name:     data.full_name     ?? '',
-        title:    data.title         ?? '',
-        email:    data.email         ?? '',
-        phone:    data.phone         ?? '',
-        location: data.location      ?? '',
-        bio:      data.bio           ?? '',
+        name:     data.full_name        ?? '',
+        title:    data.title            ?? '',
+        email:    data.email            ?? '',
+        phone:    data.phone            ?? '',
+        location: data.location         ?? '',
+        bio:      data.bio              ?? '',
         facebook: data.social?.facebook ?? '',
         linkedin: data.social?.linkedin ?? '',
         youtube:  data.social?.youtube  ?? '',
@@ -239,10 +239,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
 
   // ── Derived stats ─────────────────────────────────────────────────────────
   const totalRevenue = courses.reduce((a, c) => {
-    const price    = Number(c.sale_price) || Number(c.price) || 0;
-    const studs    = Number(c.total_students) || 0;
+    const price = Number(c.sale_price) || Number(c.price) || 0;
+    const studs = Number(c.total_students) || 0;
     return a + price * studs;
   }, 0);
+
   const avgRating = courses.length > 0
     ? (courses.reduce((a, c) => a + (Number(c.rating) || 0), 0) / courses.length).toFixed(1)
     : '—';
@@ -253,11 +254,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
         .filter((l: any) => l.quiz || l.has_quiz)
         .map((l: any) => ({
           id:        l.id,
-          title:     l.quiz?.title           ?? l.title,
+          title:     l.quiz?.title            ?? l.title,
           course:    c.title,
-          questions: l.quiz?.questions_count  ?? 0,
-          attempts:  l.quiz?.attempts_count   ?? 0,
-          avgScore:  l.quiz?.avg_score        ?? 0,
+          questions: l.quiz?.questions_count   ?? 0,
+          attempts:  l.quiz?.attempts_count    ?? 0,
+          avgScore:  l.quiz?.avg_score         ?? 0,
         }))
     )
   );
@@ -270,7 +271,27 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     return qaList;
   }, [qaList, qaFilter]);
 
-  // Chart data — dùng monthlyData từ API nếu có, fallback empty
+  // ── Filtered courses ──────────────────────────────────────────────────────
+  const filteredCourses = useMemo(() =>
+    courses.filter(c => {
+      const matchSearch = c.title.toLowerCase().includes(courseSearch.toLowerCase());
+      const matchStatus = courseStatusFilter === 'all' || c.status === courseStatusFilter;
+      return matchSearch && matchStatus;
+    }),
+  [courses, courseSearch, courseStatusFilter]);
+
+  // ── Review course options + filtered reviews ──────────────────────────────
+  const reviewCourseOptions = useMemo(() =>
+    [...new Set(reviews.map(r => r.course ?? r.course_title ?? '').filter(Boolean))],
+  [reviews]);
+
+  const filteredReviews = useMemo(() =>
+    reviewCourseFilter === 'all'
+      ? reviews
+      : reviews.filter(r => (r.course ?? r.course_title) === reviewCourseFilter),
+  [reviews, reviewCourseFilter]);
+
+  // Chart data
   const chartData = useMemo(() => {
     if (monthlyData.length === 0) return [];
     if (chartRange === '3m') return monthlyData.slice(-3);
@@ -278,7 +299,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     return monthlyData;
   }, [monthlyData, chartRange]);
 
-  const chartTotalRevenue     = chartData.reduce((a: number, b: any) => a + (b.revenue ?? 0), 0);
+  const chartTotalRevenue     = chartData.reduce((a: number, b: any) => a + (b.revenue     ?? 0), 0);
   const chartTotalEnrollments = chartData.reduce((a: number, b: any) => a + (b.enrollments ?? 0), 0);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -323,31 +344,13 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     setOpenReviewReply(null);
   };
 
-  const handleSendChat = (studentId: string) => {
-    if (!chatInput.trim()) return;
-    setChatMessages(prev => ({
-      ...prev,
-      [studentId]: [
-        ...(prev[studentId] || []),
-        {
-          from: 'instructor', text: chatInput.trim(),
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        },
-      ],
-    }));
-    setChatInput('');
-  };
-
   const getLessonTypeLabel = (type: string) => {
     if (type === 'theory' || type === 'video') return 'Lý thuyết';
-    if (type === 'quiz') return 'Bài kiểm tra';
+    if (type === 'quiz')    return 'Bài kiểm tra';
     if (type === 'article') return 'Bài viết';
     if (type === 'project') return 'Bài tập';
     return type ?? '';
   };
-
-  const chatStudent = chatStudentId ? students.find(s => s.id === chatStudentId) : null;
-  const chatMsgs    = chatStudentId ? (chatMessages[chatStudentId] || []) : [];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -407,10 +410,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
 
               <div className="id-stats-grid">
                 {[
-                  { value: loadingCourses  ? '…' : courses.length.toString(),                  label: 'Khóa học' },
-                  { value: loadingStudents ? '…' : students.length.toLocaleString(),            label: 'Học viên' },
-                  { value: loadingCourses  ? '…' : formatPrice(totalRevenue, 'VND'),            label: 'Doanh thu' },
-                  { value: loadingCourses  ? '…' : `${avgRating} ★`,                           label: 'Đánh giá TB' },
+                  { value: loadingCourses  ? '…' : courses.length.toString(),       label: 'Khóa học' },
+                  { value: loadingStudents ? '…' : students.length.toLocaleString(), label: 'Học viên' },
+                  { value: loadingCourses  ? '…' : formatPrice(totalRevenue, 'VND'), label: 'Doanh thu' },
                 ].map((s, i) => (
                   <div key={i} className="id-stat-card">
                     <span className="id-stat-card__value">{s.value}</span>
@@ -419,7 +421,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 ))}
               </div>
 
-              {/* Mini chart — 6 tháng gần nhất */}
               {chartData.length > 0 && (
                 <div className="id-chart-card">
                   <div className="id-chart-card__header">
@@ -445,34 +446,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 </div>
               )}
 
-              {/* Tỷ lệ hoàn thành */}
-              {!loadingCourses && courses.length > 0 && (
-                <>
-                  <h2 className="id-section-title">Tỷ lệ hoàn thành theo khóa</h2>
-                  <div className="id-completion-list">
-                    {courses.map(c => {
-                      const completionRate = Number(c.completion_rate) || Number(c.completionRate) || 0;
-                      const enrolledCount  = Number(c.total_students) || 0;
-                      const revenue        = (Number(c.sale_price) || Number(c.price) || 0) * enrolledCount;
-                      return (
-                        <div key={c.id} className="id-completion-row">
-                          <DonutChart pct={completionRate} color={completionRate >= 70 ? '#4caf82' : '#5b8dee'} />
-                          <div className="id-completion-row__info">
-                            <span className="id-completion-row__title">{c.title}</span>
-                            <span className="id-completion-row__meta">
-                              {enrolledCount.toLocaleString()} học viên · {formatPrice(revenue, 'VND')}
-                            </span>
-                          </div>
-                          <span className={`id-badge id-badge--${c.status}`}>
-                            {c.status === 'published' ? 'Đã đăng' : 'Nháp'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
               {pendingCount > 0 && (
                 <button className="id-alert id-alert--warning" onClick={() => setActiveTab('qa')}>
                   <div>
@@ -481,6 +454,118 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                   </div>
                 </button>
               )}
+            </div>
+          )}
+
+          {/* ════ PROFILE ════ */}
+          {activeTab === 'profile' && (
+            <div className="id-content">
+              <div className="id-page-header">
+                <h1 className="id-page-title">Hồ sơ cá nhân</h1>
+                <p className="id-page-sub">Cập nhật thông tin hiển thị công khai của bạn</p>
+              </div>
+
+              <div className="id-profile-card">
+                <div className="id-profile-card__avatar-section">
+                  <div className="id-profile-card__avatar-col">
+                    <div className="id-profile-card__avatar-wrap">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="avatar" className="id-profile-card__avatar-img" />
+                      ) : (
+                        <svg viewBox="0 0 100 100" fill="none" width="100" height="100">
+                          <circle cx="50" cy="50" r="50" fill="#1B263B" />
+                          <circle cx="50" cy="38" r="16" fill="#415A77" />
+                          <path d="M10 88c0-22.091 17.909-40 40-40s40 17.909 40 40" fill="#415A77" />
+                        </svg>
+                      )}
+                    </div>
+                    <label className="id-avatar-upload-btn">
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+                      Đổi ảnh
+                    </label>
+                  </div>
+                  <div className="id-profile-card__avatar-info">
+                    <div className="id-profile-card__name">{profileForm.name || user?.full_name}</div>
+                    <div className="id-profile-card__title-text">{profileForm.title || user?.title}</div>
+                    <div className="id-profile-card__stats">
+                      <span>{students.length.toLocaleString()} học viên</span>
+                      <span>·</span>
+                      <span>{courses.length} khóa học</span>
+                      <span>·</span>
+                      <span>{avgRating} ★</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="id-form-card">
+                <h3 className="id-form-card__title">Thông tin cơ bản</h3>
+                <div className="id-form-grid">
+                  <div className="id-field">
+                    <label className="id-field__label">Họ và tên</label>
+                    <input className="id-field__input"
+                      value={profileForm.name}
+                      onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))} />
+                  </div>
+                  <div className="id-field">
+                    <label className="id-field__label">Chức danh</label>
+                    <input className="id-field__input"
+                      value={profileForm.title}
+                      onChange={e => setProfileForm(f => ({ ...f, title: e.target.value }))} />
+                  </div>
+                  <div className="id-field">
+                    <label className="id-field__label">Email</label>
+                    <input className="id-field__input" type="email"
+                      value={profileForm.email}
+                      onChange={e => setProfileForm(f => ({ ...f, email: e.target.value }))} />
+                  </div>
+                  <div className="id-field">
+                    <label className="id-field__label">Số điện thoại</label>
+                    <input className="id-field__input" type="tel"
+                      value={profileForm.phone}
+                      onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} />
+                  </div>
+                  <div className="id-field id-field--full">
+                    <label className="id-field__label">Địa điểm</label>
+                    <input className="id-field__input"
+                      value={profileForm.location}
+                      onChange={e => setProfileForm(f => ({ ...f, location: e.target.value }))} />
+                  </div>
+                  <div className="id-field id-field--full">
+                    <label className="id-field__label">Giới thiệu bản thân</label>
+                    <textarea className="id-field__textarea" rows={4}
+                      value={profileForm.bio}
+                      onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="id-form-card">
+                <h3 className="id-form-card__title">Mạng xã hội</h3>
+                <div className="id-form-grid">
+                  <div className="id-field">
+                    <label className="id-field__label">Facebook</label>
+                    <input className="id-field__input" placeholder="facebook.com/..."
+                      value={profileForm.facebook}
+                      onChange={e => setProfileForm(f => ({ ...f, facebook: e.target.value }))} />
+                  </div>
+                  <div className="id-field">
+                    <label className="id-field__label">LinkedIn</label>
+                    <input className="id-field__input" placeholder="linkedin.com/in/..."
+                      value={profileForm.linkedin}
+                      onChange={e => setProfileForm(f => ({ ...f, linkedin: e.target.value }))} />
+                  </div>
+                  <div className="id-field id-field--full">
+                    <label className="id-field__label">YouTube</label>
+                    <input className="id-field__input" placeholder="youtube.com/@..."
+                      value={profileForm.youtube}
+                      onChange={e => setProfileForm(f => ({ ...f, youtube: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="id-form-actions">
+                  <button className="id-btn-primary">Lưu thay đổi</button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -496,12 +581,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 {[
                   { value: formatPrice(chartTotalRevenue, 'VND'),
                     label: `Doanh thu (${chartRange === '3m' ? '3T' : chartRange === '6m' ? '6T' : '1N'})` },
-                  { value: chartTotalEnrollments.toLocaleString(),  label: 'Lượt đăng ký' },
+                  { value: chartTotalEnrollments.toLocaleString(), label: 'Lượt đăng ký' },
                   { value: chartTotalEnrollments > 0
                       ? formatPrice(Math.round(chartTotalRevenue / chartTotalEnrollments), 'VND')
                       : '—',
                     label: 'DT / học viên' },
-                  { value: `${avgRating} ★`, label: 'Đánh giá TB' },
                 ].map((s, i) => (
                   <div key={i} className="id-stat-card">
                     <span className="id-stat-card__value id-stat-card__value--sm">{s.value}</span>
@@ -564,7 +648,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 </div>
               )}
 
-              {/* Bảng doanh thu theo khóa */}
               {!loadingCourses && courses.length > 0 && (
                 <div className="id-chart-card">
                   <div className="id-chart-card__header">
@@ -613,12 +696,42 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 <div>
                   <h1 className="id-page-title">Quản lý khóa học</h1>
                   <p className="id-page-sub">
-                    {loadingCourses ? '…' : `${courses.length} khóa học`}
+                    {loadingCourses ? '…' : `${filteredCourses.length} / ${courses.length} khóa học`}
                   </p>
                 </div>
                 <button className="id-btn-primary" onClick={() => setShowCourseForm(v => !v)}>
                   {showCourseForm ? 'Hủy' : '+ Tạo khóa học'}
                 </button>
+              </div>
+
+              {/* ── Search + filter bar ── */}
+              <div className="id-filter-bar">
+                <div className="id-search-wrap">
+                  <svg className="id-search-wrap__icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input
+                    className="id-field__input id-search-input"
+                    placeholder="Tìm kiếm khóa học..."
+                    value={courseSearch}
+                    onChange={e => setCourseSearch(e.target.value)}
+                  />
+                  {courseSearch && (
+                    <button className="id-search-wrap__clear" onClick={() => setCourseSearch('')}>✕</button>
+                  )}
+                </div>
+                <div className="id-chart-filters">
+                  {(['all', 'published', 'draft'] as const).map(f => (
+                    <button
+                      key={f}
+                      className={`id-chart-filter-btn${courseStatusFilter === f ? ' id-chart-filter-btn--active' : ''}`}
+                      onClick={() => setCourseStatusFilter(f)}
+                    >
+                      {f === 'all' ? 'Tất cả' : f === 'published' ? 'Đã đăng' : 'Nháp'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {showCourseForm && (
@@ -652,7 +765,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                     </div>
                   </div>
                   <div className="id-form-actions">
-                    <button className="id-btn-primary" onClick={() => setShowCourseForm(false)}>Lưu nháp</button>
+                    <button className="id-btn-primary"   onClick={() => setShowCourseForm(false)}>Lưu nháp</button>
                     <button className="id-btn-secondary" onClick={() => setShowCourseForm(false)}>Đăng ngay</button>
                   </div>
                 </div>
@@ -660,13 +773,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
 
               {loadingCourses ? (
                 <p className="id-muted">Đang tải…</p>
-              ) : courses.length === 0 ? (
-                <p className="id-muted">Chưa có khóa học nào.</p>
+              ) : filteredCourses.length === 0 ? (
+                <p className="id-muted">
+                  {courses.length === 0 ? 'Chưa có khóa học nào.' : 'Không tìm thấy kết quả phù hợp.'}
+                </p>
               ) : (
                 <div className="id-course-list">
-                  {courses.map(c => {
-                    const enrolled = Number(c.total_students) || 0;
-                    const revenue  = (Number(c.sale_price) || Number(c.price) || 0) * enrolled;
+                  {filteredCourses.map(c => {
+                    const enrolled   = Number(c.total_students) || 0;
+                    const revenue    = (Number(c.sale_price) || Number(c.price) || 0) * enrolled;
                     const completion = Number(c.completion_rate) || Number(c.completionRate) || 0;
                     return (
                       <div key={c.id} className="id-course-row">
@@ -925,8 +1040,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                   <table className="id-table">
                     <thead>
                       <tr>
-                        <th>Học viên</th><th>Khóa học</th><th>Tiến độ</th>
-                        <th>Hoạt động</th><th>Thao tác</th>
+                        <th>Học viên</th>
+                        <th>Khóa học</th>
+                        <th>Tiến độ</th>
+                        <th>Hoạt động</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -948,61 +1065,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                             </div>
                           </td>
                           <td className="id-table__muted">{s.lastActive || s.joinedDate}</td>
-                          <td>
-                            <button className="id-btn-sm" onClick={() => {
-                              setChatStudentId(s.id);
-                              if (!chatMessages[s.id]) setChatMessages(p => ({ ...p, [s.id]: [] }));
-                            }}>
-                              💬 Nhắn tin
-                            </button>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 )}
               </div>
-
-              {/* Chat panel */}
-              {chatStudent && (
-                <div className="id-chat-panel">
-                  <div className="id-chat-header">
-                    <div className="id-chat-header__info">
-                      <div className="id-chat-header__avatar">{chatStudent.name.charAt(0)}</div>
-                      <div>
-                        <div className="id-chat-header__name">{chatStudent.name}</div>
-                        <div className="id-chat-header__course">{chatStudent.course}</div>
-                      </div>
-                    </div>
-                    <button className="id-chat-header__close" onClick={() => setChatStudentId(null)}>✕</button>
-                  </div>
-                  <div className="id-chat-body">
-                    {chatMsgs.length === 0
-                      ? <p className="id-chat-empty">Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!</p>
-                      : chatMsgs.map((m, i) => (
-                        <div key={i} className={`id-chat-row id-chat-row--${m.from === 'instructor' ? 'right' : 'left'}`}>
-                          <div className={`id-chat-bubble id-chat-bubble--${m.from}`}>
-                            {m.text}
-                            <div className="id-chat-bubble__time">{m.time}</div>
-                          </div>
-                        </div>
-                      ))
-                    }
-                  </div>
-                  <div className="id-chat-footer">
-                    <input
-                      className="id-field__input"
-                      placeholder="Nhập tin nhắn..."
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat(chatStudentId!); }
-                      }}
-                    />
-                    <button className="id-btn-primary" onClick={() => handleSendChat(chatStudentId!)}>Gửi</button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -1110,25 +1178,43 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
           {/* ════ REVIEWS ════ */}
           {activeTab === 'reviews' && (
             <div className="id-content">
-              <div className="id-page-header">
-                <h1 className="id-page-title">Đánh giá khóa học</h1>
-                <p className="id-page-sub">
-                  {reviews.length} đánh giá{avgRating !== '—' ? ` · Trung bình ${avgRating} ★` : ''}
-                </p>
+              <div className="id-page-header id-page-header--row">
+                <div>
+                  <h1 className="id-page-title">Đánh giá khóa học</h1>
+                  <p className="id-page-sub">
+                    {filteredReviews.length} đánh giá{avgRating !== '—' ? ` · Trung bình ${avgRating} ★` : ''}
+                  </p>
+                </div>
+                {reviewCourseOptions.length > 1 && (
+                  <select
+                    className="id-field__input id-review-course-select"
+                    value={reviewCourseFilter}
+                    onChange={e => setReviewCourseFilter(e.target.value)}
+                  >
+                    <option value="all">Tất cả khóa học</option>
+                    {reviewCourseOptions.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
-              {/* Summary */}
-              {reviews.length > 0 && (
+              {/* Summary — chỉ hiển thị khi xem tất cả hoặc có đủ data */}
+              {filteredReviews.length > 0 && (
                 <div className="id-review-summary">
                   <div className="id-review-summary__score">
-                    <div className="id-review-summary__big">{avgRating}</div>
+                    <div className="id-review-summary__big">
+                      {filteredReviews.length > 0
+                        ? (filteredReviews.reduce((a, r) => a + Number(r.rating), 0) / filteredReviews.length).toFixed(1)
+                        : '—'}
+                    </div>
                     <div className="id-review-summary__stars">★★★★★</div>
                     <div className="id-review-summary__sub">Điểm trung bình</div>
                   </div>
                   <div className="id-review-summary__bars">
                     {[5, 4, 3, 2, 1].map(star => {
-                      const count = reviews.filter(r => Math.round(Number(r.rating)) === star).length;
-                      const pct   = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+                      const count = filteredReviews.filter(r => Math.round(Number(r.rating)) === star).length;
+                      const pct   = filteredReviews.length > 0 ? Math.round((count / filteredReviews.length) * 100) : 0;
                       return (
                         <div key={star} className="id-review-bar-row">
                           <span className="id-review-bar-label">{star} ★</span>
@@ -1146,10 +1232,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
               <div className="id-review-list">
                 {loadingReviews ? (
                   <p className="id-muted">Đang tải…</p>
-                ) : reviews.length === 0 ? (
+                ) : filteredReviews.length === 0 ? (
                   <p className="id-muted">Chưa có đánh giá nào.</p>
                 ) : (
-                  reviews.map((rv: any) => (
+                  filteredReviews.map((rv: any) => (
                     <div key={rv.id} className="id-review-card">
                       <div className="id-review-card__body">
                         <div className="id-review-card__top">
@@ -1217,118 +1303,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* ════ PROFILE ════ */}
-          {activeTab === 'profile' && (
-            <div className="id-content">
-              <div className="id-page-header">
-                <h1 className="id-page-title">Hồ sơ cá nhân</h1>
-                <p className="id-page-sub">Cập nhật thông tin hiển thị công khai của bạn</p>
-              </div>
-
-              <div className="id-profile-card">
-                <div className="id-profile-card__avatar-section">
-                  <div className="id-profile-card__avatar-col">
-                    <div className="id-profile-card__avatar-wrap">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="avatar" className="id-profile-card__avatar-img" />
-                      ) : (
-                        <svg viewBox="0 0 100 100" fill="none" width="100" height="100">
-                          <circle cx="50" cy="50" r="50" fill="#1B263B" />
-                          <circle cx="50" cy="38" r="16" fill="#415A77" />
-                          <path d="M10 88c0-22.091 17.909-40 40-40s40 17.909 40 40" fill="#415A77" />
-                        </svg>
-                      )}
-                    </div>
-                    <label className="id-avatar-upload-btn">
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
-                      Đổi ảnh
-                    </label>
-                  </div>
-                  <div className="id-profile-card__avatar-info">
-                    <div className="id-profile-card__name">{profileForm.name || user?.full_name}</div>
-                    <div className="id-profile-card__title-text">{profileForm.title || user?.title}</div>
-                    <div className="id-profile-card__stats">
-                      <span>{students.length.toLocaleString()} học viên</span>
-                      <span>·</span>
-                      <span>{courses.length} khóa học</span>
-                      <span>·</span>
-                      <span>{avgRating} ★</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="id-form-card">
-                <h3 className="id-form-card__title">Thông tin cơ bản</h3>
-                <div className="id-form-grid">
-                  <div className="id-field">
-                    <label className="id-field__label">Họ và tên</label>
-                    <input className="id-field__input"
-                      value={profileForm.name}
-                      onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))} />
-                  </div>
-                  <div className="id-field">
-                    <label className="id-field__label">Chức danh</label>
-                    <input className="id-field__input"
-                      value={profileForm.title}
-                      onChange={e => setProfileForm(f => ({ ...f, title: e.target.value }))} />
-                  </div>
-                  <div className="id-field">
-                    <label className="id-field__label">Email</label>
-                    <input className="id-field__input" type="email"
-                      value={profileForm.email}
-                      onChange={e => setProfileForm(f => ({ ...f, email: e.target.value }))} />
-                  </div>
-                  <div className="id-field">
-                    <label className="id-field__label">Số điện thoại</label>
-                    <input className="id-field__input" type="tel"
-                      value={profileForm.phone}
-                      onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} />
-                  </div>
-                  <div className="id-field id-field--full">
-                    <label className="id-field__label">Địa điểm</label>
-                    <input className="id-field__input"
-                      value={profileForm.location}
-                      onChange={e => setProfileForm(f => ({ ...f, location: e.target.value }))} />
-                  </div>
-                  <div className="id-field id-field--full">
-                    <label className="id-field__label">Giới thiệu bản thân</label>
-                    <textarea className="id-field__textarea" rows={4}
-                      value={profileForm.bio}
-                      onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="id-form-card">
-                <h3 className="id-form-card__title">Mạng xã hội</h3>
-                <div className="id-form-grid">
-                  <div className="id-field">
-                    <label className="id-field__label">Facebook</label>
-                    <input className="id-field__input" placeholder="facebook.com/..."
-                      value={profileForm.facebook}
-                      onChange={e => setProfileForm(f => ({ ...f, facebook: e.target.value }))} />
-                  </div>
-                  <div className="id-field">
-                    <label className="id-field__label">LinkedIn</label>
-                    <input className="id-field__input" placeholder="linkedin.com/in/..."
-                      value={profileForm.linkedin}
-                      onChange={e => setProfileForm(f => ({ ...f, linkedin: e.target.value }))} />
-                  </div>
-                  <div className="id-field id-field--full">
-                    <label className="id-field__label">YouTube</label>
-                    <input className="id-field__input" placeholder="youtube.com/@..."
-                      value={profileForm.youtube}
-                      onChange={e => setProfileForm(f => ({ ...f, youtube: e.target.value }))} />
-                  </div>
-                </div>
-                <div className="id-form-actions">
-                  <button className="id-btn-primary">Lưu thay đổi</button>
-                </div>
               </div>
             </div>
           )}
