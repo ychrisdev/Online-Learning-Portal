@@ -10,15 +10,6 @@ interface NavbarProps {
   searchValue?: string;
 }
 
-const normalizeText = (str: string) => {
-  return str
-    .toLowerCase()
-    .normalize('NFD') // tách dấu
-    .replace(/[\u0300-\u036f]/g, '') // xóa dấu
-    .replace(/\s+/g, ' ') // chuẩn hóa khoảng trắng
-    .trim();
-};
-
 const Navbar: React.FC<NavbarProps> = ({
   currentPage,
   onNavigate,
@@ -27,9 +18,9 @@ const Navbar: React.FC<NavbarProps> = ({
   onSearch,
   searchValue,
 }) => {
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [scrolled,     setScrolled]     = useState(false);
+  const [menuOpen,     setMenuOpen]     = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -37,28 +28,26 @@ const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    if (searchValue !== undefined) setSearchQuery(searchValue);
+  }, [searchValue]);
+
   const navLinks = [
     { id: 'home',    label: 'Trang chủ' },
     { id: 'courses', label: 'Khóa học' },
+    { id: 'policy',  label: 'Chính sách' },
   ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-
     const raw = searchQuery.trim();
     if (!raw) return;
-
     if (currentPage === 'courses') {
-      // gửi cả 2 để debug
       onSearch?.(raw);
     } else {
       onNavigate('courses', undefined, raw);
     }
   };
-
-  React.useEffect(() => {
-    if (searchValue !== undefined) setSearchQuery(searchValue);
-  }, [searchValue]);
 
   return (
     <header className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
@@ -103,10 +92,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="navbar__right">
             <div className="navbar__auth">
               {isLoggedIn ? (
-                <button
-                  className="navbar__btn-profile"
-                  onClick={() => onNavigate('dashboard')}
-                >
+                <button className="navbar__btn-profile" onClick={() => onNavigate('dashboard')}>
                   Hồ sơ
                 </button>
               ) : (
