@@ -30,7 +30,7 @@ const App: React.FC = () => {
     !!localStorage.getItem("access"),
   );
   const [userRole, setUserRole] = useState<Role>(
-    (localStorage.getItem("role") as Role) || "student",
+    (localStorage.getItem("role") as Role) || "admin",
   );
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [returnPage, setReturnPage] = useState<Page>("home");
