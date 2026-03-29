@@ -459,7 +459,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   <div
                     key={c.id}
                     className="db-course-card"
-                    onClick={() => onNavigate('course', c.course_slug || c.course_id)}
+                    onClick={() => {
+                      const slug = c.course_slug ?? c.course_id;
+                      if (slug) onNavigate('course-detail', String(slug));
+                    }}
                   >
                     {thumbnailSrc(c.course_thumbnail) && (
                       <img

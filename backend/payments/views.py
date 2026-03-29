@@ -213,3 +213,67 @@ class AdminRefundView(APIView):
         ).update(status=Enrollment.Status.REFUNDED)
 
         return Response({'message': 'Hoàn tiền thành công.'})
+
+# THÊM VÀO CUỐI — học viên yêu cầu hoàn tiền
+class RequestRefundView(APIView):
+    """
+    POST /api/payments/<id>/request-refund/
+    Học viên yêu cầu hoàn tiền — chỉ được khi status=success
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        transaction = generics.get_object_or_404(
+            Transaction,
+            id=id,
+            student=request.user,
+            status=Transaction.Status.SUCCESS,
+        )
+        reason = request.data.get('reason', '')
+        transaction.status = Transaction.Status.REFUND_REQUESTED
+        transaction.note   = reason
+        transaction.save()
+        return Response({'message': 'Yêu cầu hoàn tiền đã được gửi.'})
+
+
+# THÊM VÀO CUỐI — admin duyệt hoàn tiền
+class AdminApproveRefundView(APIView):
+    """
+    POST /api/payments/admin/<id>/approve-refund/
+    Admin duyệt hoàn tiền
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, id):
+        transaction = generics.get_object_or_404(
+            Transaction,
+            id=id,
+            status=Transaction.Status.REFUND_REQUESTED,
+        )
+        transaction.status = Transaction.Status.REFUNDED
+        transaction.save()
+        Enrollment.objects.filter(
+            student=transaction.student,
+            course=transaction.course,
+        ).update(status=Enrollment.Status.REFUNDED)
+        return Response({'message': 'Đã duyệt hoàn tiền.'})
+
+
+# THÊM VÀO CUỐI — admin từ chối hoàn tiền
+class AdminRejectRefundView(APIView):
+    """
+    POST /api/payments/admin/<id>/reject-refund/
+    Admin từ chối yêu cầu hoàn tiền → trả về success
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, id):
+        transaction = generics.get_object_or_404(
+            Transaction,
+            id=id,
+            status=Transaction.Status.REFUND_REQUESTED,
+        )
+        transaction.status = Transaction.Status.SUCCESS
+        transaction.note   = request.data.get('reason', '')
+        transaction.save()
+        return Response({'message': 'Đã từ chối yêu cầu hoàn tiền.'})

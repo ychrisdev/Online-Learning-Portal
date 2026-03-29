@@ -129,7 +129,23 @@ class CourseWriteSerializer(serializers.ModelSerializer):
 class CourseAdminSerializer(serializers.ModelSerializer):
     instructor_name = serializers.CharField(source='instructor.full_name', read_only=True)
     sale_price      = serializers.IntegerField(read_only=True)
-    category_name   = serializers.CharField(source='category.name', read_only=True)  # thêm
+    category_name   = serializers.CharField(source='category.name', read_only=True)
+    refunded_count  = serializers.SerializerMethodField()
+    revenue         = serializers.SerializerMethodField()
+
+    def get_refunded_count(self, obj):
+        return obj.transactions.filter(status='refunded').count()
+
+    def get_revenue(self, obj):
+        from payments.models import Transaction
+        from django.db.models import Sum
+        result = obj.transactions.filter(
+            status__in=[
+                Transaction.Status.SUCCESS,
+                Transaction.Status.REFUND_REQUESTED,
+            ]
+        ).aggregate(total=Sum('amount'))
+        return int(result['total'] or 0)
 
     class Meta:
         model  = Course
@@ -138,7 +154,9 @@ class CourseAdminSerializer(serializers.ModelSerializer):
             'instructor', 'instructor_name',
             'total_students',
             'price', 'discount_percent', 'sale_price',
-            'category_name',   # thêm
+            'category_name',
+            'refunded_count',
+            'revenue',
             'created_at',
         ]
         read_only_fields = ['id', 'title', 'instructor', 'created_at']

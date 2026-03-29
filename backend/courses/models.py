@@ -123,8 +123,7 @@ class Course(models.Model):
         """
         if not self.discount_percent:
             return int(self.price)
-        return self.price * (1 - Decimal(str(self.discount_percent)) / Decimal('100'))
-
+        return int(self.price * (1 - Decimal(str(self.discount_percent)) / Decimal('100')))
 
 
 # ─────────────────────────────────────────────────────────────────

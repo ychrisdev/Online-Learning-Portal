@@ -28,7 +28,11 @@ const STATUS_LABEL: Record<string, string> = {
   draft: 'Nháp', review: 'Chờ duyệt', published: 'Đã xuất bản', archived: 'Đã lưu trữ',
 };
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  completed: 'Hoàn thành', pending: 'Chờ xử lý', refunded: 'Đã hoàn tiền', failed: 'Thất bại',
+  success:          'Thành công',
+  pending:          'Chờ xử lý',
+  refunded:         'Đã hoàn tiền',
+  failed:           'Thất bại',
+  refund_requested: 'Yêu cầu hoàn',
 };
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout }) => {
@@ -112,6 +116,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
     } catch {}
   };
 
+  const changeUserRole = async (user: any, newRole: string) => {
+    if (user.role === newRole) return;
+    if (!window.confirm(`Đổi vai trò của "${user.full_name ?? user.username}" thành "${ROLE_LABEL[newRole]}"?`)) return;
+    try {
+      await fetch(`${API}/api/auth/users/${user.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ role: newRole }),
+      });
+      fetchUsers();
+    } catch {}
+  };
   const approveCourse = async (id: string) => {
     try {
       await fetch(`${API}/api/courses/admin/${id}/approve/`, { method: 'PATCH', headers: authHeader() });
@@ -147,6 +163,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
       await fetch(`${API}/api/payments/admin/${id}/refund/`, { method: 'POST', headers: authHeader() });
       fetchPayments();
       fetchStats();
+    } catch {}
+  };
+
+  const approveRefund = async (id: string) => {
+    if (!window.confirm('Duyệt hoàn tiền cho đơn này?')) return;
+    try {
+      await fetch(`${API}/api/payments/admin/${id}/approve-refund/`, {
+        method: 'POST', headers: authHeader(),
+      });
+      fetchPayments(); fetchStats();
+    } catch {}
+  };
+
+  const rejectRefund = async (id: string) => {
+    if (!window.confirm('Từ chối yêu cầu hoàn tiền?')) return;
+    try {
+      await fetch(`${API}/api/payments/admin/${id}/reject-refund/`, {
+        method: 'POST', headers: authHeader(),
+      });
+      fetchPayments();
     } catch {}
   };
 
@@ -201,8 +237,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
   // ── Stat: revenue by category ─────────────────────────────────────────────
   const catRevenueMap: Record<string, number> = {};
   courses.forEach(c => {
-    const cat     = c.category_name ?? 'Khác';
-    const revenue = (c.sale_price ?? c.price ?? 0) * (c.total_students ?? 0);
+    const price = c.sale_price ?? c.price ?? 0;
+    if (price <= 0) return;
+    const cat = c.category_name ?? 'Khác';
+    const refunded = c.refunded_count ?? 0;
+    const students = Math.max((c.total_students ?? 0) - refunded, 0);
+    const revenue  = c.revenue ?? c.total_revenue ?? (price * students);
     catRevenueMap[cat] = (catRevenueMap[cat] ?? 0) + revenue;
   });
   const catRevenueEntries = Object.entries(catRevenueMap).sort((a, b) => b[1] - a[1]);
@@ -362,9 +402,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                             </div>
                           </td>
                           <td>
-                            <span className={`ad-badge ad-badge--role-${u.role}`}>
-                              {ROLE_LABEL[u.role] ?? u.role}
-                            </span>
+                            <select
+                              className="ad-role-select"
+                              value={u.role}
+                              disabled={u.role === 'admin'}
+                              onChange={e => changeUserRole(u, e.target.value)}
+                            >
+                              <option value="student">Học viên</option>
+                              <option value="instructor">Giảng viên</option>
+                              <option value="admin">Admin</option>
+                            </select>
                           </td>
                           <td className="ad-table__muted">
                             {u.date_joined ? new Date(u.date_joined).toLocaleDateString('vi-VN') : '—'}
@@ -461,7 +508,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       const price    = c.sale_price ?? c.price ?? 0;
                       const students = c.total_students ?? c.enrolled_count ?? 0;
                       // Ưu tiên dùng revenue thực từ API nếu có, fallback tính ước tính
-                      const revenue  = c.revenue ?? c.total_revenue ?? (price * students);
+                      const revenue = price <= 0 ? null : (c.revenue ?? c.total_revenue ?? (price * students));
                       return (
                         <tr key={c.id}>
                           <td className="ad-table__title">{c.title}</td>
@@ -470,8 +517,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                           <td>{price === 0 ? 'Miễn phí' : formatPrice(price, 'VND')}</td>
                           {/* NEW: Doanh thu */}
                           <td className="ad-table__revenue">
-                            {price === 0 ? (
+                            {revenue === null ? (
                               <span style={{ color: 'rgba(224,225,221,0.3)', fontSize: 'var(--text-xs)' }}>—</span>
+                            ) : revenue === 0 ? (
+                              <span>0đ</span>
                             ) : (
                               formatPrice(revenue, 'VND')
                             )}
@@ -531,8 +580,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                 />
                 <select className="ad-select" value={filterPayStatus} onChange={e => setFilterPayStatus(e.target.value)}>
                   <option value="">Tất cả trạng thái</option>
-                  <option value="completed">Hoàn thành</option>
+                  <option value="success">Thành công</option>
                   <option value="pending">Chờ xử lý</option>
+                  <option value="refund_requested">Yêu cầu hoàn</option>
                   <option value="refunded">Đã hoàn tiền</option>
                   <option value="failed">Thất bại</option>
                 </select>
@@ -593,14 +643,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                               {PAYMENT_STATUS_LABEL[status] ?? status}
                             </span>
                           </td>
-                          <td>
-                            {status === 'completed' && (
-                              <button
-                                className="ad-btn-sm ad-btn-sm--refund"
-                                onClick={() => refundPayment(p.id)}
-                              >
-                                Hoàn tiền
-                              </button>
+                           <td>
+                            {status === 'refund_requested' && (
+                              <div className="ad-actions">
+                                <button className="ad-btn-sm ad-btn-sm--approve" onClick={() => approveRefund(p.id)}>
+                                  Duyệt
+                                </button>
+                                <button className="ad-btn-sm ad-btn-sm--ban" onClick={() => rejectRefund(p.id)}>
+                                  Từ chối
+                                </button>
+                              </div>
                             )}
                             {status === 'refunded' && (
                               <span style={{ fontSize: 'var(--text-xs)', color: 'rgba(224,225,221,0.35)' }}>
@@ -608,6 +660,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                               </span>
                             )}
                           </td>
+                          
                         </tr>
                       );
                     })}
@@ -660,7 +713,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                         const color     = CAT_COLORS[label] ?? '#778DA9';
                         return (
                           <div key={label} className="ad-col-chart__item">
-                            <span className="ad-col-chart__pct">{formatPrice(revenue, 'VND')}</span>
+                             <span className="ad-col-chart__pct">
+                              {revenue === 0 ? '0đ' : formatPrice(revenue, 'VND')}
+                            </span>
                             <div className="ad-col-chart__bar-wrap">
                               <div
                                 className="ad-col-chart__bar"

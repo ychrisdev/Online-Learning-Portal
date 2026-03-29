@@ -45,7 +45,7 @@ urlpatterns = [
     path('lessons/<uuid:id>/',                  LessonDetailView.as_view(),       name='lesson-detail'),
     path('lessons/<uuid:id>/content/',          LessonContentView.as_view(),      name='lesson-content'),
 
-    path('<slug:slug>/',            CourseDetailView.as_view(),            name='course-detail'),
     path('<uuid:id>/enroll/',       EnrollCourseView.as_view(),            name='course-enroll'),
     path('<slug:slug>/reviews/',    ReviewCreateView.as_view(),            name='review-create'),
+    path('<slug:slug>/',            CourseDetailView.as_view(),            name='course-detail'),
 ]

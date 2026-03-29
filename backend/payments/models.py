@@ -14,10 +14,11 @@ def _gen_ref_code() -> str:
 class Transaction(models.Model):
 
     class Status(models.TextChoices):
-        PENDING  = 'pending',  'Chờ xử lý'
-        SUCCESS  = 'success',  'Thành công'
-        FAILED   = 'failed',   'Thất bại'
-        REFUNDED = 'refunded', 'Đã hoàn tiền'
+        PENDING           = 'pending',           'Chờ xử lý'
+        SUCCESS           = 'success',           'Thành công'
+        FAILED            = 'failed',            'Thất bại'
+        REFUND_REQUESTED  = 'refund_requested',  'Yêu cầu hoàn tiền'
+        REFUNDED          = 'refunded',          'Đã hoàn tiền'
 
     class Method(models.TextChoices):
         VNPAY  = 'vnpay',  'VNPay'

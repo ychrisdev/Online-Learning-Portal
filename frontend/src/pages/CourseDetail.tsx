@@ -1,6 +1,11 @@
-import React, { useState } from "react";
-import { MOCK_COURSES, MOCK_REVIEWS } from '../data/mockData';
+import React, { useState, useEffect, useCallback } from "react";
 import { formatPrice } from "../utils/format";
+
+const API = 'http://127.0.0.1:8000';
+const authHeader = () => {
+  const token = localStorage.getItem('access');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 interface CourseDetailProps {
   courseId: string;
@@ -141,7 +146,73 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   onNavigate,
   isLoggedIn,
 }) => {
-  const course = MOCK_COURSES.find((c) => c.id === courseId) ?? MOCK_COURSES[0];
+  const [course,   setCourse]   = useState<any>(null);
+  const [sections, setSections] = useState<any[]>([]);
+  const [quizzes,  setQuizzes]  = useState<Record<string, any>>({});
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}/api/courses/${courseId}/`, { headers: authHeader() });
+        if (res.ok) {
+          const data = await res.json();
+          setCourse(data);
+          setSections(data.sections ?? []);
+        }
+      } catch {}
+      setLoading(false);
+    };
+    fetchCourse();
+  }, [courseId]);
+
+  const fetchLessonContent = async (lessonId: string) => {
+    try {
+      const res = await fetch(`${API}/api/courses/lessons/${lessonId}/content/`, { headers: authHeader() });
+      if (res.ok) return await res.json();
+    } catch {}
+    return null;
+  };
+
+  const fetchQuiz = async (lessonId: string) => {
+    if (quizzes[lessonId]) return quizzes[lessonId];
+    try {
+      // Quiz gắn với lesson — lấy theo lesson id
+      const res = await fetch(`${API}/api/quizzes/?lesson=${lessonId}`, { headers: authHeader() });
+      if (res.ok) {
+        const data = await res.json();
+        const quiz = Array.isArray(data) ? data[0] : data?.results?.[0];
+        if (quiz) setQuizzes(prev => ({ ...prev, [lessonId]: quiz }));
+        return quiz ?? null;
+      }
+    } catch {}
+    return null;
+  };
+
+  const submitReview = async (rating: number, comment: string) => {
+    try {
+      const res = await fetch(`${API}/api/courses/${course.slug}/reviews/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ rating, comment }),
+      });
+      if (res.ok) {
+        setReviewSent(true);
+        // Reload lại reviews
+        const updated = await fetch(`${API}/api/courses/${course.slug}/`, { headers: authHeader() });
+        if (updated.ok) {
+          const data = await updated.json();
+          setCourse(data);
+        }
+      } else {
+        const err = await res.json();
+        alert(err.detail ?? 'Gửi đánh giá thất bại.');
+      }
+    } catch {
+      alert('Lỗi kết nối.');
+    }
+  };
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>("s1");
@@ -156,19 +227,21 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const [reviewSent, setReviewSent] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
 
-  const activeLesson = activeLessonId
-    ? MOCK_LESSON_CONTENT[activeLessonId as keyof typeof MOCK_LESSON_CONTENT]
-    : null;
+  const [activeLesson, setActiveLesson] = useState<any>(null);
+  const [currentQuiz, setCurrentQuiz] = useState<any>(null);
 
+// Derived — dùng quiz thực nếu có, fallback mock
+  const quizQuestions = currentQuiz?.questions ?? MOCK_QUIZ;
   const handleSelectAnswer = (idx: number) => {
     if (answered) return;
     setSelected(idx);
     setAnswered(true);
-    if (idx === MOCK_QUIZ[currentQ].correct) setScore((s) => s + 1);
+    const correctIdx = quizQuestions[currentQ].correct ?? quizQuestions[currentQ].correct_index ?? 0;
+    if (idx === correctIdx) setScore((s) => s + 1);
   };
 
   const handleNextQuestion = () => {
-    if (currentQ + 1 < MOCK_QUIZ.length) {
+    if (currentQ + 1 < quizQuestions.length) {
       setCurrentQ((q) => q + 1);
       setSelected(null);
       setAnswered(false);
@@ -186,10 +259,15 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     setQuizStarted(true);
   };
 
-  const discount =
-    course.originalPrice && course.originalPrice > course.price
-      ? Math.round((1 - course.price / course.originalPrice) * 100)
-      : 0;
+  if (loading || !course) return (
+    <div className="cd-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+      <span>Đang tải khóa học…</span>
+    </div>
+  );
+
+  const discount     = course.discount_percent ?? 0;
+  const whatYouLearn = course.what_you_learn ? course.what_you_learn.split('\n').filter(Boolean) : [];
+  const reviews      = course.reviews ?? [];
 
   return (
     <div className="cd-page">
@@ -200,7 +278,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           </button>
 
           <h1 className="cd-hero__title">{course.title}</h1>
-          <p className="cd-hero__desc">{course.shortDescription}</p>
+          <p className="cd-hero__desc">{course.description}</p>
 
           <div className="cd-tabs">
             {TABS.map((tab) => (
@@ -219,7 +297,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
               <section className="cd-section">
                 <h2 className="cd-section__title">Bạn sẽ học được gì?</h2>
                 <ul className="cd-learn-list">
-                  {course.whatYouLearn.map((item, i) => (
+                  {whatYouLearn.map((item, i) => (
                     <li key={i} className="cd-learn-item">
                       <span className="cd-learn-item__icon">✓</span>
                       {item}
@@ -237,10 +315,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           {activeTab === "curriculum" && (
             <div className="cd-tab-content cd-curriculum">
               <p className="cd-curriculum__summary">
-                {course.curriculum.reduce((a, s) => a + s.lessons.length, 0)}{" "}
-                bài học · {course.curriculum.length} chương
+                {sections.reduce((a, s) => a + (s.lessons?.length ?? 0), 0)}{" "}
+                bài học · {sections.length} chương
               </p>
-              {course.curriculum.map((section) => (
+              {sections.map((section) => (
                 <div key={section.id} className="cd-chapter">
                   <button
                     className="cd-chapter__header"
@@ -264,8 +342,13 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         <button
                           key={lesson.id}
                           className={`cd-lesson-row${activeLessonId === lesson.id ? " cd-lesson-row--active" : ""}`}
-                          onClick={() => {
+                          onClick={async () => {
                             setActiveLessonId(lesson.id);
+                            const content = await fetchLessonContent(lesson.id);
+                            if (content) {
+                              // lưu content vào state để render
+                              setActiveLesson(content);
+                            }
                             setActiveTab("lesson");
                           }}
                         >
@@ -273,7 +356,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           <span className="cd-lesson-row__title">
                             {lesson.title}
                           </span>
-                          {lesson.isPreview && (
+                          {lesson.is_preview && (
                             <span className="cd-lesson-row__preview">
                               Xem thử
                             </span>
@@ -367,7 +450,19 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   <div className="cd-lesson__footer">
                     <button
                       className="cd-btn-enroll"
-                      onClick={() => setActiveTab("quiz")}
+                      onClick={async () => {
+                        if (activeLessonId) {
+                          const quiz = await fetchQuiz(activeLessonId);
+                          if (quiz) {
+                            setCurrentQuiz(quiz);
+                          }
+                        }
+                        setQuizStarted(false);
+                        setQuizDone(false);
+                        setCurrentQ(0);
+                        setScore(0);
+                        setActiveTab("quiz");
+                      }}
                     >
                       Làm bài kiểm tra ngay
                     </button>
@@ -383,7 +478,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                 <div className="cd-quiz__intro">
                   <h2 className="cd-quiz__intro-title">Bài kiểm tra ôn tập</h2>
                   <p className="cd-quiz__intro-sub">
-                    {MOCK_QUIZ.length} câu hỏi · Không giới hạn thời gian
+                     {quizQuestions.length} câu hỏi · Không giới hạn thời gian
                   </p>
                   <ul className="cd-quiz__intro-info">
                     <li>Mỗi câu có 4 lựa chọn</li>
@@ -400,21 +495,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
               ) : quizDone ? (
                 <div className="cd-quiz__result">
                   <div
-                    className={`cd-quiz__result-circle ${score >= MOCK_QUIZ.length * 0.7 ? "cd-quiz__result-circle--pass" : "cd-quiz__result-circle--fail"}`}
+                    className={`cd-quiz__result-circle ${score >= quizQuestions.length * 0.7 ? "cd-quiz__result-circle--pass" : "cd-quiz__result-circle--fail"}`}
                   >
                     <span className="cd-quiz__result-score">
-                      {score}/{MOCK_QUIZ.length}
+                      {score}/{quizQuestions.length}
                     </span>
                     <span className="cd-quiz__result-label">
-                      {score >= MOCK_QUIZ.length * 0.7
-                        ? "Xuất sắc!"
-                        : "Cần ôn thêm"}
+                      {score >= quizQuestions.length * 0.7 ? "Xuất sắc!" : "Cần ôn thêm"}
                     </span>
                   </div>
                   <p className="cd-quiz__result-msg">
-                    {score >= MOCK_QUIZ.length * 0.7
-                      ? "Bạn đã nắm vững nội dung bài học. Tiếp tục bài tiếp theo!"
-                      : "Hãy xem lại bài học và thử lại nhé!"}
+                    {score >= quizQuestions.length * 0.7 ? "Bạn đã nắm vững..." : "Hãy xem lại..."}
                   </p>
                   <div className="cd-quiz__result-actions">
                     <button
@@ -438,22 +529,22 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                       <div
                         className="cd-quiz__progress-fill"
                         style={{
-                          width: `${(currentQ / MOCK_QUIZ.length) * 100}%`,
+                          width: `${(currentQ / quizQuestions.length) * 100}%`,
                         }}
                       />
                     </div>
                     <span className="cd-quiz__progress-text">
-                      Câu {currentQ + 1} / {MOCK_QUIZ.length}
+                      Câu {currentQ + 1} / {quizQuestions.length}
                     </span>
                   </div>
                   <h3 className="cd-quiz__q-text">
-                    {MOCK_QUIZ[currentQ].question}
+                    {quizQuestions[currentQ].question}
                   </h3>
                   <div className="cd-quiz__options">
-                    {MOCK_QUIZ[currentQ].options.map((opt, idx) => {
+                    {quizQuestions[currentQ].options.map((opt, idx) => {
                       let cls = "cd-quiz__option";
                       if (answered) {
-                        if (idx === MOCK_QUIZ[currentQ].correct)
+                        if (idx === (quizQuestions[currentQ].correct ?? quizQuestions[currentQ].correct_index ?? 0))
                           cls += " cd-quiz__option--correct";
                         else if (idx === selected)
                           cls += " cd-quiz__option--wrong";
@@ -478,16 +569,16 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     <div className="cd-quiz__explanation">
                       <strong
                         className={
-                          selected === MOCK_QUIZ[currentQ].correct
+                          selected === (quizQuestions[currentQ].correct ?? quizQuestions[currentQ].correct_index ?? 0)
                             ? "cd-quiz__correct-text"
                             : "cd-quiz__wrong-text"
                         }
                       >
-                        {selected === MOCK_QUIZ[currentQ].correct
+                        {selected === (quizQuestions[currentQ].correct ?? quizQuestions[currentQ].correct_index ?? 0)
                           ? "Chính xác!"
                           : "Chưa đúng."}
                       </strong>
-                      <p>{MOCK_QUIZ[currentQ].explanation}</p>
+                      <p> {quizQuestions[currentQ].explanation}</p>
                     </div>
                   )}
                   {answered && (
@@ -495,7 +586,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                       className="cd-btn-enroll cd-quiz__next-btn"
                       onClick={handleNextQuestion}
                     >
-                      {currentQ + 1 < MOCK_QUIZ.length
+                      {currentQ + 1 < quizQuestions.length
                         ? "Câu tiếp theo"
                         : "Xem kết quả"}
                     </button>
@@ -509,20 +600,20 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
               <div className="cd-rv-summary">
                 <div className="cd-rv-big-score">
                   <span className="cd-rv-big-num">
-                    {course.rating.toFixed(1)}
+                    {(course.avg_rating ?? 0).toFixed(1)}
                   </span>
                   <div className="cd-rv-big-stars">
-                    {"★".repeat(Math.round(course.rating))}
-                    {"☆".repeat(5 - Math.round(course.rating))}
+                    {"★".repeat(Math.round(course.avg_rating ?? 0))}
+                    {"☆".repeat(5 - Math.round(course.avg_rating ?? 0))}
                   </div>
                   <span className="cd-rv-big-sub">
-                    {course.reviewCount.toLocaleString()} đánh giá
+                    {reviews.length.toLocaleString()} đánh giá
                   </span>
                 </div>
                 <div className="cd-rv-bars">
                   {[5, 4, 3, 2, 1].map((star) => {
-                    const fakeWeights = [78, 14, 5, 2, 1];
-                    const pct = fakeWeights[5 - star];
+                    const count = reviews.filter((r: any) => r.rating === star).length;
+                    const pct   = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
                     return (
                       <div key={star} className="cd-rv-bar-row">
                         <span className="cd-rv-bar-label">{star} ★</span>
@@ -540,28 +631,25 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
               </div>
 
               <div className="cd-rv-list">
-                {MOCK_REVIEWS.filter((r) => r.courseId === course.id).map(
-                  (r) => (
-                    <div key={r.id} className="cd-rv-card">
-                      <div className="cd-rv-card-top">
-                        <img
-                          className="cd-rv-avatar"
-                          src={r.user.avatar}
-                          alt={r.user.name}
-                        />
-                        <div>
-                          <div className="cd-rv-name">{r.user.name}</div>
-                          <div className="cd-rv-date">{r.date}</div>
-                        </div>
-                        <div className="cd-rv-stars">
-                          {"★".repeat(r.rating)}
-                          {"☆".repeat(5 - r.rating)}
+                {reviews.map((r: any) => (
+                  <div key={r.id} className="cd-rv-card">
+                    <div className="cd-rv-card-top">
+                      <div className="cd-rv-avatar-placeholder">
+                        {(r.student_name ?? '?')[0]}
+                      </div>
+                      <div>
+                        <div className="cd-rv-name">{r.student_name ?? '—'}</div>
+                        <div className="cd-rv-date">
+                          {r.created_at ? new Date(r.created_at).toLocaleDateString('vi-VN') : ''}
                         </div>
                       </div>
-                      <p className="cd-rv-comment">{r.comment}</p>
+                      <div className="cd-rv-stars">
+                        {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                      </div>
                     </div>
-                  ),
-                )}
+                    <p className="cd-rv-comment">{r.comment}</p>
+                  </div>
+                ))}
               </div>
 
               <div className="cd-rv-form">
@@ -601,7 +689,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           onNavigate("auth");
                           return;
                         }
-                        setReviewSent(true);
+                        submitReview(reviewRating, reviewText);
                       }}
                     >
                       {isLoggedIn ? "Gửi đánh giá" : "Đăng nhập để đánh giá"}
@@ -616,30 +704,26 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         <div className="cd-sidebar">
           <div className="cd-price-card">
             <div className="cd-price-card__instructor">
-              <img
-                src={course.instructor.avatar}
-                alt={course.instructor.name}
-              />
+              <div className="cd-rv-avatar-placeholder">
+                {(course.instructor_name ?? '?')[0]}
+              </div>
               <div>
-                <strong>{course.instructor.name}</strong>
-                <span>{course.instructor.title}</span>
+                <strong>{course.instructor_name ?? '—'}</strong>
+                <span>Giảng viên</span>
               </div>
             </div>
             <div className="cd-price-card__instructor-stats">
-              <span>{course.instructor.rating} đánh giá</span>
-              <span>{course.instructor.totalCourses} khóa học</span>
-              <span>
-                {course.instructor.totalStudents.toLocaleString()} học viên
-              </span>
+              <span>{(course.avg_rating ?? 0).toFixed(1)} đánh giá</span>
+              <span>{course.total_students?.toLocaleString() ?? 0} học viên</span>
             </div>
             <div className="cd-price-card__price-row">
               <span className="cd-price-card__price">
-                {formatPrice(course.price, course.currency)}
+                {formatPrice(course.sale_price ?? course.price ?? 0, 'VND')}
               </span>
               {discount > 0 && (
                 <>
                   <span className="cd-price-card__original">
-                    {formatPrice(course.originalPrice!, course.currency)}
+                    {formatPrice(course.price, 'VND')}
                   </span>
                   <span className="cd-price-card__discount">-{discount}%</span>
                 </>
@@ -647,19 +731,15 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
             </div>
             <button
               className="cd-btn-enroll"
-              onClick={() =>
-                isLoggedIn ? setActiveTab("lesson") : onNavigate("auth")
-              }
+              onClick={() => isLoggedIn ? setActiveTab("lesson") : onNavigate("auth")}
             >
               {isLoggedIn ? "Bắt đầu học ngay" : "Đăng nhập để học"}
             </button>
-            <div className="cd-price-card__tags">
-              {course.tags.map((tag) => (
-                <span key={tag} className="cd-tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {course.category_name && (
+              <div className="cd-price-card__tags">
+                <span className="cd-tag">{course.category_name}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
