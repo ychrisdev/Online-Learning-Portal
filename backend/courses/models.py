@@ -182,7 +182,7 @@ class Lesson(models.Model):
     is_preview       = models.BooleanField('Cho xem thử miễn phí', default=False)
     created_at       = models.DateTimeField(auto_now_add=True)
     updated_at       = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
         db_table            = 'lessons'
         ordering            = ['order_index']
@@ -191,6 +191,7 @@ class Lesson(models.Model):
 
     def __str__(self):
         return self.title
+
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -217,6 +218,7 @@ class Review(models.Model):
     comment    = models.TextField('Nhận xét', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    edit_count = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         db_table        = 'reviews'

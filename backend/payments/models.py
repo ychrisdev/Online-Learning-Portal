@@ -48,6 +48,7 @@ class Transaction(models.Model):
     ref_code    = models.CharField('Mã tham chiếu (gửi gateway)', max_length=64, unique=True, blank=True)
     gateway_ref = models.CharField('Mã giao dịch (gateway trả về)', max_length=128, blank=True)
     note        = models.TextField('Ghi chú', blank=True)
+    refund_reason = models.TextField('Lý do hoàn tiền', blank=True, default='')
     created_at  = models.DateTimeField('Tạo lúc', auto_now_add=True)
     paid_at     = models.DateTimeField('Thanh toán lúc', null=True, blank=True)
 

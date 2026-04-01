@@ -105,7 +105,26 @@ class QuizDetailView(generics.RetrieveAPIView):
         _check_max_attempts(self.request.user, quiz)
         return quiz
 
+class QuizDetailByLessonView(generics.RetrieveAPIView):
+    """
+    GET /api/quizzes/lesson/<lesson_id>/take/
+    Student xem đề bài dựa vào lesson_id — 5.1.4
+    Kiểm tra: đã enrolled + chưa vượt max_attempts.
+    """
+    serializer_class   = QuizDetailSerializer
+    permission_classes = [IsAuthenticated]
 
+    def get_object(self):
+        # Tìm quiz theo lesson_id
+        quiz = generics.get_object_or_404(
+            Quiz.objects.prefetch_related('questions__answers'),
+            lesson_id=self.kwargs['lesson_id']
+        )
+        # Check permissions
+        _check_enrollment(self.request.user, quiz)
+        _check_max_attempts(self.request.user, quiz)
+        return quiz
+    
 class QuizSubmitView(APIView):
     """
     POST /api/quizzes/<id>/submit/
@@ -187,10 +206,12 @@ def _grade(quiz: Quiz, submitted: dict) -> tuple[int, int]:
     """
     Chấm điểm bài kiểm tra.
     Trả về (score_percent, total_points).
-    Với câu hỏi MULTIPLE: chỉ tính điểm khi chọn đúng tất cả đáp án đúng
-    và không chọn đáp án sai.
+    
+    Logic:
+    - SINGLE/TRUE_FALSE: Chọn đúng đáp án duy nhất
+    - MULTIPLE: Chọn đúng TẤT CẢ đáp án đúng + không chọn đáp án sai
     """
-    questions    = quiz.questions.prefetch_related('answers').all()
+    questions    = quiz.questions.prefetch_related('answers').order_by('order_index')
     total_points = sum(q.points for q in questions)
     earned       = 0
 
@@ -198,19 +219,30 @@ def _grade(quiz: Quiz, submitted: dict) -> tuple[int, int]:
         q_id         = str(question.id)
         chosen_ids   = {str(a) for a in submitted.get(q_id, [])}
         correct_ids  = {str(a.id) for a in question.answers.filter(is_correct=True)}
+        all_ids      = {str(a.id) for a in question.answers.all()}
+        wrong_ids    = all_ids - correct_ids
 
-        if question.question_type in (
+        if question.question_type in [
             Question.QuestionType.SINGLE,
             Question.QuestionType.TRUE_FALSE,
-        ):
-            if chosen_ids == correct_ids:
+        ]:
+            # Phải chọn đúng 1 đáp án duy nhất
+            if chosen_ids == correct_ids and len(chosen_ids) == 1:
                 earned += question.points
+                
         elif question.question_type == Question.QuestionType.MULTIPLE:
-            # Phải chọn đúng tất cả và không chọn sai
-            all_ids     = {str(a.id) for a in question.answers.all()}
-            wrong_ids   = all_ids - correct_ids
-            if chosen_ids == correct_ids and not (chosen_ids & wrong_ids):
-                earned += question.points
+            # Chấm theo tỷ lệ: đúng bao nhiêu / tổng đáp án đúng
+            # Trừ điểm nếu chọn sai (không âm)
+            if len(correct_ids) == 0:
+                continue
+            correct_chosen   = chosen_ids & correct_ids   # chọn đúng
+            wrong_chosen     = chosen_ids & wrong_ids      # chọn sai
+            correct_count    = len(correct_chosen)
+            wrong_count      = len(wrong_chosen)
+            total_correct    = len(correct_ids)
+            # Tỷ lệ = (đúng - sai) / tổng đúng, không âm
+            ratio = max(0, (correct_count - wrong_count) / total_correct)
+            earned += question.points * ratio
 
-    score = round(earned / total_points * 100) if total_points else 0
+    score = int(round(earned / total_points * 100)) if total_points > 0 else 0
     return score, total_points

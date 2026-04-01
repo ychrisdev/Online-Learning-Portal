@@ -60,11 +60,12 @@ class SectionWriteSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.full_name', read_only=True)
+    student_id   = serializers.IntegerField(source='student.id', read_only=True)  # ← thêm dòng này
 
     class Meta:
         model  = Review
-        fields = ['id', 'student_name', 'rating', 'comment', 'created_at']
-        read_only_fields = ['id', 'student_name', 'created_at']
+        fields = ['id', 'student_name', 'student_id', 'rating', 'comment', "edit_count", 'created_at']
+        read_only_fields = ['id', 'student_name', 'student_id', "edit_count", 'created_at']
 
 
 class CourseListSerializer(serializers.ModelSerializer):

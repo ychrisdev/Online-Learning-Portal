@@ -18,7 +18,8 @@ type Page =
   | "learning"
   | "dashboard"
   | "auth"
-  | "policy";
+  | "policy"
+  | "payment";
 type Role = "student" | "instructor" | "admin";
 
 const NO_CHROME: Page[] = ["learning", "auth"];
