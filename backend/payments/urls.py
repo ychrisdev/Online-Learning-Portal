@@ -12,6 +12,9 @@ from .views import (
     RequestRefundView,
     AdminApproveRefundView,
     AdminRejectRefundView,
+    InstructorRevenueMonthlyView,
+    revenue_stats,
+    AdminTransactionDetailView,
 )
 
 urlpatterns = [
@@ -23,8 +26,15 @@ urlpatterns = [
     # Admin
     path('admin/',               AdminTransactionListView.as_view(), name='admin-transaction-list'),
     path('admin/stats/',         AdminRevenueStatsView.as_view(),    name='admin-revenue-stats'),
+    path('admin/<uuid:id>/',     AdminTransactionDetailView.as_view(), name='admin-transaction-detail'),
     path('admin/<uuid:id>/refund/', AdminRefundView.as_view(),       name='admin-refund'),
+
     path('<uuid:id>/request-refund/', RequestRefundView.as_view()),
+
     path('admin/<uuid:id>/approve-refund/', AdminApproveRefundView.as_view()),
     path('admin/<uuid:id>/reject-refund/',  AdminRejectRefundView.as_view()),
+
+    path('analytics/revenue/monthly/', InstructorRevenueMonthlyView.as_view()),
+
+    path('revenue/', revenue_stats),
 ]

@@ -1,5 +1,6 @@
 export const formatPrice = (price: number, currency: string = 'VND'): string => {
-  if (price === 0) return 'Miễn phí';
+  if (price === null || price === undefined) return '0 ₫';
+
   if (currency === 'VND') {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -7,6 +8,7 @@ export const formatPrice = (price: number, currency: string = 'VND'): string => 
       maximumFractionDigits: 0,
     }).format(price);
   }
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,

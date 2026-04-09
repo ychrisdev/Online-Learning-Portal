@@ -98,12 +98,14 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   pending:  'Đang xử lý',
   failed:   'Thất bại',
   refunded: 'Đã hoàn tiền',
+  refund_requested: 'Chờ hoàn tiền',
 };
 const PAYMENT_STATUS_CLASS: Record<string, string> = {
   success:  'db-badge--success',
   pending:  'db-badge--warn',
   failed:   'db-badge--err',
   refunded: 'db-badge--warn',
+  refund_requested: 'db-badge--warn',
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -132,6 +134,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
   const [saving, setSaving]   = useState(false);
   const [toast, setToast]     = useState<{ msg: string; ok: boolean } | null>(null);
   const [errors, setErrors]   = useState<Record<string, string>>({});
+
+  const [refundTarget, setRefundTarget] = useState<Payment | null>(null);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });
@@ -282,6 +288,24 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
     }
     setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     showToast('Đổi mật khẩu thành công');
+  };
+
+  const requestRefund = async () => {
+    if (!refundTarget || !refundReason.trim()) return;
+    setRefundLoading(true);
+    const res = await fetch(`${API}/api/payments/${refundTarget.id}/request-refund/`, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ reason: refundReason }),
+    });
+    setRefundLoading(false);
+    if (!res.ok) { showToast('Yêu cầu thất bại', false); return; }
+    setPayments(prev =>
+      prev.map(p => p.id === refundTarget.id ? { ...p, status: 'refund_requested' as any } : p)
+    );
+    setRefundTarget(null);
+    setRefundReason('');
+    showToast('Đã gửi yêu cầu hoàn tiền');
   };
 
   // ── Derived stats ─────────────────────────────────────────────────────────
@@ -510,6 +534,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                     <span>{formatPrice(p.amount)}</span>
                     <span className={`db-badge ${PAYMENT_STATUS_CLASS[p.status] ?? ''}`}>
                       {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
+                    </span>
+                    <span>
+                      {p.status === 'success' && (
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => { setRefundTarget(p); setRefundReason(''); }}
+                        >
+                          Yêu cầu hoàn tiền
+                        </button>
+                      )}
                     </span>
                   </div>
                 ))
@@ -806,6 +840,45 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
 
         </main>
       </div>
+      {refundTarget && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setRefundTarget(null); }}>
+          <div className="modal modal--md">
+            <div className="modal__header">
+              <h2 className="modal__title">Yêu cầu hoàn tiền</h2>
+              <button className="modal__close" onClick={() => setRefundTarget(null)}>✕</button>
+            </div>
+            <div className="modal__body">
+              <p style={{ marginBottom: '0.5rem' }}>
+                Khóa học: <strong>{refundTarget.course_title}</strong>
+              </p>
+              <p style={{ marginBottom: '1rem' }}>
+                Số tiền: <strong>{formatPrice(refundTarget.amount)}</strong>
+              </p>
+              <label className="db-field__label">Lý do hoàn tiền *</label>
+              <textarea
+                className="db-input db-input--textarea"
+                rows={4}
+                placeholder="Mô tả lý do bạn muốn hoàn tiền…"
+                value={refundReason}
+                onChange={e => setRefundReason(e.target.value)}
+                style={{ marginTop: '0.4rem', marginBottom: '1rem' }}
+              />
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button className="btn btn--ghost" onClick={() => setRefundTarget(null)}>
+                  Hủy
+                </button>
+                <button
+                  className="btn btn--primary"
+                  onClick={requestRefund}
+                  disabled={refundLoading || !refundReason.trim()}
+                >
+                  {refundLoading ? 'Đang gửi…' : 'Gửi yêu cầu'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

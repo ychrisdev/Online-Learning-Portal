@@ -9,7 +9,7 @@ Chức năng liên quan:
 import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
+
 
 
 class User(AbstractUser):
@@ -65,22 +65,6 @@ class StudentProfile(models.Model):
     Liên quan: 5.1.1 Cập nhật hồ sơ cá nhân
     """
 
-    class EnglishLevel(models.TextChoices):
-        BEGINNER     = 'beginner',     'Mới bắt đầu (A1)'
-        ELEMENTARY   = 'elementary',   'Sơ cấp (A2)'
-        INTERMEDIATE = 'intermediate', 'Trung cấp (B1)'
-        UPPER_INT    = 'upper_intermediate', 'Trên trung cấp (B2)'
-        ADVANCED     = 'advanced',     'Nâng cao (C1)'
-        PROFICIENT   = 'proficient',   'Thành thạo (C2)'
-
-    class LearningGoal(models.TextChoices):
-        COMMUNICATION  = 'communication',  'Giao tiếp hàng ngày'
-        BUSINESS       = 'business',       'Tiếng Anh thương mại'
-        EXAM           = 'exam',           'Luyện thi (IELTS/TOEIC/…)'
-        ACADEMIC       = 'academic',       'Tiếng Anh học thuật'
-        TRAVEL         = 'travel',         'Du lịch'
-        OTHER          = 'other',          'Mục tiêu khác'
-
     user = models.OneToOneField(
         'User',
         on_delete=models.CASCADE,
@@ -102,25 +86,6 @@ class StudentProfile(models.Model):
     country = models.CharField('Quốc gia', max_length=100, blank=True, default='Vietnam')
     city    = models.CharField('Thành phố / Tỉnh', max_length=100, blank=True)
 
-    # ── Trình độ & mục tiêu học tiếng Anh ───────────────────────
-    current_level = models.CharField(
-        'Trình độ hiện tại', max_length=30,
-        choices=EnglishLevel.choices, default=EnglishLevel.BEGINNER,
-    )
-    learning_goal = models.CharField(
-        'Mục tiêu học tập', max_length=30,
-        choices=LearningGoal.choices, default=LearningGoal.COMMUNICATION,
-    )
-    target_exam = models.CharField(
-        'Kỳ thi mục tiêu', max_length=50, blank=True,
-        help_text='Ví dụ: IELTS 7.0, TOEIC 900, TOEFL iBT 100',
-    )
-    study_hours_per_week = models.PositiveSmallIntegerField(
-        'Số giờ học/tuần', default=0,
-        validators=[MaxValueValidator(168)],
-        help_text='Học viên tự khai khi onboarding.',
-    )
-
     # ── Thông tin nghề nghiệp / học vấn ─────────────────────────
     occupation  = models.CharField('Nghề nghiệp', max_length=100, blank=True)
     education   = models.CharField(
@@ -134,26 +99,6 @@ class StudentProfile(models.Model):
             ('other',       'Khác'),
         ],
     )
-
-    # ── Cài đặt giao diện / thông báo ───────────────────────────
-    preferred_language = models.CharField(
-        'Ngôn ngữ giao diện', max_length=10,
-        choices=[('vi', 'Tiếng Việt'), ('en', 'English')],
-        default='vi',
-    )
-    receive_email_notifications = models.BooleanField(
-        'Nhận thông báo email', default=True,
-    )
-    receive_sms_notifications = models.BooleanField(
-        'Nhận thông báo SMS', default=False,
-    )
-
-    # ── Liên kết mạng xã hội (tuỳ chọn) ────────────────────────
-    facebook_url  = models.URLField('Facebook', blank=True)
-    linkedin_url  = models.URLField('LinkedIn', blank=True)
-
-    # ── Timestamps ───────────────────────────────────────────────
-    updated_at = models.DateTimeField('Cập nhật lần cuối', auto_now=True)
 
     class Meta:
         db_table     = 'student_profiles'
@@ -197,20 +142,11 @@ class InstructorProfile(models.Model):
 
     # ── Thông tin liên hệ ────────────────────────────────────────
     phone_number  = models.CharField('Số điện thoại', max_length=20, blank=True)
-    website_url   = models.URLField('Website cá nhân', blank=True)
-    linkedin_url  = models.URLField('LinkedIn', blank=True)
-    youtube_url   = models.URLField('Kênh YouTube', blank=True)
 
     # ── Thống kê (denormalized, cập nhật qua signal) ─────────────
     total_students = models.PositiveIntegerField('Tổng học viên', default=0)
     total_courses  = models.PositiveIntegerField('Tổng khoá học', default=0)
     avg_rating     = models.FloatField('Điểm đánh giá TB', default=0.0)
-
-    # ── Trạng thái duyệt giảng viên (Admin phê duyệt — 5.3.1) ────
-    is_verified = models.BooleanField('Đã xác minh', default=False)
-    verified_at = models.DateTimeField('Ngày xác minh', null=True, blank=True)
-
-    updated_at = models.DateTimeField('Cập nhật lần cuối', auto_now=True)
 
     class Meta:
         db_table     = 'instructor_profiles'

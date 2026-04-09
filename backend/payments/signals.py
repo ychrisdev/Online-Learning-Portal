@@ -14,25 +14,27 @@ def on_transaction_saved(sender, instance, **kwargs):
     bất cứ khi nào Transaction chuyển sang SUCCESS —
     dù qua API, Django Admin, hay shell.
     """
-    if instance.status != Transaction.Status.SUCCESS:
-        return
-
-    # 1. Tạo hoặc lấy Enrollment
-    enrollment, created = Enrollment.objects.get_or_create(
-        student=instance.student,
-        course=instance.course,
-        defaults={
-            'status'      : Enrollment.Status.ACTIVE,
-            'paid_amount' : instance.amount,
-        },
-    )
-    # Nếu Enrollment đã tồn tại nhưng chưa active (vd: refunded rồi mua lại)
-    if not created and enrollment.status != Enrollment.Status.ACTIVE:
-        enrollment.status = Enrollment.Status.ACTIVE
-        enrollment.save(update_fields=['status'])
-
-    # 2. Cập nhật total_students
     course = instance.course
+
+    if instance.status == Transaction.Status.SUCCESS:
+        enrollment, created = Enrollment.objects.get_or_create(
+            student=instance.student,
+            course=course,
+            defaults={
+                'status'      : Enrollment.Status.ACTIVE,
+                'paid_amount' : instance.amount,
+            },
+        )
+        if not created and enrollment.status != Enrollment.Status.ACTIVE:
+            enrollment.status = Enrollment.Status.ACTIVE
+            enrollment.save(update_fields=['status'])
+
+    elif instance.status == Transaction.Status.REFUNDED:
+        Enrollment.objects.filter(
+            student=instance.student,
+            course=course,
+        ).delete()
+
     course.total_students = course.enrollments.filter(
         status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED]
     ).count()

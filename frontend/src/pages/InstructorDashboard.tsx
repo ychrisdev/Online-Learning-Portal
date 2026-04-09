@@ -34,6 +34,7 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
+
 const toList = (data: any): any[] =>
   Array.isArray(data) ? data : (data?.results ?? []);
 
@@ -88,15 +89,42 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
   const [user, setUser]           = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({
-    name: '', title: '', email: '', phone: '', location: '', bio: '',
-    facebook: '', linkedin: '', youtube: '',
-  });
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  name: '', title: '', email: '', phone: '', location: '', bio: '',
+  facebook: '', linkedin: '', youtube: '', website: '',
+  specializations: '', years_experience: '', certifications: '',
+});
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileSaving,  setProfileSaving]  = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [passwordSaving,  setPasswordSaving]  = useState(false);
+  const [passwordError,   setPasswordError]   = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Preview ngay lập tức
     const reader = new FileReader();
     reader.onload = () => setAvatarUrl(reader.result as string);
     reader.readAsDataURL(file);
+
+    // Upload lên server
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch(`${API}/api/auth/me/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${localStorage.getItem('access')}` }, // KHÔNG có Content-Type
+        body: formData,
+      });
+
+      if (!res.ok) {
+        console.error('Upload avatar thất bại:', await res.json().catch(() => ({})));
+      }
+    } catch (_) {
+      console.error('Lỗi kết nối khi upload avatar.');
+    }
   };
 
   // ── Real data ─────────────────────────────────────────────────────────────
@@ -126,7 +154,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
 
   // ── Course filter states ───────────────────────────────────────────────────
   const [courseSearch, setCourseSearch] = useState('');
-  const [courseStatusFilter, setCourseStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [courseStatusFilter, setCourseStatusFilter] = useState<'all' | 'draft' | 'review' | 'published' | 'archived'>('all');
 
   // ── QA states ─────────────────────────────────────────────────────────────
   const [qaFilter,   setQaFilter]   = useState<QAFilter>('all');
@@ -138,10 +166,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
   const [openReviewReply,   setOpenReviewReply]   = useState<string | null>(null);
   const [reviewCourseFilter, setReviewCourseFilter] = useState<string>('all');
 
+  
   // ── Fetch profile ─────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
-      const res = await fetch(`${API}/api/auth/profile/`, { headers: authHeaders() });
+      const res = await fetch(`${API}/api/auth/me/`, { headers: authHeaders() });
       if (!res.ok) { localStorage.clear(); onNavigate('auth'); return; }
       const data = await res.json();
       setUser(data);
@@ -149,15 +178,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
         setAvatarUrl(data.avatar.startsWith('http') ? data.avatar : `${API}${data.avatar}`);
       }
       setProfileForm({
-        name:     data.full_name        ?? '',
-        title:    data.title            ?? '',
-        email:    data.email            ?? '',
-        phone:    data.phone            ?? '',
-        location: data.location         ?? '',
-        bio:      data.bio              ?? '',
-        facebook: data.social?.facebook ?? '',
-        linkedin: data.social?.linkedin ?? '',
-        youtube:  data.social?.youtube  ?? '',
+       name:             data.full_name                           ?? '',
+      title:            data.instructor_profile?.title           ?? '',
+      email:            data.email                               ?? '',
+      phone:            data.instructor_profile?.phone_number    ?? '',
+      location:         data.location                            ?? '',
+      bio:              data.bio                                 ?? '',
+      facebook:         data.social?.facebook                    ?? '',
+      linkedin:         data.instructor_profile?.linkedin_url    ?? '',
+      youtube:          data.instructor_profile?.youtube_url     ?? '',
+      website:          data.instructor_profile?.website_url     ?? '',
+      specializations:  data.instructor_profile?.specializations ?? '',
+      years_experience: String(data.instructor_profile?.years_experience ?? ''),
+      certifications:   data.instructor_profile?.certifications  ?? '',
       });
     })();
   }, []);
@@ -231,12 +264,13 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API}/api/analytics/revenue/monthly/`, { headers: authHeaders() });
+        const res = await fetch(`${API}/api/payments/analytics/revenue/monthly/`, {
+          headers: authHeaders()
+        });
         if (res.ok) setMonthlyData(toList(await res.json()));
       } catch (_) {}
     })();
   }, []);
-
   // ── Derived stats ─────────────────────────────────────────────────────────
   const totalRevenue = courses.reduce((a, c) => {
     const price = Number(c.sale_price) || Number(c.price) || 0;
@@ -352,6 +386,72 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     return type ?? '';
   };
 
+  const handleProfileSave = async () => {
+    setProfileSaving(true);
+    try {
+      await fetch(`${API}/api/auth/me/`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          full_name: profileForm.name,
+          bio:       profileForm.bio,
+        }),
+      });
+      await fetch(`${API}/api/auth/profile/instructor/`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title:            profileForm.title,
+          phone_number:     profileForm.phone,
+          linkedin_url:     profileForm.linkedin,
+          youtube_url:      profileForm.youtube,
+          website_url:      profileForm.website,
+          specializations:  profileForm.specializations,
+          years_experience: Number(profileForm.years_experience) || 0,
+          certifications:   profileForm.certifications,
+        }),
+      });
+      setProfileEditing(false);
+    } catch (_) {}
+    setProfileSaving(false);
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+    setPasswordSuccess(false);
+    if (!passwordForm.current)          { setPasswordError('Vui lòng nhập mật khẩu hiện tại.'); return; }
+    if (passwordForm.newPw.length < 6)  { setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự.'); return; }
+    if (passwordForm.newPw !== passwordForm.confirm) { setPasswordError('Mật khẩu xác nhận không khớp.'); return; }
+
+    setPasswordSaving(true);
+    try {
+      const res = await fetch(`${API}/api/auth/change-password/`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          old_password: passwordForm.current,   // ✅ đúng field name
+          new_password: passwordForm.newPw,     // ✅ đúng field name
+          // KHÔNG gửi confirm — serializer không có field này, sẽ gây warning
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.old_password?.[0]
+          ?? err?.new_password?.[0]
+          ?? err?.detail
+          ?? err?.non_field_errors?.[0]
+          ?? 'Đổi mật khẩu thất bại.';
+        setPasswordError(msg);
+      } else {
+        setPasswordSuccess(true);
+        setPasswordForm({ current: '', newPw: '', confirm: '' });
+      }
+    } catch (_) {
+      setPasswordError('Lỗi kết nối. Vui lòng thử lại.');
+    }
+    setPasswordSaving(false);
+  };
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="id-page">
@@ -499,41 +599,74 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
               </div>
 
               <div className="id-form-card">
-                <h3 className="id-form-card__title">Thông tin cơ bản</h3>
+                <div className="id-form-card__title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 className="id-form-card__title">Thông tin cơ bản</h3>
+                  {!profileEditing ? (
+                    <button className="id-btn-sm" onClick={() => setProfileEditing(true)}>✏️ Chỉnh sửa</button>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="id-btn-primary" onClick={handleProfileSave} disabled={profileSaving}>
+                        {profileSaving ? 'Đang lưu…' : 'Lưu'}
+                      </button>
+                      <button className="id-btn-secondary" onClick={() => setProfileEditing(false)}>Hủy</button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="id-form-grid">
                   <div className="id-field">
                     <label className="id-field__label">Họ và tên</label>
-                    <input className="id-field__input"
+                    <input className="id-field__input" disabled={!profileEditing}
                       value={profileForm.name}
                       onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))} />
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">Chức danh</label>
-                    <input className="id-field__input"
+                    <input className="id-field__input" disabled={!profileEditing}
+                      placeholder="Ví dụ: Thạc sĩ ngôn ngữ Anh - 10 năm kinh nghiệm"
                       value={profileForm.title}
                       onChange={e => setProfileForm(f => ({ ...f, title: e.target.value }))} />
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">Email</label>
-                    <input className="id-field__input" type="email"
-                      value={profileForm.email}
-                      onChange={e => setProfileForm(f => ({ ...f, email: e.target.value }))} />
+                    <input className="id-field__input" type="email" disabled
+                      value={profileForm.email} />
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">Số điện thoại</label>
-                    <input className="id-field__input" type="tel"
+                    <input className="id-field__input" type="tel" disabled={!profileEditing}
                       value={profileForm.phone}
                       onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} />
                   </div>
+                  <div className="id-field">
+                    <label className="id-field__label">Số năm kinh nghiệm</label>
+                    <input className="id-field__input" type="number" min="0" disabled={!profileEditing}
+                      value={profileForm.years_experience}
+                      onChange={e => setProfileForm(f => ({ ...f, years_experience: e.target.value }))} />
+                  </div>
+                  <div className="id-field">
+                    <label className="id-field__label">Website cá nhân</label>
+                    <input className="id-field__input" placeholder="https://..." disabled={!profileEditing}
+                      value={profileForm.website}
+                      onChange={e => setProfileForm(f => ({ ...f, website: e.target.value }))} />
+                  </div>
                   <div className="id-field id-field--full">
-                    <label className="id-field__label">Địa điểm</label>
-                    <input className="id-field__input"
-                      value={profileForm.location}
-                      onChange={e => setProfileForm(f => ({ ...f, location: e.target.value }))} />
+                    <label className="id-field__label">Chuyên môn</label>
+                    <input className="id-field__input" disabled={!profileEditing}
+                      placeholder="Ví dụ: IELTS, Business English, Phonetics"
+                      value={profileForm.specializations}
+                      onChange={e => setProfileForm(f => ({ ...f, specializations: e.target.value }))} />
+                  </div>
+                  <div className="id-field id-field--full">
+                    <label className="id-field__label">Chứng chỉ giảng dạy</label>
+                    <input className="id-field__input" disabled={!profileEditing}
+                      placeholder="Ví dụ: CELTA, DELTA, TESOL, TEFL"
+                      value={profileForm.certifications}
+                      onChange={e => setProfileForm(f => ({ ...f, certifications: e.target.value }))} />
                   </div>
                   <div className="id-field id-field--full">
                     <label className="id-field__label">Giới thiệu bản thân</label>
-                    <textarea className="id-field__textarea" rows={4}
+                    <textarea className="id-field__textarea" rows={4} disabled={!profileEditing}
                       value={profileForm.bio}
                       onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))} />
                   </div>
@@ -545,27 +678,61 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 <div className="id-form-grid">
                   <div className="id-field">
                     <label className="id-field__label">Facebook</label>
-                    <input className="id-field__input" placeholder="facebook.com/..."
+                    <input className="id-field__input" placeholder="facebook.com/..." disabled={!profileEditing}
                       value={profileForm.facebook}
                       onChange={e => setProfileForm(f => ({ ...f, facebook: e.target.value }))} />
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">LinkedIn</label>
-                    <input className="id-field__input" placeholder="linkedin.com/in/..."
+                    <input className="id-field__input" placeholder="linkedin.com/in/..." disabled={!profileEditing}
                       value={profileForm.linkedin}
                       onChange={e => setProfileForm(f => ({ ...f, linkedin: e.target.value }))} />
                   </div>
                   <div className="id-field id-field--full">
                     <label className="id-field__label">YouTube</label>
-                    <input className="id-field__input" placeholder="youtube.com/@..."
+                    <input className="id-field__input" placeholder="youtube.com/@..." disabled={!profileEditing}
                       value={profileForm.youtube}
                       onChange={e => setProfileForm(f => ({ ...f, youtube: e.target.value }))} />
                   </div>
                 </div>
+              </div>
+
+              <div className="id-form-card">
+                <h3 className="id-form-card__title">Bảo mật tài khoản</h3>
+                <div className="id-form-grid">
+                  <div className="id-field id-field--full">
+                    <label className="id-field__label">Mật khẩu hiện tại</label>
+                    <input className="id-field__input" type="password" placeholder="Nhập mật khẩu hiện tại"
+                      value={passwordForm.current}
+                      onChange={e => setPasswordForm(f => ({ ...f, current: e.target.value }))} />
+                  </div>
+                  <div className="id-field">
+                    <label className="id-field__label">Mật khẩu mới</label>
+                    <input className="id-field__input" type="password" placeholder="Tối thiểu 6 ký tự"
+                      value={passwordForm.newPw}
+                      onChange={e => setPasswordForm(f => ({ ...f, newPw: e.target.value }))} />
+                  </div>
+                  <div className="id-field">
+                    <label className="id-field__label">Xác nhận mật khẩu mới</label>
+                    <input className="id-field__input" type="password" placeholder="Nhập lại mật khẩu mới"
+                      value={passwordForm.confirm}
+                      onChange={e => setPasswordForm(f => ({ ...f, confirm: e.target.value }))} />
+                  </div>
+                </div>
+                {passwordError && (
+                  <p style={{ color: '#ff6b6b', fontSize: 13, margin: '4px 0 8px' }}>⚠ {passwordError}</p>
+                )}
+                {passwordSuccess && (
+                  <p style={{ color: '#4caf82', fontSize: 13, margin: '4px 0 8px' }}>✓ Đổi mật khẩu thành công!</p>
+                )}
                 <div className="id-form-actions">
-                  <button className="id-btn-primary">Lưu thay đổi</button>
+                  <button className="id-btn-primary" onClick={handlePasswordChange} disabled={passwordSaving}>
+                    {passwordSaving ? 'Đang lưu…' : '🔒 Đổi mật khẩu'}
+                  </button>
                 </div>
               </div>
+
+              
             </div>
           )}
 
@@ -656,12 +823,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                   <div className="id-table-wrap" style={{ border: 'none' }}>
                     <table className="id-table">
                       <thead>
-                        <tr><th>Khóa học</th><th>Học viên</th><th>Hoàn thành</th><th>Doanh thu</th><th>Đơn giá TB</th></tr>
+                        <tr><th>Khóa học</th><th>Học viên</th><th>Hoàn thành</th><th>Doanh thu</th></tr>
                       </thead>
                       <tbody>
                         {courses.map(c => {
                           const enrolled       = Number(c.total_students) || 0;
-                          const price          = Number(c.sale_price) || Number(c.price) || 0;
+                          const price          = c.sale_price != null ? Number(c.sale_price) : Number(c.price) ?? 0;
                           const revenue        = price * enrolled;
                           const completionRate = Number(c.completion_rate) || Number(c.completionRate) || 0;
                           return (
@@ -676,8 +843,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                                   <span>{completionRate}%</span>
                                 </div>
                               </td>
-                              <td className="id-table__positive">{formatPrice(revenue, 'VND')}</td>
-                              <td>{formatPrice(price, 'VND')}</td>
+                              <td className="id-table__positive">
+                                {formatPrice(revenue, 'VND')}
+                              </td>
                             </tr>
                           );
                         })}
@@ -722,18 +890,23 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                   )}
                 </div>
                 <div className="id-chart-filters">
-                  {(['all', 'published', 'draft'] as const).map(f => (
+                  {(['all', 'draft', 'review', 'published', 'archived'] as const).map(f => (
                     <button
                       key={f}
                       className={`id-chart-filter-btn${courseStatusFilter === f ? ' id-chart-filter-btn--active' : ''}`}
-                      onClick={() => setCourseStatusFilter(f)}
+                      onClick={() => setCourseStatusFilter(f as any)}
                     >
-                      {f === 'all' ? 'Tất cả' : f === 'published' ? 'Đã đăng' : 'Nháp'}
+                      {f === 'all' ? 'Tất cả'
+                        : f === 'draft'     ? 'Nháp'
+                        : f === 'review'    ? 'Chờ duyệt'
+                        : f === 'published' ? 'Đã đăng'
+                        : 'Đã ẩn'}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* ── Create form ── */}
               {showCourseForm && (
                 <div className="id-form-card">
                   <h3 className="id-form-card__title">Tạo khóa học mới</h3>
@@ -754,7 +927,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                       <label className="id-field__label">Cấp độ</label>
                       <select className="id-field__input" value={courseForm.level}
                         onChange={e => setCourseForm(f => ({ ...f, level: e.target.value }))}>
-                        <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
                       </select>
                     </div>
                     <div className="id-field">
@@ -765,8 +940,27 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                     </div>
                   </div>
                   <div className="id-form-actions">
-                    <button className="id-btn-primary"   onClick={() => setShowCourseForm(false)}>Lưu nháp</button>
-                    <button className="id-btn-secondary" onClick={() => setShowCourseForm(false)}>Đăng ngay</button>
+                    <button className="id-btn-primary" onClick={async () => {
+                      try {
+                        const res = await fetch(`${API}/api/courses/mine/`, {
+                          method: 'POST',
+                          headers: authHeaders(),
+                          body: JSON.stringify({
+                            title:       courseForm.title,
+                            description: courseForm.description,
+                            level:       courseForm.level,
+                            price:       Number(courseForm.price) || 0,
+                          }),
+                        });
+                        if (res.ok) {
+                          const created = await res.json();
+                          setCourses(prev => [created, ...prev]);
+                          setCourseForm({ title: '', description: '', level: 'Beginner', price: '' });
+                          setShowCourseForm(false);
+                        }
+                      } catch (_) {}
+                    }}>Lưu nháp</button>
+                    <button className="id-btn-secondary" onClick={() => setShowCourseForm(false)}>Hủy</button>
                   </div>
                 </div>
               )}
@@ -780,9 +974,22 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
               ) : (
                 <div className="id-course-list">
                   {filteredCourses.map(c => {
-                    const enrolled   = Number(c.total_students) || 0;
-                    const revenue    = (Number(c.sale_price) || Number(c.price) || 0) * enrolled;
-                    const completion = Number(c.completion_rate) || Number(c.completionRate) || 0;
+                    const price = c.sale_price != null ? Number(c.sale_price) : Number(c.price) ?? 0;
+                    const students = Number(c.total_students) || 0;
+
+                    const statusLabel: Record<string, string> = {
+                      draft:     'Nháp',
+                      review:    'Chờ duyệt',
+                      published: 'Đã đăng',
+                      archived:  'Đã ẩn',
+                    };
+                    const statusColor: Record<string, string> = {
+                      draft:     'draft',
+                      review:    'review',
+                      published: 'published',
+                      archived:  'archived',
+                    };
+
                     return (
                       <div key={c.id} className="id-course-row">
                         {thumbSrc(c.thumbnail) && (
@@ -791,15 +998,61 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                         <div className="id-course-row__info">
                           <span className="id-course-row__title">{c.title}</span>
                           <span className="id-course-row__meta">
-                            {enrolled.toLocaleString()} học viên · {formatPrice(revenue, 'VND')} · Hoàn thành: {completion}%
+                            {students.toLocaleString()} học viên · {formatPrice(price, 'VND')} / học viên
                           </span>
                         </div>
-                        <span className={`id-badge id-badge--${c.status}`}>
-                          {c.status === 'published' ? 'Đã đăng' : 'Nháp'}
-                        </span>
+
+                        {/* Dropdown đổi trạng thái */}
+                        <select
+                          className={`id-badge id-badge--${statusColor[c.status] ?? 'draft'} id-badge--select`}
+                          value={c.status}
+                          onChange={async e => {
+                            const newStatus = e.target.value;
+                            // draft → review: dùng submit endpoint
+                            if (c.status === 'draft' && newStatus === 'review') {
+                              try {
+                                const res = await fetch(`${API}/api/courses/mine/${c.id}/submit/`, {
+                                  method: 'POST', headers: authHeaders(),
+                                });
+                                if (res.ok) setCourses(prev => prev.map(x => x.id === c.id ? { ...x, status: 'review' } : x));
+                              } catch (_) {}
+                              return;
+                            }
+                            // Các trường hợp khác (nếu backend hỗ trợ) — giữ nguyên hoặc thông báo
+                            alert(`Không thể tự chuyển sang trạng thái "${statusLabel[newStatus]}". Vui lòng liên hệ admin.`);
+                          }}
+                        >
+                          <option value="draft">Nháp</option>
+                          <option value="review">Chờ duyệt</option>
+                          <option value="published" disabled>Đã đăng</option>
+                          <option value="archived"  disabled>Đã ẩn</option>
+                        </select>
+
                         <div className="id-course-row__actions">
-                          <button className="id-btn-sm">Sửa</button>
-                          <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
+                          <button className="id-btn-sm" onClick={() => {
+                            setCourseForm({
+                              title:       c.title,
+                              description: c.description ?? '',
+                              level:       c.level       ?? 'beginner',
+                              price:       String(c.price ?? ''),
+                            });
+                            setShowCourseForm(true);
+                            // TODO: set editing id để PATCH thay vì POST
+                          }}>Sửa</button>
+                          <button className="id-btn-sm id-btn-sm--danger" onClick={async () => {
+                            if (!confirm(`Xóa "${c.title}"?`)) return;
+                            try {
+                              const res = await fetch(`${API}/api/courses/mine/${c.id}/`, {
+                                method: 'DELETE', headers: authHeaders(),
+                              });
+                              // 204 hoặc 200 → backend archive, cập nhật local
+                              if (res.ok || res.status === 204) {
+                                setCourses(prev => prev.map(x =>
+                                  x.id === c.id ? { ...x, status: 'archived' } : x
+                                ));
+                              }
+                            } catch (_) {}
+                          }}>Xóa</button>
                         </div>
                       </div>
                     );

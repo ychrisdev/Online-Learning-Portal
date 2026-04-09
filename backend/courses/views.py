@@ -5,12 +5,11 @@ from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from enrollments.models import Enrollment
-
-from accounts.permissions import IsAdminUser, IsInstructor, IsInstructorOrAdmin
+from accounts.permissions import IsAdminUser, IsInstructor
 from .models import Category, Course, Lesson, Review, Section
 from .serializers import (
     CategorySerializer,
@@ -24,27 +23,32 @@ from .serializers import (
     ReviewSerializer,
     SectionSerializer,
     SectionWriteSerializer,
+    AdminReviewSerializer,
 )
 
 MAX_REVIEW_EDITS = 5
 
-
 # ── Category ──────────────────────────────────────────────────────────────────
-
 class CategoryListView(generics.ListAPIView):
-    """GET /api/courses/categories/"""
-    queryset           = Category.objects.filter(parent=None).prefetch_related('children')
+    """
+    GET /api/courses/categories/
+    GET /api/courses/categories/?pinned=true  → chỉ lấy 6 danh mục được ghim, theo pin_order
+    """
     serializer_class   = CategorySerializer
     permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        if self.request.query_params.get('pinned') == 'true':
+            return Category.objects.filter(is_pinned=True).order_by('pin_order')
+        return Category.objects.all().order_by('name')
+
 
 # ── Course (public) ───────────────────────────────────────────────────────────
-
 class CourseListView(generics.ListAPIView):
     serializer_class   = CourseListSerializer
     permission_classes = [AllowAny]
     filter_backends    = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields   = ['level', 'category__slug']
+    filterset_fields   = ['level', 'category__slug', 'is_featured']
     search_fields      = ['title', 'description']
     ordering_fields    = ['price', 'avg_rating', 'total_students', 'published_at']
     ordering           = ['-published_at']
@@ -66,7 +70,6 @@ class CourseDetailView(generics.RetrieveAPIView):
 
 
 # ── Course (Instructor) ───────────────────────────────────────────────────────
-
 class InstructorCourseListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsInstructor]
 
@@ -106,7 +109,6 @@ class SubmitCourseReviewView(APIView):
 
 
 # ── Section & Lesson (Instructor) ─────────────────────────────────────────────
-
 class SectionListCreateView(generics.ListCreateAPIView):
     serializer_class   = SectionWriteSerializer
     permission_classes = [IsAuthenticated, IsInstructor]
@@ -157,7 +159,6 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # ── Lesson content (Student) ──────────────────────────────────────────────────
-
 class LessonContentView(generics.RetrieveAPIView):
     serializer_class   = LessonDetailSerializer
     permission_classes = [AllowAny]
@@ -166,8 +167,10 @@ class LessonContentView(generics.RetrieveAPIView):
 
     def get_object(self):
         lesson = super().get_object()
-        if lesson.is_preview:
+        if lesson.is_preview_video or lesson.is_preview_article or lesson.is_preview_resource:
             return lesson
+        if not self.request.user.is_authenticated:
+            raise PermissionDenied('Bạn chưa đăng ký khoá học này.')
         enrolled = self.request.user.enrollments.filter(
             course=lesson.section.course,
             status__in=['active', 'completed'],
@@ -178,15 +181,12 @@ class LessonContentView(generics.RetrieveAPIView):
 
 
 # ── Enroll ────────────────────────────────────────────────────────────────────
-
 class EnrollCourseView(APIView):
     """POST /api/courses/<id>/enroll/"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
-        course = generics.get_object_or_404(
-            Course, id=id, status=Course.Status.PUBLISHED
-        )
+        course = generics.get_object_or_404(Course, id=id, status=Course.Status.PUBLISHED)
         enrollment, created = Enrollment.objects.get_or_create(
             student=request.user,
             course=course,
@@ -197,35 +197,22 @@ class EnrollCourseView(APIView):
 
 
 # ── Review ────────────────────────────────────────────────────────────────────
-
 class ReviewCreateView(generics.CreateAPIView):
-    """
-    POST /api/courses/<slug>/reviews/
-    Mỗi học viên chỉ được tạo 1 review duy nhất.
-    """
+    """POST /api/courses/<slug>/reviews/"""
     serializer_class   = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         course = generics.get_object_or_404(Course, slug=self.kwargs['slug'])
-
-        # Phải enrolled mới được review
         if not self.request.user.enrollments.filter(course=course).exists():
             raise PermissionDenied('Bạn chưa đăng ký khoá học này.')
-
-        # Mỗi học viên chỉ review 1 lần (unique_together đã bắt ở DB,
-        # nhưng trả lỗi thân thiện hơn ở đây)
         if Review.objects.filter(course=course, student=self.request.user).exists():
             raise PermissionDenied('Bạn đã đánh giá khoá học này rồi. Hãy chỉnh sửa đánh giá hiện có.')
-
         serializer.save(student=self.request.user, course=course)
 
 
 class MyReviewView(generics.RetrieveAPIView):
-    """
-    GET /api/courses/<slug>/reviews/me/
-    Trả về review của user hiện tại (hoặc 404 nếu chưa có).
-    """
+    """GET /api/courses/<slug>/reviews/me/"""
     serializer_class   = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
@@ -241,10 +228,7 @@ class MyReviewView(generics.RetrieveAPIView):
 
 
 class ReviewUpdateView(generics.UpdateAPIView):
-    """
-    PATCH /api/courses/<slug>/reviews/<uuid:pk>/
-    Chỉnh sửa review — giới hạn MAX_REVIEW_EDITS lần.
-    """
+    """PATCH /api/courses/<slug>/reviews/<uuid:pk>/"""
     serializer_class   = ReviewSerializer
     permission_classes = [IsAuthenticated]
     http_method_names  = ['patch']
@@ -262,9 +246,8 @@ class ReviewUpdateView(generics.UpdateAPIView):
         serializer.save(edit_count=review.edit_count + 1)
 
 
-# ── Admin ─────────────────────────────────────────────────────────────────────
-
-class AdminCourseListView(generics.ListAPIView):
+# ── Admin — Course ────────────────────────────────────────────────────────────
+class AdminCourseListView(generics.ListCreateAPIView):
     serializer_class   = CourseAdminSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     filter_backends    = [DjangoFilterBackend]
@@ -272,6 +255,20 @@ class AdminCourseListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Course.objects.all().select_related('instructor').order_by('-created_at')
+
+
+class AdminCourseDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/courses/admin/<id>/  → load đủ data cho form edit
+    PATCH  /api/courses/admin/<id>/  → lưu chỉnh sửa
+    DELETE /api/courses/admin/<id>/  → xóa cứng
+    """
+    serializer_class   = CourseAdminSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    lookup_field       = 'id'
+
+    def get_queryset(self):
+        return Course.objects.all().select_related('instructor', 'category')
 
 
 class AdminCourseApproveView(APIView):
@@ -314,3 +311,118 @@ class AdminCourseUnarchiveView(APIView):
         course.status = Course.Status.PUBLISHED
         course.save()
         return Response({'message': f'Đã hiện khoá học "{course.title}".'})
+
+
+# ── Admin — Section ───────────────────────────────────────────────────────────
+class AdminSectionListCreateView(generics.ListCreateAPIView):
+    serializer_class   = SectionWriteSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get_queryset(self):
+        return Section.objects.all().select_related('course').order_by('course', 'order_index')
+
+
+class AdminSectionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class   = SectionWriteSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    lookup_field       = 'id'
+
+    def get_queryset(self):
+        return Section.objects.all().select_related('course')
+
+
+# ── Admin — Lesson ────────────────────────────────────────────────────────────
+class AdminLessonListCreateView(generics.ListCreateAPIView):
+    serializer_class   = LessonWriteSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get_queryset(self):
+        qs = (
+            Lesson.objects.all()
+            .select_related('section', 'section__course')
+            .order_by('section__course', 'section__order_index', 'order_index')
+        )
+        section_id = self.request.query_params.get('section')
+        if section_id:
+            qs = qs.filter(section_id=section_id)
+        return qs
+
+
+class AdminLessonDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class   = LessonWriteSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    lookup_field       = 'id'
+
+    def get_queryset(self):
+        return Lesson.objects.all().select_related('section', 'section__course')
+    
+class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/courses/categories/<id>/  → chi tiết
+    PATCH  /api/courses/categories/<id>/  → sửa (admin)
+    DELETE /api/courses/categories/<id>/  → xóa (admin)
+    """
+    serializer_class = CategorySerializer
+    lookup_field     = 'id'
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]
+
+    def get_queryset(self):
+        return Category.objects.all()
+    
+class AdminReviewListView(generics.ListAPIView):
+    """GET /api/courses/reviews/admin/"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = AdminReviewSerializer
+    filter_backends    = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields      = ['comment', 'student__username', 'student__full_name', 'course__title']
+    ordering_fields    = ['created_at', 'rating']
+    ordering           = ['-created_at']
+
+    def get_queryset(self):
+        qs = Review.objects.select_related('student', 'course').all()
+        rating = self.request.query_params.get('rating')
+        if rating:
+            qs = qs.filter(rating=rating)
+        return qs
+
+
+class AdminReviewDetailView(generics.RetrieveDestroyAPIView):
+    """
+    GET    /api/courses/reviews/admin/<uuid:pk>/
+    DELETE /api/courses/reviews/admin/<uuid:pk>/
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = AdminReviewSerializer
+    lookup_field       = 'pk'
+
+    def get_queryset(self):
+        return Review.objects.select_related('student', 'course').all()
+
+    def perform_destroy(self, instance):
+        course = instance.course
+        instance.delete()
+        avg = course.reviews.aggregate(a=Avg('rating'))['a'] or 0.0
+        course.avg_rating = round(avg, 2)
+        course.save(update_fields=['avg_rating'])
+
+class AdminReviewToggleHideView(APIView):
+    """
+    POST /api/courses/reviews/admin/<uuid:pk>/toggle-hide/
+    Ẩn hoặc hiện lại một đánh giá.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, pk):
+        from django.utils import timezone
+        review = generics.get_object_or_404(
+            Review.objects.select_related('student', 'course'), pk=pk
+        )
+        review.is_hidden = not review.is_hidden
+        review.hidden_at = timezone.now() if review.is_hidden else None
+        review.save(update_fields=['is_hidden', 'hidden_at'])
+        serializer = AdminReviewSerializer(review)
+        return Response(serializer.data)

@@ -13,10 +13,7 @@ class StudentProfileInline(admin.StackedInline):
     verbose_name_plural = 'Hồ sơ học viên'
     fields = [
         'phone_number', 'date_of_birth', 'gender', 'country', 'city',
-        'current_level', 'learning_goal', 'target_exam', 'study_hours_per_week',
         'occupation', 'education',
-        'preferred_language', 'receive_email_notifications', 'receive_sms_notifications',
-        'facebook_url', 'linkedin_url',
     ]
 
 
@@ -26,9 +23,8 @@ class InstructorProfileInline(admin.StackedInline):
     verbose_name_plural = 'Hồ sơ giảng viên'
     fields = [
         'title', 'specializations', 'years_experience', 'certifications',
-        'phone_number', 'website_url', 'linkedin_url', 'youtube_url',
+        'phone_number',
         'total_students', 'total_courses', 'avg_rating',
-        'is_verified', 'verified_at',
     ]
     readonly_fields = ['total_students', 'total_courses', 'avg_rating']
 
@@ -64,15 +60,14 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
-    list_display  = ['user', 'current_level', 'learning_goal', 'country', 'updated_at']
-    list_filter   = ['current_level', 'learning_goal', 'gender']
+    list_display  = ['user', 'country']
+    list_filter   = ['gender']
     search_fields = ['user__username', 'user__email', 'user__full_name']
-    readonly_fields = ['updated_at']
 
 
 @admin.register(InstructorProfile)
 class InstructorProfileAdmin(admin.ModelAdmin):
-    list_display  = ['user', 'title', 'years_experience', 'avg_rating', 'is_verified', 'updated_at']
-    list_filter   = ['is_verified']
+    list_display  = ['user', 'title', 'years_experience', 'avg_rating']
+    list_filter   = []
     search_fields = ['user__username', 'user__email', 'user__full_name']
-    readonly_fields = ['total_students', 'total_courses', 'avg_rating', 'verified_at', 'updated_at']
+    readonly_fields = ['total_students', 'total_courses', 'avg_rating']

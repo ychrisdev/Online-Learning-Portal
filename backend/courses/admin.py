@@ -8,8 +8,10 @@ from .models import Category, Course, Section, Lesson, Review
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display  = ['name', 'slug', 'parent']
+    list_display  = ['name', 'slug', 'is_pinned', 'pin_order']
+    list_editable       = ['is_pinned', 'pin_order']
     prepopulated_fields = {'slug': ('name',)}
+    ordering            = ['pin_order', 'name']
 
 
 class SectionInline(admin.TabularInline):
@@ -49,8 +51,8 @@ class LessonInline(admin.StackedInline):
     model  = Lesson
     extra  = 1
     fields = [
-        'title', 'lesson_type', 'order_index', 'is_preview',
-        'video_url', 'video_file', 'duration_seconds',
+        'title', 'order_index', 'is_preview_video',
+        'video_url', 'video_file',
         'content',
         'attachment', 'attachment_name',
     ]
@@ -65,24 +67,24 @@ class SectionAdmin(admin.ModelAdmin):
 # ── Trang riêng cho Lesson ────────────────────────────────────────
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display  = ['title', 'section', 'lesson_type', 'order_index', 'is_preview', 'has_video', 'has_attachment']
-    list_filter   = ['lesson_type', 'is_preview', 'section__course']
+    list_display  = ['title', 'section', 'order_index', 'is_preview_video', 'has_video', 'has_attachment']
+    list_filter   = ['is_preview_video', 'section__course']
     search_fields = ['title', 'section__title', 'section__course__title']
 
     fieldsets = (
         ('Thông tin bài học', {
-            'fields': ('section', 'title', 'lesson_type', 'order_index', 'is_preview'),
+            'fields': ('section', 'title', 'order_index'),
         }),
         ('🎬 Video', {
-            'fields': ('video_url', 'video_file', 'duration_seconds'),
+            'fields': ('video_url', 'video_file', 'is_preview_video'),
             'description': 'Upload file video HOẶC nhập URL stream (YouTube, Vimeo, CDN...)',
         }),
         ('📝 Bài viết (Markdown)', {
-            'fields': ('content',),
+            'fields': ('content', 'is_preview_article'),
             'classes': ('collapse',),
         }),
         ('📎 Tài liệu đính kèm (Word, Excel, PDF...)', {
-            'fields': ('attachment', 'attachment_name'),
+            'fields': ('attachment', 'attachment_name','is_preview_resource'),
             'description': 'Hỗ trợ .pdf .docx .xlsx .pptx .zip và các định dạng khác',
         }),
     )

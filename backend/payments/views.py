@@ -8,6 +8,8 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .models import Transaction
+from django.db.models.functions import TruncMonth
 
 from accounts.permissions import IsAdminUser
 from courses.models import Course
@@ -17,6 +19,7 @@ from .serializers import (
     AdminTransactionSerializer,
     InitiatePaymentSerializer,
     TransactionSerializer,
+    AdminTransactionDetailSerializer
 )
 
 
@@ -37,8 +40,8 @@ class InitiatePaymentView(APIView):
 
         course = generics.get_object_or_404(Course, id=serializer.validated_data['course_id'])
 
-        # Kiểm tra đã enrolled chưa
-        if request.user.enrollments.filter(course=course).exists():
+        # Chỉ chặn nếu đang active hoặc completed, cho phép đăng ký lại nếu refunded/cancelled
+        if request.user.enrollments.filter(course=course, status__in=['active', 'completed']).exists():
             return Response(
                 {'detail': 'Bạn đã đăng ký khoá học này rồi.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -50,13 +53,13 @@ class InitiatePaymentView(APIView):
         transaction = Transaction.objects.create(
             student  = request.user,
             course   = course,
-            amount   = course.price,
+            amount   = course.sale_price,
             method   = method,
             ref_code = ref_code,
         )
 
         # Khoá học miễn phí → kích hoạt ngay
-        if course.price == 0:
+        if course.sale_price == 0:
             _activate_enrollment(transaction)
             return Response(
                 {
@@ -205,13 +208,6 @@ class AdminRefundView(APIView):
         )
         transaction.status = Transaction.Status.REFUNDED
         transaction.save()
-
-        # Đồng bộ Enrollment
-        Enrollment.objects.filter(
-            student=transaction.student,
-            course=transaction.course,
-        ).update(status=Enrollment.Status.REFUNDED)
-
         return Response({'message': 'Hoàn tiền thành công.'})
 
 # THÊM VÀO CUỐI — học viên yêu cầu hoàn tiền
@@ -252,10 +248,6 @@ class AdminApproveRefundView(APIView):
         )
         transaction.status = Transaction.Status.REFUNDED
         transaction.save()
-        Enrollment.objects.filter(
-            student=transaction.student,
-            course=transaction.course,
-        ).update(status=Enrollment.Status.REFUNDED)
         return Response({'message': 'Đã duyệt hoàn tiền.'})
 
 
@@ -277,3 +269,70 @@ class AdminRejectRefundView(APIView):
         transaction.note   = request.data.get('reason', '')
         transaction.save()
         return Response({'message': 'Đã từ chối yêu cầu hoàn tiền.'})
+    
+class InstructorRevenueMonthlyView(APIView):
+    def get(self, request):
+        user = request.user
+
+        qs = (
+            Transaction.objects
+            .filter(course__instructor=user, status='success')
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(
+                revenue=Sum('amount'),
+                enrollments=Count('id')
+            )
+            .order_by('month')
+        )
+
+        data = [
+            {
+                "month": item["month"].strftime("%m/%Y"),
+                "revenue": item["revenue"] or 0,
+                "enrollments": item["enrollments"]
+            }
+            for item in qs
+        ]
+
+        return Response(data)
+    
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth
+from .models import Transaction
+
+@api_view(['GET'])
+def revenue_stats(request):
+    # Tổng doanh thu
+    total = Transaction.objects.filter(status='success').aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
+    # Doanh thu theo tháng
+    monthly = (
+        Transaction.objects
+        .filter(status='success', paid_at__isnull=False)
+        .annotate(month=TruncMonth('paid_at'))
+        .values('month')
+        .annotate(total=Sum('amount'))
+        .order_by('month')
+    )
+
+    return Response({
+        "total_revenue": total,
+        "monthly_revenue": monthly
+    })
+
+class AdminTransactionDetailView(generics.RetrieveAPIView):
+    """
+    GET /api/payments/admin/<id>/
+    Admin xem chi tiết 1 giao dịch
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    serializer_class   = AdminTransactionDetailSerializer   # import thêm bên dưới
+    lookup_field       = 'id'
+
+    def get_queryset(self):
+        return Transaction.objects.all().select_related('student', 'course')

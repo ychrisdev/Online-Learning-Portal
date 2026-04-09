@@ -64,7 +64,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model  = StudentProfile
-        exclude = ['id', 'user', 'updated_at']
+        exclude = ['id', 'user']
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -78,7 +78,7 @@ class StudentProfileDetailSerializer(serializers.ModelSerializer):
     Trả về toàn bộ thông tin User + StudentProfile trong một response.
     Dùng ở GET /api/accounts/profile/ khi user là student.
     """
-    student_profile = StudentProfileSerializer( read_only=True)
+    student_profile = StudentProfileSerializer(read_only=True)
 
     class Meta:
         model  = User
@@ -101,12 +101,10 @@ class InstructorProfileSerializer(serializers.ModelSerializer):
     total_students = serializers.IntegerField(read_only=True)
     total_courses  = serializers.IntegerField(read_only=True)
     avg_rating     = serializers.FloatField(read_only=True)
-    is_verified    = serializers.BooleanField(read_only=True)
-    verified_at    = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model   = InstructorProfile
-        exclude = ['id', 'user', 'updated_at']
+        exclude = ['id', 'user']
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -150,12 +148,18 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.save()
         return user
 
-
 # ── Admin ────────────────────────────────────────────────────────────────────
-
 class UserAdminSerializer(serializers.ModelSerializer):
     """Dành cho Admin xem danh sách, phân quyền, khoá tài khoản — 5.3.1"""
+    student_profile    = StudentProfileSerializer(read_only=True)
+    instructor_profile = InstructorProfileSerializer(read_only=True)
+    bio                = serializers.CharField(read_only=True)
+
     class Meta:
         model  = User
-        fields = ['id', 'username', 'email', 'full_name', 'role', 'is_active', 'date_joined']
-        read_only_fields = ['id', 'username', 'email', 'date_joined']
+        fields = [
+            'id', 'username', 'email', 'full_name', 'avatar', 'bio',
+            'role', 'is_active', 'date_joined',
+            'student_profile', 'instructor_profile',
+        ]
+        read_only_fields = ['id', 'username', 'email', 'avatar', 'bio', 'date_joined']

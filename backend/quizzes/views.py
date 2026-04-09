@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsInstructor
+from accounts.permissions import IsInstructor, IsInstructorOrAdmin
 from courses.models import Lesson
 from enrollments.models import Enrollment
 from .models import Answer, Question, Quiz, QuizAttempt
@@ -24,20 +24,29 @@ from .serializers import (
 
 # ── Instructor — quản lý quiz ─────────────────────────────────────────────────
 
-class QuizCreateView(generics.CreateAPIView):
+class QuizListCreateView(generics.ListCreateAPIView):
     """
-    POST /api/quizzes/
-    Instructor tạo bài kiểm tra cho một lesson — 5.2.3
+    GET  /api/quizzes/ → admin thấy tất cả, instructor thấy của mình
+    POST /api/quizzes/ → instructor/admin tạo quiz
     """
     serializer_class   = QuizWriteSerializer
-    permission_classes = [IsAuthenticated, IsInstructor]
+    permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_admin_user:
+            return Quiz.objects.all().select_related('lesson')
+        return Quiz.objects.filter(
+            lesson__section__course__instructor=user
+        ).select_related('lesson')
 
     def perform_create(self, serializer):
         lesson = generics.get_object_or_404(
-            Lesson,
-            id=serializer.validated_data['lesson'].id,
-            section__course__instructor=self.request.user,
+            Lesson, id=serializer.validated_data['lesson'].id,
         )
+        if self.request.user.is_instructor:
+            if lesson.section.course.instructor != self.request.user:
+                raise PermissionDenied('Bạn không có quyền tạo quiz cho bài học này.')
         serializer.save(lesson=lesson)
 
 
@@ -47,29 +56,37 @@ class QuizUpdateView(generics.RetrieveUpdateDestroyAPIView):
     Instructor chỉnh sửa / xoá bài kiểm tra — 5.2.3
     """
     serializer_class   = QuizWriteSerializer
-    permission_classes = [IsAuthenticated, IsInstructor]
+    permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
     lookup_field       = 'id'
 
     def get_queryset(self):
+        if self.request.user.is_admin_user:
+            return Quiz.objects.all()
         return Quiz.objects.filter(lesson__section__course__instructor=self.request.user)
 
 
-class QuestionCreateView(generics.CreateAPIView):
+class QuestionListCreateView(generics.ListCreateAPIView):
     """
-    POST /api/quizzes/<quiz_id>/questions/
-    Instructor thêm câu hỏi (kèm đáp án) — 5.2.3
+    GET  /api/quizzes/<quiz_id>/questions/ → list câu hỏi
+    POST /api/quizzes/<quiz_id>/questions/ → thêm câu hỏi
     """
     serializer_class   = QuestionWriteSerializer
-    permission_classes = [IsAuthenticated, IsInstructor]
+    permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
+
+    def get_queryset(self):
+        return Question.objects.filter(
+            quiz_id=self.kwargs['quiz_id']
+        ).prefetch_related('answers').order_by('order_index')
 
     def perform_create(self, serializer):
         quiz = generics.get_object_or_404(
             Quiz,
             id=self.kwargs['quiz_id'],
-            lesson__section__course__instructor=self.request.user,
         )
+        if self.request.user.is_instructor:
+            if quiz.lesson.section.course.instructor != self.request.user:
+                raise PermissionDenied('Bạn không có quyền thêm câu hỏi cho quiz này.')
         serializer.save(quiz=quiz)
-
 
 class QuestionUpdateView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -77,10 +94,12 @@ class QuestionUpdateView(generics.RetrieveUpdateDestroyAPIView):
     Instructor chỉnh sửa / xoá câu hỏi — 5.2.3
     """
     serializer_class   = QuestionWriteSerializer
-    permission_classes = [IsAuthenticated, IsInstructor]
+    permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
     lookup_field       = 'id'
 
     def get_queryset(self):
+        if self.request.user.is_admin_user:
+            return Question.objects.all()
         return Question.objects.filter(
             quiz__lesson__section__course__instructor=self.request.user
         )
@@ -138,29 +157,40 @@ class QuizSubmitView(APIView):
             Quiz.objects.prefetch_related('questions__answers'), id=id
         )
         _check_enrollment(request.user, quiz)
-        _check_max_attempts(request.user, quiz)
 
         serializer = QuizAttemptSubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        attempt_id = request.data.get('attempt_id')
         submitted_answers = serializer.validated_data['answers']
 
-        # Tính điểm
-        score, total_points = _grade(quiz, submitted_answers)
+        score, _ = _grade(quiz, submitted_answers)
 
-        attempt = QuizAttempt.objects.create(
-            quiz             = quiz,
-            student          = request.user,
-            score            = score,
-            passed           = score >= quiz.pass_score,
-            answers_snapshot = {str(k): [str(v) for v in vs] for k, vs in submitted_answers.items()},
-            submitted_at     = timezone.now(),
-        )
+        if attempt_id:
+            # Cập nhật attempt đã tạo từ trước
+            attempt = generics.get_object_or_404(
+                QuizAttempt, id=attempt_id, student=request.user, quiz=quiz
+            )
+            attempt.score            = score
+            attempt.passed           = score >= quiz.pass_score
+            attempt.answers_snapshot = {str(k): [str(v) for v in vs] for k, vs in submitted_answers.items()}
+            attempt.submitted_at     = timezone.now()
+            attempt.save()
+        else:
+            # Fallback: tạo mới nếu không có attempt_id
+            attempt = QuizAttempt.objects.create(
+                quiz             = quiz,
+                student          = request.user,
+                score            = score,
+                passed           = score >= quiz.pass_score,
+                answers_snapshot = {str(k): [str(v) for v in vs] for k, vs in submitted_answers.items()},
+                submitted_at     = timezone.now(),
+            )
 
-        return Response(
+        return Response(                          # ← đây là dòng bị thiếu
             QuizAttemptResultSerializer(attempt).data,
             status=status.HTTP_201_CREATED,
         )
-
 
 class MyQuizAttemptsView(generics.ListAPIView):
     """
@@ -246,3 +276,47 @@ def _grade(quiz: Quiz, submitted: dict) -> tuple[int, int]:
 
     score = int(round(earned / total_points * 100)) if total_points > 0 else 0
     return score, total_points
+
+class AdminQuizAttemptsView(generics.ListAPIView):
+    """
+    GET /api/quizzes/<id>/attempts/all/
+    Admin xem tất cả lần làm bài của mọi học viên
+    """
+    serializer_class   = QuizAttemptListSerializer
+    permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
+
+    def get_queryset(self):
+        return QuizAttempt.objects.filter(
+            quiz_id=self.kwargs['id'],
+        ).order_by('-started_at').select_related('student')
+    
+class QuizAttemptDetailView(generics.RetrieveAPIView):
+    """
+    GET /api/quizzes/attempts/<attempt_id>/
+    Xem chi tiết 1 lần làm bài — kèm questions + đáp án đúng
+    """
+    serializer_class   = QuizAttemptResultSerializer
+    permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
+    lookup_field       = 'id'
+    queryset           = QuizAttempt.objects.prefetch_related(
+        'quiz__questions__answers'
+    ).select_related('student')
+
+class QuizStartView(APIView):
+    """
+    POST /api/quizzes/<id>/start/
+    Tạo attempt mới khi học viên bắt đầu làm — ghi nhận started_at
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        quiz = generics.get_object_or_404(Quiz, id=id)
+        _check_enrollment(request.user, quiz)
+        _check_max_attempts(request.user, quiz)
+
+        attempt = QuizAttempt.objects.create(
+            quiz    = quiz,
+            student = request.user,
+            # started_at tự set bởi auto_now_add
+        )
+        return Response({'attempt_id': str(attempt.id)}, status=status.HTTP_201_CREATED)

@@ -26,13 +26,9 @@ class Category(models.Model):
     name        = models.CharField('Tên danh mục', max_length=120)
     slug        = models.SlugField('Slug', unique=True, max_length=140)
     description = models.TextField('Mô tả', blank=True)
-    parent      = models.ForeignKey(
-        'self', null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name='children',
-        verbose_name='Danh mục cha',
-    )
-
+    is_pinned   = models.BooleanField('Ghim ra trang chủ', default=False)
+    pin_order   = models.PositiveSmallIntegerField('Thứ tự ghim', default=0, help_text='Số nhỏ hơn hiển thị trước. Chỉ có tác dụng khi is_pinned=True.')
+    
     class Meta:
         db_table            = 'categories'
         verbose_name        = 'Danh mục'
@@ -167,11 +163,9 @@ class Lesson(models.Model):
     id               = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     section          = models.ForeignKey(Section, on_delete=models.CASCADE, related_name='lessons')
     title            = models.CharField('Tên bài học', max_length=255)
-    lesson_type      = models.CharField('Loại', max_length=20, choices=LessonType.choices, default=LessonType.VIDEO)
     # --- Video (5.2.2 upload video) ---
     video_url        = models.URLField('URL video (stream)', blank=True)
     video_file       = models.FileField('File video', upload_to='lessons/videos/', blank=True)
-    duration_seconds = models.PositiveIntegerField('Thời lượng (giây)', default=0)
     # --- Bài viết / tài liệu ---
     content          = models.TextField('Nội dung bài viết (Markdown)', blank=True)
     # --- Tài liệu đính kèm (5.2.2 upload tài liệu) ---
@@ -179,7 +173,9 @@ class Lesson(models.Model):
     attachment_name  = models.CharField('Tên tài liệu', max_length=255, blank=True)
 
     order_index      = models.PositiveSmallIntegerField('Thứ tự', default=0)
-    is_preview       = models.BooleanField('Cho xem thử miễn phí', default=False)
+    is_preview_video    = models.BooleanField('Video xem thử', default=False)
+    is_preview_article  = models.BooleanField('Bài viết xem thử', default=False)
+    is_preview_resource = models.BooleanField('Tài liệu xem thử', default=False)
     created_at       = models.DateTimeField(auto_now_add=True)
     updated_at       = models.DateTimeField(auto_now=True)
     
@@ -219,6 +215,8 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     edit_count = models.PositiveSmallIntegerField(default=0)
+    is_hidden  = models.BooleanField('Ẩn bình luận', default=False)
+    hidden_at  = models.DateTimeField('Ngày ẩn', null=True, blank=True)
 
     class Meta:
         db_table        = 'reviews'

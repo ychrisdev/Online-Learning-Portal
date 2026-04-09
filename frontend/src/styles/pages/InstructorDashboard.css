@@ -1290,3 +1290,18 @@
     width: 100% !important;
   }
 }
+
+/* Badge dropdown */
+.id-badge--select {
+  appearance: none;
+  cursor: pointer;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* Status colors */
+.id-badge--review   { background: rgba(255,193,7,0.15);  color: #ffc107; }
+.id-badge--archived { background: rgba(119,141,169,0.15); color: #778da9; }

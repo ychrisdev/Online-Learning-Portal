@@ -25,8 +25,8 @@ interface PaymentMethod {
 const PAYMENT_METHODS: PaymentMethod[] = [
   { id: "vnpay",  label: "VNPay",        icon: "🏦", description: "Thanh toán qua cổng VNPay (ATM, Visa, QR)" },
   { id: "momo",   label: "MoMo",         icon: "💜", description: "Ví điện tử MoMo" },
-  { id: "bank",   label: "Chuyển khoản", icon: "🏧", description: "Chuyển khoản ngân hàng nội địa" },
   { id: "stripe", label: "Thẻ tín dụng", icon: "💳", description: "Visa / Mastercard / JCB" },
+  { id: "bank",   label: "Chuyển khoản", icon: "🏧", description: "Chuyển khoản ngân hàng nội địa" },
 ];
 
 type Step = "select" | "processing" | "success" | "failed";
@@ -38,13 +38,17 @@ interface PaymentModalProps {
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess }) => {
+  console.log("course:", course); // thêm dòng này
+  console.log("price:", course.price, "sale_price:", course.sale_price);
   const [step,     setStep]     = useState<Step>("select");
-  const [method,   setMethod]   = useState("vnpay");
+  const [method, setMethod] = useState(PAYMENT_METHODS[0].id);
   const [loading,  setLoading]  = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [refCode,  setRefCode]  = useState<string | null>(null);
 
-  const price  = course.sale_price ?? course.price ?? 0;
+  const price = (course.sale_price !== undefined && course.sale_price !== null && course.sale_price < course.price)
+    ? course.sale_price
+    : course.price ?? 0;
   const isFree = price === 0;
 
   useEffect(() => {
@@ -62,30 +66,43 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`${API}/api/payments/initiate/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify({ course_id: course.id, method }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMsg(data.detail ?? "Khởi tạo thanh toán thất bại.");
-        setLoading(false);
-        return;
-      }
-
+      // ── Khóa học miễn phí: gọi enroll trực tiếp, không qua payment ──
       if (isFree) {
+        const res = await fetch(`${API}/api/enrollments/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeader() },
+          body: JSON.stringify({ course_id: course.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setErrorMsg(data.detail ?? data.message ?? "Đăng ký thất bại.");
+          setLoading(false);
+          return;
+        }
         setStep("success");
         setLoading(false);
         return;
       }
 
+      // ── Khóa học có phí ──
+      const res = await fetch(`${API}/api/payments/initiate/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({
+          course_id: course.id,
+          method,
+          re_enroll: true, // báo backend cho phép đăng ký lại nếu refunded
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.detail ?? data.message ?? "Khởi tạo thanh toán thất bại.");
+        setLoading(false);
+        return;
+      }
       setRefCode(data.ref_code);
       setStep("processing");
       setLoading(false);
-
-      // Giả lập gateway — thực tế: window.location.href = data.payment_url
       setTimeout(() => simulateCallback(data.ref_code), 2500);
     } catch {
       setErrorMsg("Lỗi kết nối. Vui lòng thử lại.");

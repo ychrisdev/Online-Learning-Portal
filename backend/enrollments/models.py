@@ -74,8 +74,6 @@ class Progress(models.Model):
         'courses.Lesson', on_delete=models.CASCADE, related_name='progress_records'
     )
     is_completed  = models.BooleanField('Đã hoàn thành', default=False)
-    watch_seconds = models.PositiveIntegerField('Đã xem (giây)', default=0)
-    last_accessed = models.DateTimeField('Truy cập lần cuối', auto_now=True)
 
     class Meta:
         db_table        = 'progress'
@@ -85,7 +83,7 @@ class Progress(models.Model):
         indexes = [models.Index(fields=['enrollment', 'is_completed'])]
 
     def __str__(self):
-        status = 'done' if self.is_completed else f'{self.watch_seconds}s'
+        status = 'done' if self.is_completed else self.is_completed
         return f"{self.enrollment} — {self.lesson.title} [{status}]"
 
 

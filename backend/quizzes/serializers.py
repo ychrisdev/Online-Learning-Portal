@@ -119,9 +119,11 @@ class QuizAttemptResultSerializer(serializers.ModelSerializer):
 
 
 class QuizAttemptListSerializer(serializers.ModelSerializer):
-    """Danh sách các lần làm bài của học viên."""
-    quiz_title = serializers.CharField(source='quiz.title', read_only=True)
+    quiz_title    = serializers.CharField(source='quiz.title', read_only=True)
+    student_name  = serializers.CharField(source='student.full_name', read_only=True)
+    student_email = serializers.EmailField(source='student.email', read_only=True)
 
     class Meta:
         model  = QuizAttempt
-        fields = ['id', 'quiz_title', 'score', 'passed', 'started_at', 'submitted_at']
+        fields = ['id', 'quiz_title', 'student_name', 'student_email',
+                  'score', 'passed', 'started_at', 'submitted_at']

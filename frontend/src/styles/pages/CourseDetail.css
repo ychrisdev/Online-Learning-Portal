@@ -1207,3 +1207,47 @@
   transition: opacity 0.15s;
 }
 .cd-rv-edit-btn:hover { opacity: 1; }
+
+/* ── Video label (khi có cả 2 video) ── */
+.cd-lesson__video-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 16px 0 6px;
+  padding-left: 2px;
+}
+
+.cd-lesson__video-label:first-child {
+  margin-top: 0;
+}
+
+.cd-progress-bar-wrap   { margin-top: 10px; }
+.cd-progress-bar-track  { background: #e5e7eb; border-radius: 99px; height: 8px; overflow: hidden; }
+.cd-progress-bar-fill   { background: #6366f1; height: 100%; border-radius: 99px; transition: width .4s ease; }
+.cd-progress-bar-label  { font-size: 12px; color: #6b7280; margin-top: 4px; display: block; }
+
+.cd-btn-enroll--disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.cd-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #22c55e;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

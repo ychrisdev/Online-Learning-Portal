@@ -25,17 +25,30 @@ type Role = "student" | "instructor" | "admin";
 const NO_CHROME: Page[] = ["learning", "auth"];
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<Page>("dashboard");
-  const [activeCourseId, setActiveCourseId] = useState<string>("c1");
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem("access"),
   );
   const [userRole, setUserRole] = useState<Role>(
     (localStorage.getItem("role") as Role) || "admin",
   );
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [returnPage, setReturnPage] = useState<Page>("home");
   const [navSearchQuery, setNavSearchQuery] = useState("");
+
+  const getInitialState = () => {
+    const hash = window.location.hash.replace("#", "");
+    const [page, param] = hash.split("/");
+    const valid: Page[] = ["home", "courses", "course-detail", "dashboard", "auth", "policy"];
+    return {
+      page: valid.includes(page as Page) ? (page as Page) : "home",
+      courseId: page === "course-detail" ? (param ?? "c1") : "c1",
+      authMode: page === "auth" && param === "register" ? "register" : "login" as "login" | "register",
+    };
+  };
+
+  const initial = getInitialState();
+  const [currentPage, setCurrentPage] = useState<Page>(initial.page);
+  const [activeCourseId, setActiveCourseId] = useState<string>(initial.courseId);
+  const [authMode, setAuthMode] = useState<"login" | "register">(initial.authMode);
 
   const navigate = (page: string, courseId?: string, searchQuery?: string) => {
     if (page === "learning" && !isLoggedIn) {
@@ -45,8 +58,15 @@ const App: React.FC = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    if (courseId) setActiveCourseId(courseId);
-    if (searchQuery !== undefined) setNavSearchQuery(searchQuery);
+    if (courseId) {
+      setActiveCourseId(courseId);
+      window.location.hash = `${page}/${courseId}`;
+    } else {
+      window.location.hash = page;
+    }
+    if (searchQuery !== undefined) {
+      setNavSearchQuery(searchQuery);
+    }
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -55,6 +75,7 @@ const App: React.FC = () => {
     setReturnPage(currentPage);
     setAuthMode(mode);
     setCurrentPage("auth");
+    window.location.hash = `auth/${mode}`; // ← thêm dòng này
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -102,7 +123,11 @@ const App: React.FC = () => {
           isLoggedIn={isLoggedIn}
           onAuthOpen={handleAuthOpen}
           onSearch={handleCoursesSearchChange}
-          searchValue={currentPage === "courses" ? navSearchQuery : undefined}
+          searchValue={
+            currentPage === "courses" && !navSearchQuery.startsWith('cat:') && !navSearchQuery.startsWith('level:')
+              ? navSearchQuery
+              : undefined
+          }
         />
       )}
 

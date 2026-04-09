@@ -34,6 +34,7 @@ class Quiz(models.Model):
         db_table            = 'quizzes'
         verbose_name        = 'Bài kiểm tra'
         verbose_name_plural = 'Bài kiểm tra'
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.title

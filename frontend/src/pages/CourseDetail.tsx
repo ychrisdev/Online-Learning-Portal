@@ -71,6 +71,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
   const [lessonLoading,   setLessonLoading]   = useState(false);
   const [lessonError,     setLessonError]     = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [returnTab,       setReturnTab]       = useState<Tab>("lesson");
+  const [lessonTargetTab, setLessonTargetTab] = useState<"lesson" | "quiz">("lesson");
 
   const [currentQuizId,    setCurrentQuizId]    = useState<string | null>(null);
   const [apiQuiz,          setApiQuiz]          = useState<any | null>(null);
@@ -84,6 +86,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
   const [quizError,        setQuizError]        = useState<string | null>(null);
   const [quizExplanations, setQuizExplanations] = useState<Record<string, string>>({});
   const [allAnswers,       setAllAnswers]       = useState<Record<string, Set<string>>>({});
+  const [currentAttemptId, setCurrentAttemptId] = useState<string | null>(null);
+  const [quizBlocked, setQuizBlocked] = useState(false);
 
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText,   setReviewText]   = useState("");
@@ -102,6 +106,16 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
   const selectedRef        = useRef<Set<string>>(new Set());
   const currentQRef        = useRef<number>(0);
   const handleSubmitQuizRef = useRef<() => void>(() => {});
+
+  const [progressMap,   setProgressMap]   = useState<Record<string, boolean>>({});
+  const [progressPct,   setProgressPct]   = useState<number>(0);
+  
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => { allAnswersRef.current = allAnswers; }, [allAnswers]);
   useEffect(() => { selectedRef.current   = selected;   }, [selected]);
@@ -125,21 +139,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
   }, [courseId]);
 
   useEffect(() => {
-    if (!isLoggedIn || !course) return;
-    const checkEnrollment = async () => {
-      try {
-        const res = await fetch(`${API}/api/enrollments/`, { headers: authHeader() });
-        if (res.ok) {
-          const data = await res.json();
-          const list = Array.isArray(data) ? data : data.results ?? [];
-          setIsEnrolled(list.some((e: any) => e.course === course.id || e.course_id === course.id));
-        }
-      } catch {}
-    };
-    checkEnrollment();
-  }, [isLoggedIn, course]);
-
-  useEffect(() => {
     if (!isLoggedIn || !course?.slug) return;
     const fetchMyReview = async () => {
       try {
@@ -153,57 +152,225 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
     fetchMyReview();
   }, [isLoggedIn, course?.slug]);
 
-  const handleEnroll = () => {
+  const handleEnroll = async () => {
     if (!isLoggedIn) { onNavigate("auth"); return; }
-    if (isEnrolled)  { setActiveTab("lesson"); return; }
+    const role = localStorage.getItem("role");
+    if (role !== "student") {
+      alert("Chỉ học viên mới có thể đăng ký khóa học.");
+      return;
+    }
+    if (isEnrolled) { setActiveTab("lesson"); return; }
+
+    // Khóa học miễn phí → đăng ký thẳng, không mở modal
+    const price = course.sale_price ?? course.price ?? 0;
+    if (price === 0) {
+      setEnrolling(true);
+      try {
+        const res = await fetch(`${API}/api/enrollments/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeader() },
+          body: JSON.stringify({ course_id: course.id }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setIsEnrolled(true);
+          showToast("🎉 Đăng ký thành công! Chúc bạn học tốt.");
+        } else {
+          alert(data.detail ?? "Đăng ký thất bại.");
+        }
+      } catch {
+        alert("Lỗi kết nối. Vui lòng thử lại.");
+      } finally {
+        setEnrolling(false);
+      }
+      return;
+    }
+
+    // Khóa học có phí → mở modal thanh toán
     setShowPayment(true);
   };
 
   const fetchLessonContent = async (lessonId: string, isPreview: boolean) => {
+    console.log("🔵 fetchLessonContent", lessonId, "isEnrolled:", isEnrolled);
+   
     if (!isPreview && !isEnrolled) {
-      if (!isLoggedIn) { onNavigate("auth"); return; }
+      if (!isLoggedIn) {
+        onNavigate("auth");
+        return;
+      }
       await handleEnroll();
+      return;
     }
-    setLessonLoading(true); setLessonError(null); setActiveLesson(null);
+
+    setLessonLoading(true);
+    setLessonError(null);
+    setActiveLesson(null);
+
     try {
-      const res = await fetch(`${API}/api/courses/lessons/${lessonId}/content/`, { headers: authHeader() });
+      const res = await fetch(`${API}/api/courses/lessons/${lessonId}/content/`, {
+        headers: authHeader(),
+      });
+
       if (res.ok) {
         const data = await res.json();
-        setActiveLesson(data); setActiveLessonId(lessonId); setActiveTab("lesson");
+
+        setActiveLesson(data);
+
+        if (returnTab === "quiz") {
+          setActiveLessonId(lessonId);
+          await fetchQuizFromLesson(lessonId);
+          setActiveTab("quiz");
+        } else {
+          setActiveLessonId(lessonId);
+          setActiveTab("lesson");
+        }
+
+        if (isEnrolled) {
+          console.log("✅ markLessonComplete");
+          await markLessonComplete(lessonId);
+        }
+
       } else if (res.status === 403) {
         const err = await res.json();
-        setLessonError(err.detail ?? "Bạn chưa có quyền xem bài học này."); setActiveTab("lesson");
+        setLessonError(err.detail ?? "Bạn chưa có quyền xem bài học này.");
+        setActiveTab(returnTab === "quiz" ? "quiz" : "lesson");
+
       } else {
-        setLessonError("Không thể tải bài học. Vui lòng thử lại."); setActiveTab("lesson");
+        setLessonError("Không thể tải bài học. Vui lòng thử lại.");
+        setActiveTab(returnTab === "quiz" ? "quiz" : "lesson");
       }
-    } catch { setLessonError("Lỗi kết nối máy chủ."); setActiveTab("lesson"); }
-    setLessonLoading(false);
+
+    } catch {
+      setLessonError("Lỗi kết nối máy chủ.");
+      setActiveTab(returnTab === "quiz" ? "quiz" : "lesson");
+
+    } finally {
+      setLessonLoading(false);
+    }
+  };
+
+  const fetchProgress = async (enrollmentId: string) => {
+    try {
+        // Lấy progress map (từng bài)
+        const res = await fetch(`${API}/api/enrollments/${enrollmentId}/progress/`, {
+            headers: authHeader()
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : data.results ?? [];
+            const map: Record<string, boolean> = {};
+            list.forEach((p: any) => { map[p.lesson] = p.is_completed; });
+            setProgressMap(map);
+        }
+
+        // ← THÊM: lấy progress_pct đúng từ backend (đã tính cả quiz)
+        const enrollRes = await fetch(`${API}/api/enrollments/`, {
+            headers: authHeader()
+        });
+        if (enrollRes.ok) {
+            const data = await enrollRes.json();
+            const list = Array.isArray(data) ? data : data.results ?? [];
+            const enrollment = list.find(
+                (e: any) => e.id === enrollmentId
+            );
+            if (enrollment && typeof enrollment.progress_pct === 'number') {
+                setProgressPct(enrollment.progress_pct);
+            }
+        }
+    } catch {}
+};
+
+  const markLessonComplete = async (lessonId: string) => {
+    console.log("🟡 markLessonComplete called", lessonId);
+    try {
+        const patchRes = await fetch(`${API}/api/enrollments/progress/${lessonId}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", ...authHeader() },
+            body: JSON.stringify({ is_completed: true }),
+        });
+        console.log("🟡 PATCH status:", patchRes.status);
+        const patchData = await patchRes.json();
+        console.log("🟡 PATCH response:", patchData);
+
+        setProgressMap(prev => ({ ...prev, [lessonId]: true }));
+
+        const enrollRes = await fetch(`${API}/api/enrollments/`, { headers: authHeader() });
+        console.log("🟡 enrollments fetch status:", enrollRes.status);
+        const data = await enrollRes.json();
+        const list = Array.isArray(data) ? data : data.results ?? [];
+        console.log("🟡 enrollments list:", list);
+        console.log("🟡 course.id:", course?.id);
+
+        const enrolled = list.find(
+            (e: any) => e.course === course.id || e.course_id === course.id
+        );
+        console.log("🟡 found enrollment:", enrolled);
+        console.log("🟡 progress_pct:", enrolled?.progress_pct);
+
+        if (enrolled && typeof enrolled.progress_pct === 'number') {
+            setProgressPct(enrolled.progress_pct);
+            console.log("✅ setProgressPct called with:", enrolled.progress_pct);
+        } else {
+            console.log("❌ progress_pct not found or not a number");
+        }
+    } catch (err) {
+        console.error("❌ markLessonComplete error:", err);
+    }
   };
 
   const fetchQuizFromLesson = async (lessonId: string) => {
-    setQuizLoading(true); setQuizError(null); setApiQuiz(null); setCurrentQuizId(null);
+    if (!localStorage.getItem("access")) {
+      setQuizLoading(false);
+      setQuizBlocked(false);
+      setQuizError("Vui lòng đăng nhập để làm bài kiểm tra");
+      setApiQuiz(null);
+      return;
+    }
+
+    setQuizLoading(true);
+    setQuizError(null);
+    setApiQuiz(null);
+    setCurrentQuizId(null);
+    setQuizBlocked(false);
+
     try {
-      const res = await fetch(`${API}/api/quizzes/lesson/${lessonId}/take/`, { headers: authHeader() });
-      if (res.ok) {
-        const quiz = await res.json();
-        setApiQuiz(quiz); setCurrentQuizId(quiz.id);
-        setQuizStarted(false); setQuizResult(null); setCurrentQ(0);
-        setSelected(new Set()); setAnswered(false); setAllAnswers({}); setQuizExplanations({});
-      } else if (res.status === 404) {
-        setQuizError("Bài học này chưa có bài kiểm tra.");
-      } else if (res.status === 403) {
-        const err = await res.json();
-        setQuizError(err.detail ?? "Bạn không có quyền làm bài này.");
-      } else {
-        setQuizError("Không thể tải bài kiểm tra.");
+      const res = await fetch(`${API}/api/quizzes/lesson/${lessonId}/take/`, {
+        headers: authHeader(),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 400) {
+          setQuizBlocked(true);
+        }
+
+        setQuizError(data.detail || "Không thể tải bài kiểm tra");
+        return;
       }
-    } catch (err: any) { setQuizError(`Lỗi kết nối: ${err.message}`); }
-    setQuizLoading(false);
+
+      setApiQuiz(data);
+      setCurrentQuizId(data.id);
+
+      const startRes = await fetch(`${API}/api/quizzes/${data.id}/start/`, {
+        method: 'POST',
+        headers: authHeader(),
+      });
+      if (startRes.ok) {
+        const { attempt_id } = await startRes.json();
+        setCurrentAttemptId(attempt_id); // thêm state này
+      }
+    } catch (err: any) {
+      setQuizError(`Lỗi kết nối: ${err.message}`);
+    } finally {
+      setQuizLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (activeTab !== "quiz" || !activeLessonId) return;
-    fetchQuizFromLesson(activeLessonId);
+    if (activeTab === "quiz" && activeLessonId && !apiQuiz) {
+      fetchQuizFromLesson(activeLessonId);
+    }
   }, [activeTab, activeLessonId]);
 
   const submitReview = async (rating: number, comment: string) => {
@@ -297,7 +464,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
       const res = await fetch(`${API}/api/quizzes/${currentQuizId}/submit/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers, attempt_id: currentAttemptId }),
       });
       if (res.ok) {
         const result = await res.json();
@@ -306,6 +473,22 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
         setQuizExplanations(explanationsMap);
         setQuizResult(result);
         setQuizStarted(false);
+        // Trong handleSubmitQuiz, phần xử lý result.passed:
+        if (result.passed && isEnrolled) {
+            try {
+                const enrollRes = await fetch(`${API}/api/enrollments/`, { headers: authHeader() });
+                if (enrollRes.ok) {
+                    const data = await enrollRes.json();
+                    const list = Array.isArray(data) ? data : data.results ?? [];
+                    const enrolled = list.find(
+                        (e: any) => e.course === course.id || e.course_id === course.id
+                    );
+                    if (enrolled) {
+                        await fetchProgress(enrolled.id); // ← đã fix, sẽ lấy đúng progress_pct
+                    }
+                }
+            } catch {}
+        }
       } else {
         const err = await res.json();
         setQuizError(err.detail ?? "Nộp bài thất bại.");
@@ -340,7 +523,31 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
     return () => clearInterval(timerRef.current!);
   }, [quizStarted]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !course) return;
+    const checkEnrollment = async () => {
+      try {
+        const res = await fetch(`${API}/api/enrollments/`, { headers: authHeader() });
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : data.results ?? [];
+          const enrolled = list.find((e: any) => e.course === course.id || e.course_id === course.id);
+          if (enrolled) {
+            const isActive = enrolled.status !== 'refunded' && enrolled.status !== 'cancelled';
+            setIsEnrolled(isActive);
+            if (isActive) {
+              fetchProgress(enrolled.id);
+              if (typeof enrolled.progress_pct === 'number') setProgressPct(enrolled.progress_pct);
+            }
+          }
+        }
+      } catch {}
+    };
+    checkEnrollment();
+  }, [isLoggedIn, course]);
+
   const handleRestartQuiz = () => {
+    setCurrentAttemptId(null);  
     setCurrentQ(0); setSelected(new Set()); setAnswered(false);
     setQuizStarted(true); setQuizResult(null);
     setAllAnswers({}); setQuizExplanations({});
@@ -367,8 +574,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
         <div className="cd-main">
           <button className="cd-back" onClick={() => onNavigate("courses")}>← Quay lại</button>
           <h1 className="cd-hero__title">{course.title}</h1>
-          <p className="cd-hero__desc">{course.description}</p>
-
+          
           <div className="cd-tabs">
             {TABS.map((tab) => (
               <button key={tab.id} className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`} onClick={() => setActiveTab(tab.id)}>
@@ -405,7 +611,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
           {activeTab === "curriculum" && (
             <div className="cd-tab-content cd-curriculum">
               <p className="cd-curriculum__summary">
-                {sections.reduce((a, s) => a + (s.lessons?.length ?? 0), 0)} bài học · {sections.length} chương
+                {sections.reduce((a, s) => a + (s.lessons?.length ?? 0), 0) > 0
+                  ? `${sections.reduce((a, s) => a + (s.lessons?.length ?? 0), 0)} bài học · ${sections.length} chương`
+                  : "Hiện tại chưa có nội dung bài học"}
               </p>
               {sections.map((section) => (
                 <div key={section.id} className="cd-chapter">
@@ -416,25 +624,34 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
                   </button>
                   {expandedSection === section.id && (
                     <div className="cd-chapter__lessons">
-                      {section.lessons?.map((lesson: any, idx: number) => (
+                      {section.lessons?.map((lesson: any, idx: number) => {
+                        const lessonIsPreview = lesson.is_preview_video || lesson.is_preview_article || lesson.is_preview_resource;
+                        return (
                         <button key={lesson.id}
                           className={`cd-lesson-row${activeLessonId === lesson.id ? " cd-lesson-row--active" : ""}`}
-                          onClick={() => fetchLessonContent(lesson.id, lesson.is_preview)}
+                          onClick={() => {
+                            if (activeTab !== "quiz") {
+                              setLessonTargetTab("lesson");
+                            }
+
+                            fetchLessonContent(
+                              lesson.id,
+                              lessonIsPreview,
+                              lessonTargetTab,
+                            );
+                          }}
                         >
                           <span className="cd-lesson-row__num">{idx + 1}</span>
                           <span className="cd-lesson-row__type-icon">
-                            {lesson.lesson_type === "video" ? "▶" : lesson.lesson_type === "article" ? "📝" : "📎"}
+                            {lesson.video_url || lesson.video_file ? "▶" : lesson.content ? "📘" : "📎"}
                           </span>
                           <span className="cd-lesson-row__title">{lesson.title}</span>
-                          {lesson.duration_seconds > 0 && (
-                            <span className="cd-lesson-row__duration">
-                              {Math.floor(lesson.duration_seconds / 60)}:{String(lesson.duration_seconds % 60).padStart(2, "0")}
-                            </span>
-                          )}
-                          {lesson.is_preview && <span className="cd-lesson-row__preview">Xem thử</span>}
-                          {!lesson.is_preview && !isEnrolled && <span className="cd-lesson-row__lock">🔒</span>}
+                          {lesson.quiz && <span className="cd-lesson-row__quiz">📝</span>}                       
+                          {lessonIsPreview && <span className="cd-lesson-row__preview">Xem thử</span>}
+                          {!lessonIsPreview && !isEnrolled && <span className="cd-lesson-row__lock">🔒</span>}
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -449,11 +666,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
                 <div className="cd-lesson__loading"><div className="cd-spinner" /><p>Đang tải bài học…</p></div>
               ) : lessonError ? (
                 <div className="cd-lesson__error">
-                  <p>⚠️ {lessonError}</p>
+                  <p> {lessonError}</p>
                   {!isEnrolled && (
                     <button className="cd-btn-enroll" onClick={handleEnroll} disabled={enrolling}>
-                      {enrolling ? "Đang đăng ký…" : "Đăng ký để xem bài học"}
-                    </button>
+                    {enrolling
+                      ? "Đang đăng ký…"
+                      : !isLoggedIn
+                      ? "Đăng nhập để học"
+                      : localStorage.getItem("role") !== "student"
+                      ? "Chỉ học viên mới đăng ký được"
+                      : "Đăng ký học ngay"}
+                  </button>
                   )}
                 </div>
               ) : !activeLesson ? (
@@ -465,25 +688,56 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
               ) : (
                 <div className="cd-lesson__content">
                   <div className="cd-lesson__header">
-                    <button className="cd-back-sm" onClick={() => setActiveTab("curriculum")}>← Danh sách bài</button>
                     <h2 className="cd-lesson__title">{activeLesson.title}</h2>
                   </div>
                   {(activeLesson.video_file || activeLesson.video_url) && (
                     <div className="cd-lesson__video-wrap">
-                      {activeLesson.video_file ? (
-                        <video className="cd-lesson__video" controls
-                          src={activeLesson.video_file.startsWith("http") ? activeLesson.video_file : `${API}${activeLesson.video_file}`}
-                        />
-                      ) : (() => {
-                          const { type, embedUrl } = getVideoEmbed(activeLesson.video_url);
-                          if (type === "youtube" || type === "vimeo") {
-                            return <iframe className="cd-lesson__iframe" src={embedUrl} allowFullScreen
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              title={activeLesson.title} />;
-                          }
-                          return <video className="cd-lesson__video" controls src={embedUrl} />;
-                        })()
-                      }
+
+                      {/* ── Video URL (YouTube / Vimeo / stream) ── */}
+                      {activeLesson.video_url && (() => {
+                        const { type, embedUrl } = getVideoEmbed(activeLesson.video_url);
+                        if (type === "youtube" || type === "vimeo") {
+                          return (
+                            <>
+                              {activeLesson.video_file && (
+                                <p className="cd-lesson__video-label">🔗 Video từ URL</p>
+                              )}
+                              <iframe
+                                className="cd-lesson__iframe"
+                                src={embedUrl}
+                                allowFullScreen
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                title={activeLesson.title}
+                              />
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            {activeLesson.video_file && (
+                              <p className="cd-lesson__video-label">🔗 Video từ URL</p>
+                            )}
+                            <video className="cd-lesson__video" controls src={embedUrl} />
+                          </>
+                        );
+                      })()}
+
+                      {/* ── Video file upload ── */}
+                      {activeLesson.video_file && (
+                        <>
+                          {activeLesson.video_url && (
+                            <p className="cd-lesson__video-label">📁 Video tải lên</p>
+                          )}
+                          <video
+                            className="cd-lesson__video"
+                            controls
+                            src={activeLesson.video_file.startsWith("http")
+                              ? activeLesson.video_file
+                              : `${API}${activeLesson.video_file}`}
+                          />
+                        </>
+                      )}
+
                     </div>
                   )}
                   {activeLesson.content && <div className="cd-lesson__body">{renderMarkdown(activeLesson.content)}</div>}
@@ -509,15 +763,29 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
               {quizLoading ? (
                 <div className="cd-lesson__loading"><div className="cd-spinner" /><p>Đang tải bài kiểm tra…</p></div>
               ) : quizError ? (
-                <div className="cd-lesson__error">
-                  <p>⚠️ {quizError}</p>
-                  <button className="cd-btn-secondary" onClick={() => setActiveTab("lesson")}>← Quay lại bài học</button>
+                <div className="cd-quiz__intro">
+                  <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
+                  <div className="cd-quiz__blocked"> {quizError}</div>
+                  <button
+                    className="cd-btn-secondary"
+                    onClick={() => setActiveTab("lesson")}
+                  >
+                    ← Quay lại bài học
+                  </button>
                 </div>
               ) : !apiQuiz ? (
                 <div className="cd-quiz__intro">
                   <h2>Bài kiểm tra</h2>
                   <p>Hiện chưa có bài kiểm tra cho bài học này.</p>
-                  <button className="cd-btn-secondary" onClick={() => setActiveTab("curriculum")}>Chọn bài học khác</button>
+                  <button
+                    className="cd-btn-secondary"
+                    onClick={() => {
+                      setLessonTargetTab("quiz");
+                      setActiveTab("curriculum");
+                    }}
+                  >
+                    Chọn bài học khác
+                  </button>
                 </div>
               ) : quizResult ? (
                 // ── KẾT QUẢ ──
@@ -573,7 +841,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
                     {apiQuiz.max_attempts > 0 && <li>Số lần làm tối đa: {apiQuiz.max_attempts}</li>}
                     <li>Có thể xem lại bài làm sau khi nộp</li>
                   </ul>
-                  <button className="cd-btn-enroll" onClick={() => setQuizStarted(true)}>Bắt đầu làm bài</button>
+                  {quizBlocked ? (
+                    <button className="cd-btn-enroll cd-btn-enroll--disabled" disabled>Đã hết lượt làm bài</button>
+                  ) : (
+                    <button className="cd-btn-enroll" onClick={() => setQuizStarted(true)}>Bắt đầu làm bài</button>
+                  )}
                 </div>
               ) : (
                 // ── LÀM BÀI ──
@@ -777,10 +1049,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
               <span>{course.total_students?.toLocaleString() ?? 0} học viên</span>
             </div>
             <div className="cd-price-card__price-row">
-              <span className="cd-price-card__price">{formatPrice(course.sale_price ?? course.price ?? 0, "VND")}</span>
-              {discount > 0 && (
+              <span className="cd-price-card__price">
+                {(course.sale_price ?? course.price ?? 0) > 0
+                  ? formatPrice(course.sale_price ?? course.price ?? 0, "VND")
+                  : "Miễn phí"}
+              </span>
+
+              {discount > 0 && course.price > 0 && (
                 <>
-                  <span className="cd-price-card__original">{formatPrice(course.price, "VND")}</span>
+                  <span className="cd-price-card__original">
+                    {formatPrice(course.price, "VND")}
+                  </span>
                   <span className="cd-price-card__discount">-{discount}%</span>
                 </>
               )}
@@ -793,6 +1072,14 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
               </button>
             )}
             {isEnrolled && <div className="cd-price-card__enrolled-badge">✓ Đã đăng ký</div>}
+            {isEnrolled && (
+              <div className="cd-progress-bar-wrap">
+                <div className="cd-progress-bar-track">
+                  <div className="cd-progress-bar-fill" style={{ width: `${progressPct}%` }} />
+                </div>
+                <span className="cd-progress-bar-label">Tiến độ: {progressPct}%</span>
+              </div>
+            )}
             {course.category_name && (
               <div className="cd-price-card__tags">
                 <span className="cd-tag">{course.category_name}</span>
@@ -808,12 +1095,31 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
       <PaymentModal
         course={course}
         onClose={() => setShowPayment(false)}
-        onSuccess={() => {
+        onSuccess={async () => {
+          console.log("course data:", course); // thêm vào đây
           setIsEnrolled(true);
           setShowPayment(false);
           setActiveTab("lesson");
+          // Re-fetch enrollment để lấy enrollmentId mới
+          try {
+            const res = await fetch(`${API}/api/enrollments/`, { headers: authHeader() });
+            if (res.ok) {
+              const data = await res.json();
+              const list = Array.isArray(data) ? data : data.results ?? [];
+              const enrolled = list.find((e: any) => e.course === course.id || e.course_id === course.id);
+              if (enrolled) {
+                fetchProgress(enrolled.id);
+                if (typeof enrolled.progress_pct === 'number') setProgressPct(enrolled.progress_pct);
+              }
+            }
+          } catch {}
         }}
       />
+    )}
+    {toast && (
+      <div className="cd-toast">
+        {toast}
+      </div>
     )}
     </>
   );
