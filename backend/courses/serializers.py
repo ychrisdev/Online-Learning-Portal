@@ -74,7 +74,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Review
-        fields = ['id', 'student_name', 'student_id', 'rating', 'comment', 'edit_count', 'created_at', 'is_hidden', 'attempt_number']
+        fields = ['id', 'student_name', 'student_id', 'rating', 'comment', 'edit_count', 'created_at', 'is_hidden', 'attempt_number','report_dismissed']
         read_only_fields = ['id', 'student_name', 'student_id', 'edit_count', 'created_at',  'is_hidden', 'attempt_number']
 
 
@@ -232,7 +232,7 @@ class AdminReviewSerializer(serializers.ModelSerializer):
             'rating', 'comment', 'edit_count',
             'is_hidden', 'hidden_at',
             'is_reported', 'report_reason', 'reported_by_name',  # ← thêm
-            'created_at', 'updated_at',
+            'created_at', 'updated_at','report_dismissed'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'edit_count', 'hidden_at']
 

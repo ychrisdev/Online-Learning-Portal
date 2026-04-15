@@ -2800,10 +2800,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                           {r.comment || <em>Không có nhận xét</em>}
                         </td>
                         <td>
-                          {r.is_reported
-                            ? <span className="ad-badge ad-review-badge--reported">🚩 Đã báo cáo</span>
-                            : r.is_hidden
-                              ? <span className="ad-badge ad-review-badge--hidden">Đã ẩn</span>
+                          {r.is_hidden
+                            ? <span className="ad-badge ad-review-badge--hidden">Đã ẩn</span>
+                            : r.is_reported
+                              ? <span className="ad-badge ad-review-badge--reported">🚩 Đã báo cáo</span>
                               : <span className="ad-badge ad-review-badge--visible">Hiển thị</span>
                           }
                         </td>
@@ -2839,7 +2839,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                         <span>
                           <span style={{ color: '#f5a623' }}>{'★'.repeat(selectedReview.rating)}</span>
                           <span style={{ color: 'rgba(255,255,255,0.2)' }}>{'☆'.repeat(5 - selectedReview.rating)}</span>
-                          <span style={{ marginLeft: 6, fontSize: 12, opacity: 0.6 }}>{selectedReview.rating}/5</span>
                         </span>
                       </div>
                       <div className="ad-modal__field" style={{ alignItems: 'flex-start' }}>
@@ -2857,8 +2856,17 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                             ? <span className="ad-badge ad-review-badge--hidden">Đang ẩn</span>
                             : <span className="ad-badge ad-review-badge--visible">Đang hiển thị</span>}
                           {!selectedReview.is_hidden && (
-                            <button className="ad-btn-sm ad-btn-sm--refund"
-                              onClick={() => { closeReviewModal(); openReportModal(selectedReview); }}>
+                            <button
+                              className="ad-btn-sm ad-btn-sm--refund"
+                              onClick={() => {
+                                if (selectedReview.is_reported || selectedReview.report_dismissed) {
+                                  alert('Đánh giá này đã đạt giới hạn báo cáo, không thể báo cáo thêm.');
+                                  return;
+                                }
+                                closeReviewModal();
+                                openReportModal(selectedReview);
+                              }}
+                            >
                               Báo cáo
                             </button>
                           )}
@@ -2876,7 +2884,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
               {reportModal && reportingReview && (
                 <div className="ad-modal-overlay" onClick={() => !submittingReport && setReportModal(false)}>
                   <div className="ad-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
-                    <h2 className="ad-modal__title">🚩 Báo cáo đánh giá</h2>
+                    <h2 className="ad-modal__title">Báo cáo đánh giá</h2>
                     <div className="ad-modal__body">
                       {/* Tóm tắt review bị báo cáo */}
                       <div style={{
@@ -2918,7 +2926,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                         }}
                       />
                       <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                        Admin sẽ xem xét và quyết định ẩn hoặc xóa đánh giá này.
+                        Admin sẽ xem xét và quyết định có ẩn hoặc xóa đánh giá này.
                       </p>
                     </div>
                     <div className="ad-modal__footer">

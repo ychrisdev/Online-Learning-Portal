@@ -225,9 +225,15 @@ class RequestRefundView(APIView):
             student=request.user,
             status=Transaction.Status.SUCCESS,
         )
+        if transaction.refund_requested_once:
+            return Response(
+                {'detail': 'Bạn đã yêu cầu hoàn tiền cho giao dịch này rồi.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         reason = request.data.get('reason', '')
         transaction.status = Transaction.Status.REFUND_REQUESTED
         transaction.refund_reason = reason
+        transaction.refund_requested_once = True
         transaction.save()
         return Response({'message': 'Yêu cầu hoàn tiền đã được gửi.'})
 

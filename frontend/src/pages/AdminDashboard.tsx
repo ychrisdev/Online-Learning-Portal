@@ -1176,6 +1176,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
     } catch {}
   };
 
+  const handleDismissReport = async (review: any) => {
+    try {
+      const res = await fetch(
+        `${API}/api/courses/reviews/admin/${review.id}/dismiss-report/`,
+        { method: 'POST', headers: authHeader() }
+      );
+      if (res.ok) {
+        const updated = await res.json();
+        setReviews(prev => prev.map(r => r.id === updated.id ? updated : r));
+        setSelectedReview(updated);  // cập nhật modal
+      }
+    } catch {}
+  };
+
   // ── Derived / helpers ─────────────────────────────────────────────────────
   const normalize = (s: string) =>
     s.toLowerCase()
@@ -3780,10 +3794,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                           {r.comment ? r.comment : <em>Không có nhận xét</em>}
                         </td>
                         <td>
-                          {r.is_reported
-                            ? <span className="ad-badge">Báo cáo</span>
-                            : r.is_hidden
-                              ? <span className="ad-badge ad-review-badge--hidden">Đã ẩn</span>
+                          {r.is_hidden
+                            ? <span className="ad-badge ad-review-badge--hidden">Đã ẩn</span>
+                            : r.is_reported
+                              ? <span className="ad-badge">Báo cáo</span>
                               : <span className="ad-badge ad-review-badge--visible">Hiển thị</span>
                           }
                         </td>                    
@@ -3861,14 +3875,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                             onClick={() => handleToggleHide(selectedReview)}
                             disabled={togglingReview}
                           >
-                            {togglingReview ? '…' : selectedReview.is_hidden ? '👁 Hiện lại' : '🙈 Ẩn đi'}
+                            {togglingReview ? '…' : selectedReview.is_hidden ? 'Hiện lại' : 'Ẩn đi'}
                           </button>
                         </div>
                       </div>
                       {selectedReview.is_reported && (
-                        <div className="ad-modal__field" style={{ background: '#fff8e1', borderRadius: 8, padding: '10px 14px' }}>
-                          <span className="ad-modal__field-label">🚩 Báo cáo vi phạm</span>
-                          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div className="ad-modal__field" style={{ borderRadius: 8, padding: '10px 14px' }}>
+                          <span className="ad-modal__field-label">Báo cáo vi phạm</span>
+                          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 8 }}>
                             <span className="ad-modal__field-value">
                               <strong>Lý do:</strong> {selectedReview.report_reason || '(không có lý do)'}
                             </span>
@@ -3877,6 +3891,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                                 <strong>Người báo cáo:</strong> {selectedReview.reported_by_name}
                               </span>
                             )}
+                            <button
+                              className="ad-btn-sm"
+                              onClick={() => handleDismissReport(selectedReview)}
+                            >
+                              Bỏ qua báo cáo
+                            </button>
                           </div>
                         </div>
                       )}

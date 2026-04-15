@@ -40,6 +40,7 @@ from .views import (
     InstructorLessonDetailView,
     InstructorReviewListView,
     InstructorReviewReportView,
+    AdminReviewDismissReportView
 )
 
 urlpatterns = [
@@ -69,6 +70,7 @@ urlpatterns = [
     path('reviews/admin/',           AdminReviewListView.as_view(),   name='admin-review-list'),
     path('reviews/admin/<uuid:pk>/', AdminReviewDetailView.as_view(), name='admin-review-detail'),
     path('reviews/admin/<uuid:pk>/toggle-hide/', AdminReviewToggleHideView.as_view(), name='admin-review-toggle-hide'),
+    path('reviews/admin/<uuid:pk>/dismiss-report/', AdminReviewDismissReportView.as_view(), name='admin-review-dismiss-report'),
 
     # ── Instructor — khoá học ─────────────────────────────────────────────────
     path('mine/',                  InstructorCourseListView.as_view(),   name='instructor-course-list'),

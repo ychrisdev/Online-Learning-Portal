@@ -43,6 +43,7 @@ interface Payment {
   status: 'pending' | 'success' | 'failed' | 'refunded' |'refund_requested';
   method: string;
   ref_code: string;
+  refund_requested_once: boolean;
 }
 
 interface UserForm {
@@ -222,6 +223,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
           status:       item.status ?? 'success',
           method:       item.method ?? '',
           ref_code:     item.ref_code ?? '',
+          refund_requested_once: item.refund_requested_once ?? false,
         }));
         setPayments(mappedPayments);
 
@@ -341,6 +343,15 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
     showToast('Đổi mật khẩu thành công');
   };
 
+  const openRefundModal = (target: Payment) => {
+    if (target.refund_requested_once) {
+      alert('Bạn đã từng yêu cầu hoàn tiền cho giao dịch này rồi, không thể yêu cầu nữa.');
+      return;
+    }
+    setRefundTarget(target);
+    setRefundReason('');
+  };
+
   const requestRefund = async () => {
     if (!refundTarget || !refundReason.trim()) return;
     setRefundLoading(true);
@@ -350,9 +361,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
       body: JSON.stringify({ reason: refundReason }),
     });
     setRefundLoading(false);
-    if (!res.ok) { showToast('Yêu cầu thất bại', false); return; }
+    if (!res.ok) {
+      const err = await res.json();
+      showToast(err?.detail || 'Yêu cầu thất bại', false);
+      return;
+    }
     setPayments(prev =>
-      prev.map(p => p.id === refundTarget.id ? { ...p, status: 'refund_requested' as any } : p)
+      prev.map(p => p.id === refundTarget.id
+        ? { ...p, status: 'refund_requested' as any, refund_requested_once: true }
+        : p
+      )
     );
     setRefundTarget(null);
     setRefundReason('');
@@ -482,51 +500,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   <span className="db-stat-card__label">Tổng đã thanh toán</span>
                 </div>
               </div>
-
-              {/* Đang học */}
-              {!loadingCourses && inProgressCourses.length > 0 && (
-                <div className="db-card">
-                  <div className="db-card__header">
-                    <h3>Đang học</h3>
-                    {inProgressCourses.length > 3 && (
-                      <button
-                        className="btn btn--ghost btn--sm"
-                        onClick={() => setActiveTab('courses')}
-                      >
-                        Xem tất cả {inProgressCourses.length} khóa →
-                      </button>
-                    )}
-                  </div>
-                  {inProgressCourses.slice(0, 3).map(c => (
-                    <div
-                      key={c.id}
-                      className="db-course-card"
-                      onClick={() => onNavigate('course', c.course_slug || c.course_id)}
-                    >
-                      {thumbnailSrc(c.course_thumbnail) && (
-                        <img
-                          src={thumbnailSrc(c.course_thumbnail)!}
-                          alt={c.course_title}
-                          className="db-course-card__thumb"
-                        />
-                      )}
-                      <div className="db-course-card__body">
-                        <strong>{c.course_title}</strong>
-                        {c.instructor_name && (
-                          <span className="db-muted">{c.instructor_name}</span>
-                        )}
-                        <div className="db-progress-bar">
-                          <div className="db-progress-bar__fill" style={{ width: `${c.progress}%` }} />
-                        </div>
-                        <span className="db-muted">
-                          {c.progress}%
-                          {c.total_lessons > 0 && ` · ${c.completed_lessons}/${c.total_lessons} bài`}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
@@ -666,7 +639,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                               {status === 'success' && (
                                 <button className="ad-btn-sm"
                                   style={{ color: '#e07a5f', border: '1px solid rgba(224,122,95,0.3)' }}
-                                  onClick={() => { setRefundTarget(p); setRefundReason(''); }}>
+                                  onClick={() => openRefundModal(p)}>
                                   Hoàn tiền
                                 </button>
                               )}
@@ -721,7 +694,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                     <div className="cm-footer">
                       {paymentDetail?.status === 'success' && (
                         <button className="cm-btn" style={{ color: '#e07a5f', marginRight: 'auto' }}
-                          onClick={() => { closePaymentDetail(); setRefundTarget(paymentDetail); setRefundReason(''); }}>
+                          onClick={() => { closePaymentDetail(); openRefundModal(paymentDetail); }}>
                           Yêu cầu hoàn tiền
                         </button>
                       )}

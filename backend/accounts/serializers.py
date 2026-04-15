@@ -16,10 +16,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     """Đăng ký tài khoản — 5.1.1"""
     password  = serializers.CharField(write_only=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, label='Xác nhận mật khẩu')
+    role      = serializers.ChoiceField(choices=['student', 'instructor'], default='student')
 
     class Meta:
         model  = User
-        fields = ['username', 'email', 'full_name', 'password', 'password2']
+        fields = ['username', 'email', 'full_name', 'password', 'password2', 'role']
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -33,12 +34,15 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        role = validated_data.pop('role', User.Role.STUDENT)
         user = User.objects.create_user(
-            role=User.Role.STUDENT,
+            role=role,
             **validated_data,
         )
-        # Tự động tạo StudentProfile khi đăng ký
-        StudentProfile.objects.create(user=user)
+        if role == User.Role.STUDENT:
+            StudentProfile.objects.create(user=user)
+        elif role == User.Role.INSTRUCTOR:
+            InstructorProfile.objects.create(user=user)
         return user
 
 

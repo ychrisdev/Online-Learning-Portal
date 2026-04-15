@@ -27,7 +27,7 @@ from .serializers import (
 )
 
 MAX_REVIEW_EDITS = 5
-
+MAX_REVIEWS_PER_USER = 3
 # ── Category ──────────────────────────────────────────────────────────────────
 class CategoryListView(generics.ListAPIView):
     """
@@ -568,7 +568,7 @@ class InstructorReviewReportView(APIView):
         review = generics.get_object_or_404(
             Review, pk=pk, course__instructor=request.user
         )
-        if review.is_reported:
+        if review.is_reported or review.report_dismissed:
             return Response(
                 {'message': 'Đánh giá này đã được báo cáo rồi.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -588,5 +588,6 @@ class AdminReviewDismissReportView(APIView):
         review.is_reported   = False
         review.report_reason = None
         review.reported_by   = None
-        review.save(update_fields=['is_reported', 'report_reason', 'reported_by'])
+        review.report_dismissed = True
+        review.save(update_fields=['is_reported', 'report_reason', 'reported_by', 'report_dismissed'])
         return Response({'message': 'Đã bỏ qua báo cáo.'})

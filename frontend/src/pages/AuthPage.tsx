@@ -182,7 +182,7 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <input
                   className="fp-input"
                   type="password"
-                  placeholder="Tối thiểu 6 ký tự"
+                  placeholder="Tối thiểu 8 ký tự"
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                 />
@@ -233,7 +233,7 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, onNavigate }) => {
   const [mode, setMode]           = useState<'login' | 'register'>(initialMode);
   const [loading, setLoading]     = useState(false);
-  const [form, setForm]           = useState({ username: '', name: '', email: '', password: '', confirm: '' });
+  const [form, setForm]           = useState({ username: '', name: '', email: '', password: '', confirm: '',  role: '' });
   const [errors, setErrors]       = useState<Record<string, string>>({});
   const [showForgot, setShowForgot] = useState(false);
 
@@ -252,9 +252,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
       if (!form.username) e.username = 'Vui lòng nhập username';
     }
     if (!form.password) e.password = 'Vui lòng nhập mật khẩu';
-    else if (form.password.length < 6) e.password = 'Tối thiểu 6 ký tự';
+    else if (form.password.length < 6) e.password = 'Tối thiểu 8 ký tự';
     if (mode === 'register') {
       if (!form.name) e.name = 'Vui lòng nhập họ tên';
+      if (!form.role) e.role = 'Vui lòng chọn vai trò';
       if (form.confirm !== form.password) e.confirm = 'Mật khẩu không khớp';
     }
     return e;
@@ -270,20 +271,27 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
         : `${API}/api/auth/register/`;
       const body = mode === 'login'
         ? { username: form.username, password: form.password }
-        : { username: form.username, full_name: form.name, email: form.email, password: form.password, password2: form.password };
+        : { username: form.username, full_name: form.name, email: form.email, password: form.password, password2: form.confirm, role: form.role };
 
       const res  = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
-      if (!res.ok) { alert(JSON.stringify(data)); return; }
+      if (!res.ok) { console.error('Register error:', data); alert(JSON.stringify(data, null, 2)); return; }
 
       if (mode === 'login') {
         localStorage.setItem('access', data.access);
         localStorage.setItem('refresh', data.refresh);
-        const profileRes = await fetch(`${API}/api/auth/profile/`, { headers: { Authorization: `Bearer ${data.access}` } });
-        const profile    = await profileRes.json();
+        const profileRes = await fetch(`${API}/api/auth/profile/`, {
+          headers: { Authorization: `Bearer ${data.access}` },
+        });
+        const profile = await profileRes.json();
         localStorage.setItem('role', profile.role);
+        onSuccess();
+      } else {
+        setMode('login');
+        setForm({ username: '', name: '', email: '', password: '', confirm: '', role: '' });
+        setErrors({ _success: 'Đăng ký thành công! Vui lòng đăng nhập.' });
+        setTimeout(() => setErrors({}), 2000);
       }
-      onSuccess();
     } catch {
       alert('Lỗi server');
     } finally {
@@ -317,7 +325,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
             {mode === 'login' ? 'Tiếp tục lộ trình học của bạn' : 'Bắt đầu học từ đúng cấp độ của bạn'}
           </p>
         </div>
-
+        {errors._success && (
+          <div className="auth-success">
+            {errors._success}
+          </div>
+        )}
         <div className="auth-fields">
           <div className="auth-field">
             <label className="auth-label">Username</label>
@@ -357,12 +369,30 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
             </div>
           )}
 
+           {mode === 'register' && (
+            <div className="auth-field">
+              <label className="auth-label">Vai trò</label>
+              <div className="auth-tabs">
+                {(['student', 'instructor'] as const).map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`auth-tab${form.role === r ? ' auth-tab--active' : ''}`}
+                    onClick={() => update('role', r)}
+                  >
+                    {r === 'student' ? 'Sinh viên' : 'Giảng viên'}
+                  </button>
+                ))}
+              </div>
+              {errors.role && <span className="auth-error">{errors.role}</span>}
+            </div>
+          )}
           <div className="auth-field">
             <label className="auth-label">Mật khẩu</label>
             <input
               className={`auth-input${errors.password ? ' auth-input--error' : ''}`}
               type="password"
-              placeholder={mode === 'login' ? 'Nhập mật khẩu' : 'Tối thiểu 6 ký tự'}
+              placeholder={mode === 'login' ? 'Nhập mật khẩu' : 'Tối thiểu 8 ký tự'}
               value={form.password}
               onChange={e => update('password', e.target.value)}
             />

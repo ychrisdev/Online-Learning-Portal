@@ -435,3 +435,13 @@
   max-width: 280px;
   line-height: 1.6;
 }
+
+.auth-success {
+  padding: 0.65em 0.9em;
+  background: rgba(76, 175, 130, 0.1);
+  border: 1.5px solid rgba(76, 175, 130, 0.3);
+  border-radius: var(--radius-md);
+  color: #4caf82;
+  font-size: var(--text-sm);
+  text-align: center;
+}

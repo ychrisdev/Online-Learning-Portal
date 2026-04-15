@@ -49,6 +49,7 @@ class Transaction(models.Model):
     gateway_ref = models.CharField('Mã giao dịch (gateway trả về)', max_length=128, blank=True)
     note        = models.TextField('Ghi chú', blank=True)
     refund_reason = models.TextField('Lý do hoàn tiền', blank=True, default='')
+    refund_requested_once = models.BooleanField('Đã từng yêu cầu hoàn tiền', default=False)
     created_at  = models.DateTimeField('Tạo lúc', auto_now_add=True)
     paid_at     = models.DateTimeField('Thanh toán lúc', null=True, blank=True)
 

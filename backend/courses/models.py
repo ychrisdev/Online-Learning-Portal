@@ -225,7 +225,8 @@ class Review(models.Model):
         on_delete=models.SET_NULL,
         related_name='reported_reviews',
     )
-    attempt_number = models.PositiveSmallIntegerField(default=1)  
+    attempt_number = models.PositiveSmallIntegerField(default=1)
+    report_dismissed = models.BooleanField(default=False)
 
     class Meta:
         db_table        = 'reviews'
