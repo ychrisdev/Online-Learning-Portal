@@ -36,11 +36,20 @@ const App: React.FC = () => {
 
   const getInitialState = () => {
     const hash = window.location.hash.replace("#", "");
-    const [page, param] = hash.split("/");
+    const slashIdx = hash.indexOf("/");
+    const page  = slashIdx === -1 ? hash : hash.slice(0, slashIdx);
+    const param = slashIdx === -1 ? ""   : hash.slice(slashIdx + 1);
+
     const valid: Page[] = ["home", "courses", "course-detail", "dashboard", "auth", "policy"];
+    const isLoggedIn = !!localStorage.getItem("access");
+    let resolvedPage = valid.includes(page as Page) ? (page as Page) : "home";
+
+    if (resolvedPage === "auth" && isLoggedIn) resolvedPage = "dashboard";
+    if (resolvedPage === "dashboard" && !isLoggedIn) resolvedPage = "home";
+
     return {
-      page: valid.includes(page as Page) ? (page as Page) : "home",
-      courseId: page === "course-detail" ? (param ?? "c1") : "c1",
+      page: resolvedPage,
+      courseId: page === "course-detail" ? param : "",
       authMode: page === "auth" && param === "register" ? "register" : "login" as "login" | "register",
     };
   };

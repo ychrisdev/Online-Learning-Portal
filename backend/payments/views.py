@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from .models import Transaction
 from django.db.models.functions import TruncMonth
 
-from accounts.permissions import IsAdminUser
+from accounts.permissions import IsAdminUser, IsInstructor
 from courses.models import Course
 from enrollments.models import Enrollment
 from .models import Transaction
@@ -227,7 +227,7 @@ class RequestRefundView(APIView):
         )
         reason = request.data.get('reason', '')
         transaction.status = Transaction.Status.REFUND_REQUESTED
-        transaction.note   = reason
+        transaction.refund_reason = reason
         transaction.save()
         return Response({'message': 'Yêu cầu hoàn tiền đã được gửi.'})
 
@@ -274,29 +274,51 @@ class InstructorRevenueMonthlyView(APIView):
     def get(self, request):
         user = request.user
 
-        qs = (
+        # Lượt đăng ký có phí (qua payment)
+        paid_qs = (
             Transaction.objects
             .filter(course__instructor=user, status='success')
             .annotate(month=TruncMonth('created_at'))
             .values('month')
-            .annotate(
-                revenue=Sum('amount'),
-                enrollments=Count('id')
-            )
+            .annotate(revenue=Sum('amount'), enrollments=Count('id'))
             .order_by('month')
         )
+        paid_map = {
+            item['month']: {'revenue': item['revenue'] or 0, 'enrollments': item['enrollments']}
+            for item in paid_qs
+        }
 
+        # Lượt đăng ký miễn phí (qua enrollment trực tiếp)
+        free_qs = (
+            Enrollment.objects
+            .filter(
+                course__instructor=user,
+                course__price=0,  # ← đổi sale_price thành price
+                status__in=['active', 'completed']
+            )
+            .annotate(month=TruncMonth('enrolled_at'))
+            .values('month')
+            .annotate(enrollments=Count('id'))
+            .order_by('month')
+        )
+        for item in free_qs:
+            m = item['month']
+            if m in paid_map:
+                paid_map[m]['enrollments'] += item['enrollments']
+            else:
+                paid_map[m] = {'revenue': 0, 'enrollments': item['enrollments']}
+
+        # Sắp xếp theo tháng
         data = [
             {
-                "month": item["month"].strftime("%m/%Y"),
-                "revenue": item["revenue"] or 0,
-                "enrollments": item["enrollments"]
+                "month": month.strftime("%m/%Y"),
+                "revenue": val['revenue'],
+                "enrollments": val['enrollments'],
             }
-            for item in qs
+            for month, val in sorted(paid_map.items())
         ]
-
         return Response(data)
-    
+      
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Sum
@@ -336,3 +358,23 @@ class AdminTransactionDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Transaction.objects.all().select_related('student', 'course')
+    
+class InstructorTransactionListView(generics.ListAPIView):
+    serializer_class   = AdminTransactionSerializer  # dùng lại serializer admin
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def get_queryset(self):
+        return Transaction.objects.filter(
+            course__instructor=self.request.user
+        ).select_related('student', 'course').order_by('-created_at')
+
+
+class InstructorTransactionDetailView(generics.RetrieveAPIView):
+    serializer_class   = AdminTransactionDetailSerializer  
+    permission_classes = [IsAuthenticated, IsInstructor]
+    lookup_field       = 'id'
+
+    def get_queryset(self):
+        return Transaction.objects.filter(
+            course__instructor=self.request.user
+        ).select_related('student', 'course')

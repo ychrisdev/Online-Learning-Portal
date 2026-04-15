@@ -14,10 +14,12 @@ from .views import (
     AdminQuizAttemptsView,
     QuizAttemptDetailView,
     QuizStartView,
+    MyAllQuizAttemptsView,
 )
 
 urlpatterns = [
     path('', QuizListCreateView.as_view(), name='quiz-list-create'),
+    path('mine/',  QuizListCreateView.as_view(), name='quiz-mine'),  # ← FIX 404
 
     # ✅ Route cụ thể lên TRÊN
     path('<uuid:id>/take/',     QuizDetailView.as_view(),    name='quiz-take'),
@@ -33,4 +35,5 @@ urlpatterns = [
     path('<uuid:quiz_id>/questions/',  QuestionListCreateView.as_view(), name='question-list-create'),
     path('questions/<uuid:id>/',       QuestionUpdateView.as_view(),     name='question-update'),
     path('lesson/<uuid:lesson_id>/take/', QuizDetailByLessonView.as_view(), name='quiz-take-by-lesson'),
+    path('attempts/mine/', MyAllQuizAttemptsView.as_view(), name='my-quiz-attempts'),
 ]

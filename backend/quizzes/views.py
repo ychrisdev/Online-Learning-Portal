@@ -296,11 +296,15 @@ class QuizAttemptDetailView(generics.RetrieveAPIView):
     Xem chi tiết 1 lần làm bài — kèm questions + đáp án đúng
     """
     serializer_class   = QuizAttemptResultSerializer
-    permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
+    permission_classes = [IsAuthenticated]  # ← bỏ IsInstructorOrAdmin
     lookup_field       = 'id'
-    queryset           = QuizAttempt.objects.prefetch_related(
-        'quiz__questions__answers'
-    ).select_related('student')
+
+    def get_queryset(self):
+        user = self.request.user
+        # Student chỉ xem được attempt của chính mình
+        if user.role in ('instructor', 'admin'):
+            return QuizAttempt.objects.prefetch_related('quiz__questions__answers').select_related('student')
+        return QuizAttempt.objects.filter(student=user).prefetch_related('quiz__questions__answers')
 
 class QuizStartView(APIView):
     """
@@ -320,3 +324,12 @@ class QuizStartView(APIView):
             # started_at tự set bởi auto_now_add
         )
         return Response({'attempt_id': str(attempt.id)}, status=status.HTTP_201_CREATED)
+    
+class MyAllQuizAttemptsView(generics.ListAPIView):
+    serializer_class   = QuizAttemptListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return QuizAttempt.objects.filter(
+            student=self.request.user
+        ).select_related('quiz__lesson__section__course').order_by('-started_at')

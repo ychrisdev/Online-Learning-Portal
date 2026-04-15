@@ -74,8 +74,8 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Review
-        fields = ['id', 'student_name', 'student_id', 'rating', 'comment', 'edit_count', 'created_at']
-        read_only_fields = ['id', 'student_name', 'student_id', 'edit_count', 'created_at']
+        fields = ['id', 'student_name', 'student_id', 'rating', 'comment', 'edit_count', 'created_at', 'is_hidden', 'attempt_number']
+        read_only_fields = ['id', 'student_name', 'student_id', 'edit_count', 'created_at',  'is_hidden', 'attempt_number']
 
 
 class CourseListSerializer(serializers.ModelSerializer):
@@ -83,6 +83,7 @@ class CourseListSerializer(serializers.ModelSerializer):
     instructor_name = serializers.CharField(source='instructor.full_name', read_only=True)
     sale_price      = serializers.IntegerField(read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
+    completion_rate = serializers.SerializerMethodField()
 
     class Meta:
         model  = Course
@@ -91,16 +92,32 @@ class CourseListSerializer(serializers.ModelSerializer):
             'price', 'discount_percent', 'sale_price',
             'level', 'avg_rating', 'total_students',
             'category_name', 'category_slug', 'instructor_name',
-            'is_featured', 'status',
+            'is_featured', 'status','completion_rate',
+            'published_at',
         ]
+
+    def get_completion_rate(self, obj):                    # ← THÊM
+        from enrollments.models import Enrollment
+        enrollments = Enrollment.objects.filter(
+            course=obj
+        ).prefetch_related('progress_records')
+        if not enrollments.exists():
+            return 0
+        from enrollments.serializers import _calc_progress_pct
+        total = sum(_calc_progress_pct(e) for e in enrollments)
+        return round(total / enrollments.count())
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
     sections        = SectionSerializer(many=True, read_only=True)
-    reviews         = ReviewSerializer(many=True, read_only=True)
+    reviews         = serializers.SerializerMethodField()
     category_name   = serializers.CharField(source='category.name', read_only=True)
     instructor_name = serializers.CharField(source='instructor.full_name', read_only=True)
     sale_price      = serializers.IntegerField(read_only=True)
+
+    def get_reviews(self, obj):
+        qs = obj.reviews.filter(is_hidden=False).select_related('student')
+        return ReviewSerializer(qs, many=True).data
 
     class Meta:
         model  = Course
@@ -122,6 +139,7 @@ class CourseWriteSerializer(serializers.ModelSerializer):
             'price', 'discount_percent',
             'level', 'requirements', 'what_you_learn',
         ]
+        read_only_fields = ['id', 'slug']
 
     def validate_discount_percent(self, value):
         if not (0 <= value <= 100):
@@ -129,6 +147,15 @@ class CourseWriteSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        from django.utils.text import slugify
+        title     = validated_data.get('title', '')
+        base_slug = slugify(title) or 'course'
+        slug      = base_slug
+        counter   = 1
+        while Course.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        validated_data['slug']       = slug
         validated_data['instructor'] = self.context['request'].user
         return super().create(validated_data)
 
@@ -195,6 +222,7 @@ class AdminReviewSerializer(serializers.ModelSerializer):
     student_name  = serializers.SerializerMethodField()
     student_email = serializers.SerializerMethodField()
     course_title  = serializers.SerializerMethodField()
+    reported_by_name = serializers.SerializerMethodField()   # ← thêm
 
     class Meta:
         model  = Review
@@ -202,7 +230,8 @@ class AdminReviewSerializer(serializers.ModelSerializer):
             'id', 'course', 'course_title',
             'student', 'student_name', 'student_email',
             'rating', 'comment', 'edit_count',
-            'is_hidden', 'hidden_at', 
+            'is_hidden', 'hidden_at',
+            'is_reported', 'report_reason', 'reported_by_name',  # ← thêm
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'edit_count', 'hidden_at']
@@ -215,3 +244,8 @@ class AdminReviewSerializer(serializers.ModelSerializer):
 
     def get_course_title(self, obj):
         return obj.course.title
+
+    def get_reported_by_name(self, obj):             # ← thêm
+        if not obj.reported_by:
+            return None
+        return getattr(obj.reported_by, 'full_name', None) or obj.reported_by.username

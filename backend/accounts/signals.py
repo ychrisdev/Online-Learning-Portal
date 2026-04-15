@@ -15,9 +15,10 @@ def _update_instructor_stats(instructor):
     from courses.models import Course, Review
     from enrollments.models import Enrollment
 
-    profile, _ = instructor.instructor_profile.__class__.objects.get_or_create(
-        user=instructor
-    )
+    try:
+        profile = instructor.instructor_profile
+    except Exception:
+        return
 
     published_courses = Course.objects.filter(
         instructor=instructor,

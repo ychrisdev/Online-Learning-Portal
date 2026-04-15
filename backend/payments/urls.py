@@ -15,6 +15,8 @@ from .views import (
     InstructorRevenueMonthlyView,
     revenue_stats,
     AdminTransactionDetailView,
+    InstructorTransactionListView,    # ← thêm
+    InstructorTransactionDetailView,  # ← thêm
 )
 
 urlpatterns = [
@@ -37,4 +39,8 @@ urlpatterns = [
     path('analytics/revenue/monthly/', InstructorRevenueMonthlyView.as_view()),
 
     path('revenue/', revenue_stats),
+
+     # Instructor
+    path('instructor/',           InstructorTransactionListView.as_view(),  name='instructor-transaction-list'),
+    path('instructor/<uuid:id>/', InstructorTransactionDetailView.as_view(), name='instructor-transaction-detail'),
 ]

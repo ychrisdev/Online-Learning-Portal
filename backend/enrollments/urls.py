@@ -10,6 +10,7 @@ from .views import (
     ProgressListView,
     ProgressUpdateView,
     AdminUserCertificateListView,
+    InstructorEnrollmentListView,
 )
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
 
     # Instructor
     path('instructor/<uuid:course_id>/students/',  InstructorStudentListView.as_view(), name='instructor-students'),
-]
+    path('instructor/', InstructorEnrollmentListView.as_view(), name='instructor-enrollment-list'),
+]   

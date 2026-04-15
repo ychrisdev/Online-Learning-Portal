@@ -148,6 +148,26 @@ class LessonListCreateView(generics.ListCreateAPIView):
         )
         serializer.save(section=section)
 
+class ReviewUpdateView(generics.UpdateAPIView):
+    """PATCH /api/courses/<slug>/reviews/<uuid:pk>/"""
+    serializer_class   = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names  = ['patch']
+
+    def get_queryset(self):
+        return Review.objects.filter(
+            course__slug=self.kwargs['slug'],
+            student=self.request.user,
+            # ← bỏ is_hidden=False để cho phép edit cả review bị ẩn
+        )
+
+    def perform_update(self, serializer):
+        review = self.get_object()
+        if review.edit_count >= MAX_REVIEW_EDITS:
+            raise PermissionDenied(
+                f'Bạn đã chỉnh sửa tối đa {MAX_REVIEW_EDITS} lần.'
+            )
+        serializer.save(edit_count=review.edit_count + 1)
 
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = LessonWriteSerializer
@@ -198,7 +218,6 @@ class EnrollCourseView(APIView):
 
 # ── Review ────────────────────────────────────────────────────────────────────
 class ReviewCreateView(generics.CreateAPIView):
-    """POST /api/courses/<slug>/reviews/"""
     serializer_class   = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
@@ -206,45 +225,59 @@ class ReviewCreateView(generics.CreateAPIView):
         course = generics.get_object_or_404(Course, slug=self.kwargs['slug'])
         if not self.request.user.enrollments.filter(course=course).exists():
             raise PermissionDenied('Bạn chưa đăng ký khoá học này.')
-        if Review.objects.filter(course=course, student=self.request.user).exists():
-            raise PermissionDenied('Bạn đã đánh giá khoá học này rồi. Hãy chỉnh sửa đánh giá hiện có.')
-        serializer.save(student=self.request.user, course=course)
 
+        all_reviews = Review.objects.filter(course=course, student=self.request.user)
+        total = all_reviews.count()
+
+        if total >= MAX_REVIEWS_PER_USER:
+            raise PermissionDenied(
+                f'Bạn đã đánh giá tối đa {MAX_REVIEWS_PER_USER} lần cho khoá học này.'
+            )
+
+        active_review = all_reviews.filter(is_hidden=False).first()
+        if active_review:
+            raise PermissionDenied(
+                'Bạn đã có đánh giá đang hiển thị. Hãy chỉnh sửa đánh giá đó.'
+            )
+
+        serializer.save(
+            student=self.request.user,
+            course=course,
+            attempt_number=total + 1,
+        )
 
 class MyReviewView(generics.RetrieveAPIView):
     """GET /api/courses/<slug>/reviews/me/"""
     serializer_class   = ReviewSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):
+    def get(self, request, *args, **kwargs):
         review = Review.objects.filter(
             course__slug=self.kwargs['slug'],
-            student=self.request.user,
+            student=request.user,
+            is_hidden=False,
         ).first()
         if not review:
-            from rest_framework.exceptions import NotFound
-            raise NotFound('Bạn chưa có đánh giá cho khoá học này.')
-        return review
+            return Response(None, status=status.HTTP_200_OK)  # trả null thay vì 404
+        return Response(ReviewSerializer(review).data)
 
 
-class ReviewUpdateView(generics.UpdateAPIView):
-    """PATCH /api/courses/<slug>/reviews/<uuid:pk>/"""
+class MyReviewView(generics.ListAPIView):
+    """GET /api/courses/<slug>/reviews/me/"""
     serializer_class   = ReviewSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names  = ['patch']
 
     def get_queryset(self):
         return Review.objects.filter(
             course__slug=self.kwargs['slug'],
             student=self.request.user,
-        )
+        ).order_by('-created_at')
 
-    def perform_update(self, serializer):
-        review = self.get_object()
-        if review.edit_count >= MAX_REVIEW_EDITS:
-            raise PermissionDenied(f'Bạn đã chỉnh sửa tối đa {MAX_REVIEW_EDITS} lần.')
-        serializer.save(edit_count=review.edit_count + 1)
-
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        if not qs.exists():
+            return Response([], status=status.HTTP_200_OK)
+        return Response(ReviewSerializer(qs, many=True).data)
 
 # ── Admin — Course ────────────────────────────────────────────────────────────
 class AdminCourseListView(generics.ListCreateAPIView):
@@ -383,10 +416,12 @@ class AdminReviewListView(generics.ListAPIView):
     ordering           = ['-created_at']
 
     def get_queryset(self):
-        qs = Review.objects.select_related('student', 'course').all()
+        qs = Review.objects.select_related('student', 'course', 'reported_by').all()  # ← thêm reported_by
         rating = self.request.query_params.get('rating')
         if rating:
             qs = qs.filter(rating=rating)
+        if self.request.query_params.get('reported') == 'true':   # ← thêm
+            qs = qs.filter(is_reported=True)
         return qs
 
 
@@ -426,3 +461,132 @@ class AdminReviewToggleHideView(APIView):
         review.save(update_fields=['is_hidden', 'hidden_at'])
         serializer = AdminReviewSerializer(review)
         return Response(serializer.data)
+    
+class InstructorCourseUnarchiveView(APIView):
+    """POST /api/courses/mine/<id>/unarchive/"""
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def post(self, request, id):
+        course = generics.get_object_or_404(
+            Course, id=id, instructor=request.user, status=Course.Status.ARCHIVED
+        )
+        # Chỉ cho unarchive nếu đã từng được duyệt (published_at != None)
+        if not course.published_at:
+            return Response(
+                {'detail': 'Khóa học chưa được duyệt, không thể đăng lại.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        course.status = Course.Status.PUBLISHED
+        course.save(update_fields=['status'])
+        return Response({'message': 'Đã đăng lại khóa học.'})
+    
+class InstructorCourseArchiveView(APIView):
+    """POST /api/courses/mine/<id>/archive/"""
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def post(self, request, id):
+        course = generics.get_object_or_404(
+            Course, id=id, instructor=request.user, status=Course.Status.PUBLISHED
+        )
+        if course.enrollments.filter(status='active').exists():
+            return Response(
+                {'detail': 'Không thể lưu trữ khi có học viên đang học.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        course.status = Course.Status.ARCHIVED
+        course.save(update_fields=['status'])
+        return Response({'message': 'Đã lưu trữ khóa học.'})
+    
+class InstructorSectionListCreateView(generics.ListCreateAPIView):
+    serializer_class   = SectionWriteSerializer
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def get_queryset(self):
+        return Section.objects.filter(
+            course__instructor=self.request.user
+        ).select_related('course').order_by('course', 'order_index')
+
+    def perform_create(self, serializer):
+        # Đảm bảo instructor chỉ tạo section cho course của mình
+        course_id = self.request.data.get('course')
+        course = generics.get_object_or_404(
+            Course, id=course_id, instructor=self.request.user
+        )
+        serializer.save(course=course)
+
+class InstructorSectionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class   = SectionWriteSerializer
+    permission_classes = [IsAuthenticated, IsInstructor]
+    lookup_field       = 'id'
+
+    def get_queryset(self):
+        return Section.objects.filter(course__instructor=self.request.user)
+
+class InstructorLessonListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def get_serializer_class(self):
+        return LessonWriteSerializer
+
+    def get_queryset(self):
+        qs = Lesson.objects.filter(
+            section__course__instructor=self.request.user
+        ).select_related('section', 'section__course').order_by('section__order_index', 'order_index')
+        section_id = self.request.query_params.get('section')
+        if section_id:
+            qs = qs.filter(section_id=section_id)
+        return qs
+
+    def perform_create(self, serializer):
+        section_id = self.request.data.get('section')
+        section = generics.get_object_or_404(
+            Section, id=section_id, course__instructor=self.request.user
+        )
+        serializer.save(section=section)
+
+class InstructorLessonDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class   = LessonWriteSerializer
+    permission_classes = [IsAuthenticated, IsInstructor]
+    lookup_field       = 'id'
+
+    def get_queryset(self):
+        return Lesson.objects.filter(section__course__instructor=self.request.user)
+    
+class InstructorReviewListView(generics.ListAPIView):
+    serializer_class   = AdminReviewSerializer  # dùng lại serializer admin
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def get_queryset(self):
+        return Review.objects.filter(
+            course__instructor=self.request.user
+        ).select_related('student', 'course').order_by('-created_at')
+    
+class InstructorReviewReportView(APIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def post(self, request, pk):
+        review = generics.get_object_or_404(
+            Review, pk=pk, course__instructor=request.user
+        )
+        if review.is_reported:
+            return Response(
+                {'message': 'Đánh giá này đã được báo cáo rồi.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        review.is_reported   = True
+        review.report_reason = request.data.get('reason', '').strip()
+        review.reported_by   = request.user
+        review.save(update_fields=['is_reported', 'report_reason', 'reported_by'])
+        return Response({'message': 'Đã gửi báo cáo cho admin.'})   
+    
+class AdminReviewDismissReportView(APIView):
+    """POST /api/courses/reviews/admin/<pk>/dismiss-report/"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request, pk):
+        review = generics.get_object_or_404(Review, pk=pk)
+        review.is_reported   = False
+        review.report_reason = None
+        review.reported_by   = None
+        review.save(update_fields=['is_reported', 'report_reason', 'reported_by'])
+        return Response({'message': 'Đã bỏ qua báo cáo.'})

@@ -2,28 +2,45 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 async function request<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  isRetry = false
 ): Promise<T> {
   const token = localStorage.getItem('access');
-
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
-
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
-
+  if (response.status === 401 && !isRetry) {
+    const refresh = localStorage.getItem('refresh');
+    if (refresh) {
+      try {
+        const res = await fetch(`${BASE_URL}/auth/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('access', data.access);
+          return request<T>(endpoint, options, true);
+        }
+      } catch {}
+    }
+    localStorage.removeItem('access');
+    localStorage.removeItem('refresh');
+    window.location.href = '/login';
+    return undefined as T;
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || `HTTP ${response.status}`);
   }
-
   if (response.status === 204) return undefined as T;
-
   return response.json();
 }
 

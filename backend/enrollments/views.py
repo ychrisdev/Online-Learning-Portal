@@ -264,3 +264,11 @@ class AdminUserCertificateListView(generics.ListAPIView):
             .order_by('-issued_at')
         )
     
+class InstructorEnrollmentListView(generics.ListAPIView):
+    serializer_class   = AdminEnrollmentSerializer  # dùng lại serializer admin
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def get_queryset(self):
+        return Enrollment.objects.filter(
+            course__instructor=self.request.user
+        ).select_related('student', 'course').order_by('-enrolled_at')

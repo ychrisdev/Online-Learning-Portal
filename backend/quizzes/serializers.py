@@ -122,8 +122,11 @@ class QuizAttemptListSerializer(serializers.ModelSerializer):
     quiz_title    = serializers.CharField(source='quiz.title', read_only=True)
     student_name  = serializers.CharField(source='student.full_name', read_only=True)
     student_email = serializers.EmailField(source='student.email', read_only=True)
+    course_title  = serializers.CharField(source='quiz.lesson.section.course.title', read_only=True)
+    course_slug   = serializers.SlugField(source='quiz.lesson.section.course.slug',  read_only=True)
 
     class Meta:
         model  = QuizAttempt
         fields = ['id', 'quiz_title', 'student_name', 'student_email',
-                  'score', 'passed', 'started_at', 'submitted_at']
+                  'score', 'passed', 'started_at', 'submitted_at',
+                  'course_title', 'course_slug',]

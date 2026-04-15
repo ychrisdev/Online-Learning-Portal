@@ -217,10 +217,18 @@ class Review(models.Model):
     edit_count = models.PositiveSmallIntegerField(default=0)
     is_hidden  = models.BooleanField('Ẩn bình luận', default=False)
     hidden_at  = models.DateTimeField('Ngày ẩn', null=True, blank=True)
+    is_reported   = models.BooleanField(default=False)
+    report_reason = models.TextField(blank=True, null=True)
+    reported_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reported_reviews',
+    )
+    attempt_number = models.PositiveSmallIntegerField(default=1)  
 
     class Meta:
         db_table        = 'reviews'
-        unique_together = ('course', 'student')
         verbose_name        = 'Đánh giá'
         verbose_name_plural = 'Đánh giá'
         ordering = ['-created_at']

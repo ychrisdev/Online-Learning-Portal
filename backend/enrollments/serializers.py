@@ -25,11 +25,23 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 class ProgressSerializer(serializers.ModelSerializer):
     lesson_title = serializers.CharField(source='lesson.title', read_only=True)
+    quiz_passed  = serializers.SerializerMethodField()
 
     class Meta:
         model  = Progress
-        fields = ['id', 'lesson', 'lesson_title', 'is_completed']
-        read_only_fields = ['id', 'lesson_title']
+        fields = ['id', 'lesson', 'lesson_title', 'is_completed', 'quiz_passed']
+        read_only_fields = ['id', 'lesson_title', 'quiz_passed']
+
+    def get_quiz_passed(self, obj):
+        from quizzes.models import QuizAttempt
+        # nếu bài học không có quiz thì trả None
+        if not hasattr(obj.lesson, 'quiz') or obj.lesson.quiz is None:
+            return None
+        return QuizAttempt.objects.filter(
+            student=obj.enrollment.student,
+            quiz=obj.lesson.quiz,
+            passed=True,
+        ).exists()
 
 
 class CertificateSerializer(serializers.ModelSerializer):

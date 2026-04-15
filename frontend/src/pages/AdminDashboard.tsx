@@ -120,6 +120,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
   const [sortPrice,       setSortPrice]       = useState('');
   const [searchPayment,   setSearchPayment]   = useState('');
   const [filterPayStatus, setFilterPayStatus] = useState('');
+  const [filterReported, setFilterReported] = useState('');
 
   // ── Course modal state ───────────────────────────────────────────────────────
   const [courseModal,    setCourseModal]    = useState<CourseModalType>(null);
@@ -639,12 +640,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
   };
 
   // ── Course CRUD helpers ───────────────────────────────────────────────────
-  const openAdd = () => {
-    setCourseForm({ ...EMPTY_FORM });
-    setFormError('');
-    setSelectedCourse(null);
-    setCourseModal('add');
-  };
+    const openAdd = () => {
+      setCourseForm({ ...EMPTY_FORM });
+      setFormError('');
+      setSelectedCourse(null);
+      setCourseModal('add');
+    };
 
   const openEdit = async (c: any) => {
     setFormError('');
@@ -1207,15 +1208,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
       return sortPrice === 'asc' ? pa - pb : pb - pa;
     });
   
-  const filteredCategories = categories.filter(cat =>
-    !searchCategory || (cat.name ?? '').toLowerCase().includes(searchCategory.toLowerCase())
-  );
+  const filteredCategories = categories.filter(cat => {
+    const q = normalize(searchCategory);
+    return !q || normalize(cat.name ?? '').includes(q);
+  });
 
   const filteredEnrollments = enrollments.filter(e => {
-    const search = searchEnrollment.toLowerCase();
-    const matchSearch = !search
-      || (e.student_name ?? e.user?.full_name ?? e.user?.username ?? '').toLowerCase().includes(search)
-      || (e.course_title ?? e.course?.title ?? '').toLowerCase().includes(search);
+    const q = normalize(searchEnrollment);
+    const matchSearch =
+      !q ||
+      normalize(e.student_name ?? e.user?.full_name ?? e.user?.username ?? '').includes(q) ||
+      normalize(e.course_title ?? e.course?.title ?? '').includes(q);
     const matchStatus = !filterEnrollStatus || (e.status ?? '') === filterEnrollStatus;
     return matchSearch && matchStatus;
   });
@@ -1239,9 +1242,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
       normalize(r.comment ?? '').includes(q);
     const matchRating = !filterReviewRating || String(r.rating) === filterReviewRating;
     const matchCourse = !filterReviewCourse ||
-      (r.course_title ?? r.course?.title ?? '').toLowerCase().includes(filterReviewCourse.toLowerCase()) ||
+      normalize(r.course_title ?? r.course?.title ?? '').includes(normalize(filterReviewCourse)) ||
       (r.course ?? '') === filterReviewCourse;
-    return matchSearch && matchRating && matchCourse;
+    const matchReported =
+      !filterReported ||
+      (filterReported === 'reported' && r.is_reported) ||
+      (filterReported === 'hidden'   && r.is_hidden) ||
+      (filterReported === 'visible'  && !r.is_hidden && !r.is_reported);
+    return matchSearch && matchRating && matchCourse && matchReported;
   });
 
   const pendingCourses  = courses.filter(c => c.status === 'review');
@@ -2274,7 +2282,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                             </div>
                           </td>
                           <td style={{ fontWeight: 600, color: a.passed ? '#4caf82' : '#e07a5f' }}>
-                            {Number(a.score).toFixed(1)}%
+                            {(Number(a.score) / 10).toFixed(1)}
                           </td>
                           <td>
                             <span style={{
@@ -2766,7 +2774,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Vai trò</th>
                       <th>Ngày tham gia</th>
                       <th>Trạng thái</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2908,7 +2916,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Học viên</th>
                       <th>Học phí</th>
                       <th>Trạng thái</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3007,7 +3015,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Tên chương</th>
                       <th>Khóa học</th>
                       <th>Mô tả</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3089,7 +3097,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Tên bài học</th>
                       <th>Chương</th>                    
                       <th>Xem thử</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3159,7 +3167,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Điểm đạt</th>
                       <th>Thời gian</th>
                       <th>Câu hỏi</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3420,7 +3428,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Số khóa học</th>
                       <th>Ghim</th>
                       <th>Thứ tự</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3512,7 +3520,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Số tiền</th>
                       <th>Ngày thanh toán</th>
                       <th>Trạng thái</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3575,6 +3583,89 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                   </tbody>
                 </table>
               </div>
+              {/* Payment Detail Modal */}
+              {showPaymentModal && (
+                <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closePaymentDetail(); }}>
+                  <div className="cm-box cm-box--sm">
+                    <div className="cm-header">
+                      <h2 className="cm-title">Chi tiết giao dịch</h2>
+                      <button className="cm-close" onClick={closePaymentDetail}>✕</button>
+                    </div>
+                    <div className="cm-body">
+                      {loadingDetail ? (
+                        <div className="cm-loading"><span className="cm-loading__spinner" /><span>Đang tải…</span></div>
+                      ) : !paymentDetail ? (
+                        <p style={{ color: 'var(--color-text-secondary)' }}>Không tìm thấy giao dịch.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {[
+                            { label: 'Học viên',    value: paymentDetail.student_name ?? '—' },
+                            { label: 'Email',       value: paymentDetail.student_email ?? '—' },
+                            { label: 'Khóa học',    value: paymentDetail.course_title ?? '—' },
+                            { label: 'Số tiền',     value: formatPrice(paymentDetail.amount ?? 0, 'VND') },
+                            { label: 'Trạng thái',  value: PAYMENT_STATUS_LABEL[paymentDetail.status] ?? paymentDetail.status ?? '—' },
+                            { label: 'Ngày',        value: paymentDetail.created_at ? new Date(paymentDetail.created_at).toLocaleString('vi-VN') : '—' },
+                            { label: 'Phương thức', value: paymentDetail.method ?? '—' },
+                            { label: 'Mã GD',       value: paymentDetail.ref_code ?? paymentDetail.id ?? '—' },
+                          ].map(item => (
+                            <div key={item.label} style={{
+                              display: 'flex', justifyContent: 'space-between', gap: 12,
+                              padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+                            }}>
+                              <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{item.label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textAlign: 'right' }}>
+                                {item.value}
+                              </span>
+                            </div>
+                          ))}
+
+                          {/* LÝ DO HOÀN TIỀN — chỉ hiện khi refund_requested hoặc có refund_reason */}
+                          {(paymentDetail.status === 'refund_requested' || paymentDetail.refund_reason) && (
+                            <div style={{
+                              marginTop: 4, padding: '10px 12px', borderRadius: 8,
+                              background: 'rgba(255, 193, 7, 0.07)',
+                              border: '1px solid rgba(255, 193, 7, 0.22)',
+                              display: 'flex', flexDirection: 'column', gap: 6,
+                            }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: '#f5c842', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                📩 Lý do hoàn tiền từ học viên
+                              </span>
+                              <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
+                                {paymentDetail.refund_reason?.trim()
+                                  ? paymentDetail.refund_reason
+                                  : <em style={{ color: 'var(--color-text-secondary)' }}>Học viên không để lại lý do.</em>
+                                }
+                              </p>
+                              {paymentDetail.refund_requested_at && (
+                                <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                                  Gửi lúc: {new Date(paymentDetail.refund_requested_at).toLocaleString('vi-VN')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="cm-footer">
+                      {paymentDetail?.status === 'refund_requested' && (
+                        <>
+                          <button className="cm-btn cm-btn--primary"
+                            style={{ background: '#4caf82', borderColor: '#4caf82', marginRight: 'auto' }}
+                            onClick={() => { approveRefund(paymentDetail.id); closePaymentDetail(); }}>
+                            ✔ Duyệt hoàn tiền
+                          </button>
+                          <button className="cm-btn cm-btn--danger"
+                            onClick={() => { rejectRefund(paymentDetail.id); closePaymentDetail(); }}>
+                            ✘ Từ chối
+                          </button>
+                        </>
+                      )}
+                      <button className="cm-btn cm-btn--cancel" onClick={closePaymentDetail}>Đóng</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -3619,10 +3710,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+                <select
+                  className="ad-select"
+                  value={filterReported}
+                  onChange={e => setFilterReported(e.target.value)}
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="reported">Báo cáo</option>
+                  <option value="hidden">Đã ẩn</option>
+                  <option value="visible">Hiển thị</option>
+                </select>
                 {(searchReview || filterReviewRating || filterReviewCourse) && (
                   <button
                     className="filter-clear"
-                    onClick={() => { setSearchReview(''); setFilterReviewRating(''); setFilterReviewCourse(''); }}
+                    onClick={() => { setSearchReview(''); setFilterReviewRating(''); setFilterReviewCourse(''); setFilterReported(''); }}
                   >
                     ✕ Xoá lọc
                   </button>
@@ -3639,7 +3740,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                       <th>Số sao</th>
                       <th>Nhận xét</th>
                       <th>Trạng thái</th>
-                      <th>Hành động</th>
+                      <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3679,11 +3780,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                           {r.comment ? r.comment : <em>Không có nhận xét</em>}
                         </td>
                         <td>
-                          {r.is_hidden
-                            ? <span className="ad-badge ad-review-badge--hidden">Đã ẩn</span>
-                            : <span className="ad-badge ad-review-badge--visible">Hiển thị</span>
+                          {r.is_reported
+                            ? <span className="ad-badge">Báo cáo</span>
+                            : r.is_hidden
+                              ? <span className="ad-badge ad-review-badge--hidden">Đã ẩn</span>
+                              : <span className="ad-badge ad-review-badge--visible">Hiển thị</span>
                           }
-                        </td>                        
+                        </td>                    
                         <td>
                           <div className="ad-actions">
                             <button className="ad-btn-sm" onClick={() => openViewReview(r)}>Xem</button>
@@ -3762,6 +3865,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate, onLogout })
                           </button>
                         </div>
                       </div>
+                      {selectedReview.is_reported && (
+                        <div className="ad-modal__field" style={{ background: '#fff8e1', borderRadius: 8, padding: '10px 14px' }}>
+                          <span className="ad-modal__field-label">🚩 Báo cáo vi phạm</span>
+                          <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <span className="ad-modal__field-value">
+                              <strong>Lý do:</strong> {selectedReview.report_reason || '(không có lý do)'}
+                            </span>
+                            {selectedReview.reported_by_name && (
+                              <span className="ad-modal__field-value">
+                                <strong>Người báo cáo:</strong> {selectedReview.reported_by_name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="ad-modal__meta">
                         <div className="ad-modal__field">
                           <span className="ad-modal__field-label">Ngày đánh giá</span>

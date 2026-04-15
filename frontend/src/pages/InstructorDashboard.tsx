@@ -11,21 +11,45 @@ interface InstructorDashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'overview' | 'revenue' | 'courses' | 'lessons' | 'quiz' | 'students' | 'qa' | 'reviews' | 'profile';
+type Tab = 'overview' | 'revenue' | 'courses' | 'profile' |'sections'| 'lessons' | 'quizzes' |'payments'|'reviews' |'enrollments';
 type ChartRange = '3m' | '6m' | '1y';
-type QAFilter = 'all' | 'pending' | 'resolved';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview',  label: 'Tổng quan' },
-  { id: 'profile',   label: 'Hồ sơ cá nhân' },
-  { id: 'revenue',   label: 'Doanh thu' },
-  { id: 'courses',   label: 'Khóa học' },
-  { id: 'lessons',   label: 'Bài học' },
-  { id: 'quiz',      label: 'Bài kiểm tra' },
-  { id: 'students',  label: 'Học viên' },
-  { id: 'qa',        label: 'Hỏi & Đáp' },
-  { id: 'reviews',   label: 'Đánh giá' },
+  { id: 'overview', label: 'Tổng quan' },
+  { id: 'profile',  label: 'Hồ sơ cá nhân' },
+  { id: 'revenue',  label: 'Doanh thu' },
+  { id: 'enrollments',  label: 'Học viên' },
+  { id: 'courses',  label: 'Khóa học' },
+  { id: 'sections',  label: 'Chương học' },
+  { id: 'lessons',  label: 'Bài học' },
+  { id: 'quizzes',  label: 'Bài kiểm tra' },
+  { id: 'payments',  label: 'Thanh toán' },
+  { id: 'reviews',  label: 'Đánh giá' },
 ];
+
+const STATUS_LABEL: Record<string, string> = {
+  success: 'Thành công',
+  pending: 'Chờ xử lý',
+  refund_requested: 'Yêu cầu hoàn',
+  refunded: 'Đã hoàn',
+  failed: 'Thất bại',
+};
+
+interface Review {
+  id: string;
+  student_name: string;
+  student_email: string;
+  course_title: string;
+  rating: number;
+  comment: string;
+  is_hidden: boolean;
+  is_reported: boolean;
+  report_reason?: string;
+  reported_by_name?: string;
+  created_at: string;
+  edit_count: number;
+  hidden_at?: string;
+}
 
 const API = 'http://127.0.0.1:8000';
 
@@ -34,14 +58,13 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
-
 const toList = (data: any): any[] =>
   Array.isArray(data) ? data : (data?.results ?? []);
 
 const thumbSrc = (t: string | null) =>
   !t ? null : t.startsWith('http') ? t : `${API}${t}`;
 
-// ── Chart tooltip ──────────────────────────────────────────────────────────
+// ── Chart tooltip ─────────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -58,116 +81,212 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// ── Donut chart ────────────────────────────────────────────────────────────
-const DonutChart: React.FC<{ pct: number; color?: string }> = ({ pct, color = '#5b8dee' }) => {
-  const size = 64, r = (size - 8) / 2, circ = 2 * Math.PI * r;
-  return (
-    <svg width={size} height={size} className="id-donut">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(119,141,169,0.15)" strokeWidth={6} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={color} strokeWidth={6}
-        strokeDasharray={circ}
-        strokeDashoffset={circ * (1 - pct / 100)}
-        strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        className="id-donut__fill"
-      />
-      <text x={size / 2} y={size / 2 + 5} textAnchor="middle" fill="#e0e1dd" fontSize={13} fontWeight={700}>
-        {pct}%
-      </text>
-    </svg>
-  );
-};
-
 // ══════════════════════════════════════════════════════════════════════════
 const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, onLogout }) => {
   const [activeTab, setActiveTab]   = useState<Tab>('overview');
   const [chartRange, setChartRange] = useState<ChartRange>('6m');
 
-  // ── Profile ──────────────────────────────────────────────────────────────
+  // ── Profile ───────────────────────────────────────────────────────────
   const [user, setUser]           = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({
-  name: '', title: '', email: '', phone: '', location: '', bio: '',
-  facebook: '', linkedin: '', youtube: '', website: '',
-  specializations: '', years_experience: '', certifications: '',
-});
+    name: '', title: '', email: '', phone: '', location: '', bio: '',
+    facebook: '', linkedin: '', youtube: '', website: '',
+    specializations: '', years_experience: '', certifications: '',
+  });
   const [profileEditing, setProfileEditing] = useState(false);
   const [profileSaving,  setProfileSaving]  = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: '', newPw: '', confirm: '' });
   const [passwordSaving,  setPasswordSaving]  = useState(false);
   const [passwordError,   setPasswordError]   = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Preview ngay lập tức
     const reader = new FileReader();
     reader.onload = () => setAvatarUrl(reader.result as string);
     reader.readAsDataURL(file);
-
-    // Upload lên server
     try {
       const formData = new FormData();
       formData.append('avatar', file);
-
-      const res = await fetch(`${API}/api/auth/me/`, {
+      await fetch(`${API}/api/auth/me/`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${localStorage.getItem('access')}` }, // KHÔNG có Content-Type
+        headers: { Authorization: `Bearer ${localStorage.getItem('access')}` },
         body: formData,
       });
-
-      if (!res.ok) {
-        console.error('Upload avatar thất bại:', await res.json().catch(() => ({})));
-      }
-    } catch (_) {
-      console.error('Lỗi kết nối khi upload avatar.');
-    }
+    } catch (_) {}
   };
 
-  // ── Real data ─────────────────────────────────────────────────────────────
+  // ── Course modal states ───────────────────────────────────────────────
+  const [categories, setCategories] = useState<any[]>([]);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [editCourseForm, setEditCourseForm] = useState({
+    title: '', description: '', level: 'beginner', price: '',
+    discount_percent: '', category: '', requirements: '', what_you_learn: '',
+    status: 'draft', thumbnail: null as File | null,
+  });
+  const [editCourseLoading, setEditCourseLoading] = useState(false);
+  const [editCourseError,   setEditCourseError]   = useState('');
+  const [showCourseModal,   setShowCourseModal]   = useState(false);
+
+  // ── Real data ─────────────────────────────────────────────────────────
   const [courses,     setCourses]     = useState<any[]>([]);
   const [students,    setStudents]    = useState<any[]>([]);
-  const [qaList,      setQaList]      = useState<any[]>([]);
-  const [reviews,     setReviews]     = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   const [loadingCourses,  setLoadingCourses]  = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(true);
-  const [loadingQA,       setLoadingQA]       = useState(true);
-  const [loadingReviews,  setLoadingReviews]  = useState(true);
 
-  // ── Form states ───────────────────────────────────────────────────────────
-  const [showCourseForm, setShowCourseForm] = useState(false);
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', level: 'Beginner', price: '' });
-
-  const [showLessonForm, setShowLessonForm] = useState(false);
-  const [lessonForm, setLessonForm] = useState({ title: '', courseId: '', type: 'video' });
-
-  const [showQuizForm, setShowQuizForm] = useState(false);
-  const [quizForm, setQuizForm] = useState({
-    title: '', courseId: '',
-    questions: [{ question: '', options: ['', '', '', ''], correct: 0, explanation: '' }],
-  });
-
-  // ── Course filter states ───────────────────────────────────────────────────
-  const [courseSearch, setCourseSearch] = useState('');
+  // ── Course filter states ──────────────────────────────────────────────
+  const [courseSearch,       setCourseSearch]       = useState('');
   const [courseStatusFilter, setCourseStatusFilter] = useState<'all' | 'draft' | 'review' | 'published' | 'archived'>('all');
 
-  // ── QA states ─────────────────────────────────────────────────────────────
-  const [qaFilter,   setQaFilter]   = useState<QAFilter>('all');
-  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
-  const [openReply,  setOpenReply]  = useState<string | null>(null);
+  // ── Section states ────────────────────────────────────────────────────
+  const [sections,           setSections]           = useState<any[]>([]);
+  const [loadingSections,    setLoadingSections]    = useState(false);
+  const [filterSectionCourse, setFilterSectionCourse] = useState('');
+  const [showSectionModal,   setShowSectionModal]   = useState(false);
+  const [editingSectionId,   setEditingSectionId]   = useState<string | null>(null);
+  const [sectionForm,        setSectionForm]        = useState({ title: '', description: '', order_index: '', course: '' });
+  const [sectionLoading,     setSectionLoading]     = useState(false);
+  const [sectionError,       setSectionError]       = useState('');
 
-  // ── Review states ─────────────────────────────────────────────────────────
-  const [reviewReply,       setReviewReply]       = useState<Record<string, string>>({});
-  const [openReviewReply,   setOpenReviewReply]   = useState<string | null>(null);
-  const [reviewCourseFilter, setReviewCourseFilter] = useState<string>('all');
+  // ── Lesson states ─────────────────────────────────────────────────────
+  type LessonModalType = 'add' | 'edit' | 'delete' | null;
+  interface LessonForm {
+    title: string; section: string; video_url: string; video_file: File | null;
+    content: string; attachment: File | null; attachment_name: string;
+    order_index: number | string; is_preview_video: boolean;
+    is_preview_article: boolean; is_preview_resource: boolean;
+    existing_video_url: string; existing_attachment: string;
+  }
+  const EMPTY_LESSON: LessonForm = {
+    title: '', section: '', video_url: '', video_file: null, content: '',
+    attachment: null, attachment_name: '', order_index: 0,
+    is_preview_video: false, is_preview_article: false, is_preview_resource: false,
+    existing_video_url: '', existing_attachment: '',
+  };
+  const [lessons,          setLessons]        = useState<any[]>([]);
+  const [loadingLessons,   setLoadingLessons] = useState(false);
+  const [lessonModal,      setLessonModal]    = useState<LessonModalType>(null);
+  const [selectedLesson,   setSelectedLesson] = useState<any>(null);
+  const [lessonForm,       setLessonForm]     = useState<LessonForm>(EMPTY_LESSON);
+  const [lessonError,      setLessonError]    = useState('');
+  const [savingLesson,     setSavingLesson]   = useState(false);
+  const [filterLessonSection, setFilterLessonSection] = useState('');
+  const [filterLessonCourse,  setFilterLessonCourse]  = useState('');
+  const [modalFilterCourse,   setModalFilterCourse]   = useState('');
 
-  
-  // ── Fetch profile ─────────────────────────────────────────────────────────
+  // ── Quiz states ───────────────────────────────────────────────────────
+  type QuizModalType = 'add' | 'edit' | 'delete' | null;
+  interface QuizForm {
+    lesson: string; title: string; description: string;
+    pass_score: number | string; time_limit: number | string; max_attempts: number | string;
+  }
+  interface QuestionForm {
+    content: string; question_type: string; points: number | string;
+    explanation: string; order_index: number | string;
+    answers: { content: string; is_correct: boolean; order_index: number }[];
+  }
+  const EMPTY_QUIZ: QuizForm = { lesson: '', title: '', description: '', pass_score: 70, time_limit: 0, max_attempts: 0 };
+  const EMPTY_QUESTION: QuestionForm = {
+    content: '', question_type: 'single', points: 1, explanation: '', order_index: 0,
+    answers: [{ content: '', is_correct: false, order_index: 0 }, { content: '', is_correct: false, order_index: 1 }],
+  };
+  const [quizzes,        setQuizzes]        = useState<any[]>([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [quizModal,      setQuizModal]      = useState<QuizModalType>(null);
+  const [selectedQuiz,   setSelectedQuiz]   = useState<any>(null);
+  const [quizForm,       setQuizForm]       = useState<QuizForm>(EMPTY_QUIZ);
+  const [quizError,      setQuizError]      = useState('');
+  const [savingQuiz,     setSavingQuiz]     = useState(false);
+  const [filterQuizLesson, setFilterQuizLesson] = useState('');
+  const [questions,      setQuestions]      = useState<any[]>([]);
+  const [loadingQ,       setLoadingQ]       = useState(false);
+  const [questionModal,  setQuestionModal]  = useState<'add'|'edit'|'delete'|null>(null);
+  const [selectedQ,      setSelectedQ]      = useState<any>(null);
+  const [questionForm,   setQuestionForm]   = useState<QuestionForm>(EMPTY_QUESTION);
+  const [questionError,  setQuestionError]  = useState('');
+  const [savingQ,        setSavingQ]        = useState(false);
+  const [expandedQuizId, setExpandedQuizId] = useState<string|null>(null);
+  const [attemptModal,   setAttemptModal]   = useState<'list'|'detail'|null>(null);
+  const [selectedQuizForAttempt, setSelectedQuizForAttempt] = useState<any>(null);
+  const [attempts,       setAttempts]       = useState<any[]>([]);
+  const [loadingAttempts, setLoadingAttempts] = useState(false);
+  const [selectedAttempt, setSelectedAttempt] = useState<any>(null);
+  const [loadingAttemptDetail, setLoadingAttemptDetail] = useState(false);
+
+  // ── Enrollment states ─────────────────────────────────────────────────────
+  const [enrollments,        setEnrollments]        = useState<any[]>([]);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [searchEnrollment,   setSearchEnrollment]   = useState('');
+  const [filterEnrollStatus, setFilterEnrollStatus] = useState('');
+
+  const filteredEnrollments = useMemo(() => {
+    const q = searchEnrollment.toLowerCase().trim();
+    return enrollments.filter(e => {
+      const matchSearch =
+        !q ||
+        (e.student_name ?? '').toLowerCase().includes(q) ||
+        (e.course_title ?? '').toLowerCase().includes(q);
+      const matchStatus = !filterEnrollStatus || (e.status ?? '') === filterEnrollStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [enrollments, searchEnrollment, filterEnrollStatus]);
+
+  // ── Payment states ────────────────────────────────────────────────────────
+  const [payments,          setPayments]          = useState<any[]>([]);
+  const [loadingPayments,   setLoadingPayments]   = useState(false);
+  const [searchPayment,     setSearchPayment]     = useState('');
+  const [filterPayStatus,   setFilterPayStatus]   = useState('');
+  const [paymentDetail,     setPaymentDetail]     = useState<any>(null);
+  const [loadingDetail,     setLoadingDetail]     = useState(false);
+  const [showPaymentModal,  setShowPaymentModal]  = useState(false);
+
+  const filteredPayments = useMemo(() =>
+    payments.filter(p => {
+      const q = searchPayment.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        (p.student_name ?? '').toLowerCase().includes(q) ||
+        (p.course_title ?? '').toLowerCase().includes(q);
+      const matchStatus = !filterPayStatus || p.status === filterPayStatus;
+      return matchSearch && matchStatus;
+    }),
+  [payments, searchPayment, filterPayStatus]);
+
+  // ── Review states ──────────────────────────────────────────────────────────
+  const [reviews,            setReviews]            = useState<any[]>([]);
+  const [loadingReviews,     setLoadingReviews]     = useState(false);
+  const [searchReview,       setSearchReview]       = useState('');
+  const [filterReviewRating, setFilterReviewRating] = useState('');
+  const [filterReviewCourse, setFilterReviewCourse] = useState('');
+  const [reviewModal,        setReviewModal]        = useState<'view' | 'delete' | null>(null);
+  const [selectedReview,     setSelectedReview]     = useState<any>(null);
+  const [togglingReview,     setTogglingReview]     = useState(false);
+
+  const [reportModal, setReportModal]     = useState(false);
+  const [reportReason, setReportReason]   = useState('');
+  const [reportingReview, setReportingReview] = useState<Review | null>(null);
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const filteredReviews = useMemo(() =>
+    reviews.filter(r => {
+      const q = searchReview.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        (r.student_name ?? '').toLowerCase().includes(q) ||
+        (r.course_title ?? '').toLowerCase().includes(q) ||
+        (r.comment ?? '').toLowerCase().includes(q);
+      const matchRating = !filterReviewRating || String(r.rating) === filterReviewRating;
+      const matchCourse = !filterReviewCourse ||
+        (r.course_title ?? '').toLowerCase().includes(filterReviewCourse.toLowerCase());
+      return matchSearch && matchRating && matchCourse;
+    }),
+  [reviews, searchReview, filterReviewRating, filterReviewCourse]);
+
+  // ── Fetch profile ─────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       const res = await fetch(`${API}/api/auth/me/`, { headers: authHeaders() });
@@ -178,24 +297,23 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
         setAvatarUrl(data.avatar.startsWith('http') ? data.avatar : `${API}${data.avatar}`);
       }
       setProfileForm({
-       name:             data.full_name                           ?? '',
-      title:            data.instructor_profile?.title           ?? '',
-      email:            data.email                               ?? '',
-      phone:            data.instructor_profile?.phone_number    ?? '',
-      location:         data.location                            ?? '',
-      bio:              data.bio                                 ?? '',
-      facebook:         data.social?.facebook                    ?? '',
-      linkedin:         data.instructor_profile?.linkedin_url    ?? '',
-      youtube:          data.instructor_profile?.youtube_url     ?? '',
-      website:          data.instructor_profile?.website_url     ?? '',
-      specializations:  data.instructor_profile?.specializations ?? '',
-      years_experience: String(data.instructor_profile?.years_experience ?? ''),
-      certifications:   data.instructor_profile?.certifications  ?? '',
+        name:             data.full_name                           ?? '',
+        title:            data.instructor_profile?.title           ?? '',
+        email:            data.email                               ?? '',
+        phone:            data.instructor_profile?.phone_number    ?? '',
+        location:         data.location                            ?? '',
+        bio:              data.bio                                 ?? '',
+        facebook:         data.social?.facebook                    ?? '',
+        linkedin:         data.instructor_profile?.linkedin_url    ?? '',
+        youtube:          data.instructor_profile?.youtube_url     ?? '',
+        website:          data.instructor_profile?.website_url     ?? '',
+        specializations:  data.instructor_profile?.specializations ?? '',
+        years_experience: String(data.instructor_profile?.years_experience ?? ''),
+        certifications:   data.instructor_profile?.certifications  ?? '',
       });
     })();
   }, []);
 
-  // ── Fetch courses ─────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       setLoadingCourses(true);
@@ -207,7 +325,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     })();
   }, []);
 
-  // ── Fetch students ────────────────────────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/courses/categories/`, { headers: authHeaders() });
+        if (res.ok) setCategories(toList(await res.json()));
+      } catch (_) {}
+    })();
+  }, []);
+
   useEffect(() => {
     if (courses.length === 0) return;
     (async () => {
@@ -217,15 +343,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
           courses.map(c =>
             fetch(`${API}/api/enrollments/instructor/${c.id}/students/`, { headers: authHeaders() })
               .then(r => r.ok ? r.json() : [])
-              .then(data => toList(data).map((item: any) => ({
-                id:         item.id,
-                name:       item.student?.full_name  ?? item.student_name  ?? '—',
-                email:      item.student?.email      ?? item.student_email ?? '—',
-                course:     c.title,
-                progress:   item.progress            ?? 0,
-                joinedDate: (item.created_at         ?? item.enrolled_at   ?? '').slice(0, 10),
-                lastActive: item.last_active         ?? '',
-              })))
+              .then(data => toList(data).map((item: any) => ({ id: item.id })))
           )
         );
         const merged = allResults.flat();
@@ -236,76 +354,169 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     })();
   }, [courses]);
 
-  // ── Fetch QA ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      setLoadingQA(true);
-      try {
-        const res = await fetch(`${API}/api/qa/instructor/`, { headers: authHeaders() });
-        if (res.ok) setQaList(toList(await res.json()));
-      } catch (_) {}
-      setLoadingQA(false);
-    })();
-  }, []);
-
-  // ── Fetch reviews ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      setLoadingReviews(true);
-      try {
-        const res = await fetch(`${API}/api/reviews/instructor/`, { headers: authHeaders() });
-        if (res.ok) setReviews(toList(await res.json()));
-      } catch (_) {}
-      setLoadingReviews(false);
-    })();
-  }, []);
-
-  // ── Fetch monthly revenue stats ───────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API}/api/payments/analytics/revenue/monthly/`, {
-          headers: authHeaders()
-        });
+        const res = await fetch(`${API}/api/payments/analytics/revenue/monthly/`, { headers: authHeaders() });
         if (res.ok) setMonthlyData(toList(await res.json()));
       } catch (_) {}
     })();
   }, []);
-  // ── Derived stats ─────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (activeTab !== 'sections') return;
+    (async () => {
+      setLoadingSections(true);
+      try {
+        const res = await fetch(`${API}/api/courses/mine/sections/`, { headers: authHeaders() });
+        if (res.ok) setSections(toList(await res.json()));
+      } catch (_) {}
+      setLoadingSections(false);
+    })();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'lessons' && activeTab !== 'quizzes') return;
+    (async () => {
+      setLoadingLessons(true);
+      try {
+        const url = filterLessonSection
+          ? `${API}/api/courses/mine/lessons/?section=${filterLessonSection}`
+          : `${API}/api/courses/mine/lessons/`;
+        const res = await fetch(url, { headers: authHeaders() });
+        if (res.ok) setLessons(toList(await res.json()));
+      } catch (_) {}
+      setLoadingLessons(false);
+    })();
+  }, [activeTab, filterLessonSection]);
+
+  useEffect(() => {
+    if (activeTab !== 'quizzes') return;
+    (async () => {
+      setLoadingQuizzes(true);
+      try {
+        const res = await fetch(`${API}/api/quizzes/mine/`, { headers: authHeaders() });
+        if (res.ok) setQuizzes(toList(await res.json()));
+      } catch (_) {}
+      setLoadingQuizzes(false);
+    })();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'enrollments') return;
+    (async () => {
+      setLoadingEnrollments(true);
+      try {
+        const res = await fetch(`${API}/api/enrollments/instructor/`, { headers: authHeaders() });
+        if (res.ok) setEnrollments(toList(await res.json()));
+      } catch (_) {}
+      setLoadingEnrollments(false);
+    })();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'payments') return;
+    (async () => {
+      setLoadingPayments(true);
+      try {
+        const res = await fetch(`${API}/api/payments/instructor/`, { headers: authHeaders() });
+        if (res.ok) setPayments(toList(await res.json()));
+      } catch (_) {}
+      setLoadingPayments(false);
+    })();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'reviews') return;
+    (async () => {
+      setLoadingReviews(true);
+      try {
+        const res = await fetch(`${API}/api/courses/reviews/mine/`, { headers: authHeaders() });
+        if (res.ok) setReviews(toList(await res.json()));
+      } catch (_) {}
+      setLoadingReviews(false);
+    })();
+  }, [activeTab]);
+
+  const openViewReview   = (r: any) => { setSelectedReview(r); setReviewModal('view'); };
+  const closeReviewModal = () => { setReviewModal(null); setSelectedReview(null); };
+
+  // Mở modal báo cáo
+  const openReportModal = (review: Review) => {  
+    setReportingReview(review);
+    setReportReason('');
+    setReportModal(true);
+  };
+
+  // Gửi báo cáo lên API
+  const handleSubmitReport = async () => {
+    if (!reportingReview) return;
+    setSubmittingReport(true);
+    try {
+      const token = localStorage.getItem('access');// hoặc tên key bạn đang dùng
+      console.log('Token:', token);
+      const res = await fetch(`${API}/api/courses/reviews/report/${reportingReview.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: reportReason.trim() }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setReviews(prev =>
+        prev.map(r => r.id === reportingReview.id ? { ...r, is_reported: true } : r)
+      );
+      setReportModal(false);
+      setReportingReview(null);
+    } catch {
+      alert('Gửi báo cáo thất bại, thử lại sau.');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
+  const handleToggleHide = async (review: any) => {
+    setTogglingReview(true);
+    try {
+      const res = await fetch(
+        `${API}/api/courses/reviews/admin/${review.id}/toggle-hide/`,
+        { method: 'POST', headers: authHeaders() }
+      );
+      if (res.ok) {
+        const updated = await res.json();
+        setReviews(prev => prev.map(r => r.id === updated.id ? updated : r));
+        if (selectedReview?.id === updated.id) setSelectedReview(updated);
+      }
+    } catch (_) {}
+    setTogglingReview(false);
+  };
+
+  const openPaymentDetail = async (id: string) => {
+    setShowPaymentModal(true);
+    setLoadingDetail(true);
+    try {
+      const res = await fetch(`${API}/api/payments/instructor/${id}/`, { headers: authHeaders() });
+      if (res.ok) setPaymentDetail(await res.json());
+      else setPaymentDetail(null);
+    } catch (_) { setPaymentDetail(null); }
+    setLoadingDetail(false);
+  };
+
+  const closePaymentDetail = () => { setShowPaymentModal(false); setPaymentDetail(null); };
+
+  // ── Derived stats ─────────────────────────────────────────────────────
   const totalRevenue = courses.reduce((a, c) => {
     const price = Number(c.sale_price) || Number(c.price) || 0;
     const studs = Number(c.total_students) || 0;
     return a + price * studs;
   }, 0);
 
-  const avgRating = courses.length > 0
-    ? (courses.reduce((a, c) => a + (Number(c.rating) || 0), 0) / courses.length).toFixed(1)
+  const avgRating = user?.instructor_profile?.avg_rating
+    ? Number(user.instructor_profile.avg_rating).toFixed(1)
     : '—';
 
-  const quizList = courses.flatMap(c =>
-    (c.curriculum ?? c.sections ?? []).flatMap((s: any) =>
-      (s.lessons ?? [])
-        .filter((l: any) => l.quiz || l.has_quiz)
-        .map((l: any) => ({
-          id:        l.id,
-          title:     l.quiz?.title            ?? l.title,
-          course:    c.title,
-          questions: l.quiz?.questions_count   ?? 0,
-          attempts:  l.quiz?.attempts_count    ?? 0,
-          avgScore:  l.quiz?.avg_score         ?? 0,
-        }))
-    )
-  );
-
-  const pendingCount = qaList.filter(q => !q.resolved).length;
-
-  const filteredQA = useMemo(() => {
-    if (qaFilter === 'pending')  return qaList.filter(q => !q.resolved);
-    if (qaFilter === 'resolved') return qaList.filter(q =>  q.resolved);
-    return qaList;
-  }, [qaList, qaFilter]);
-
-  // ── Filtered courses ──────────────────────────────────────────────────────
+  // ── Filtered courses ──────────────────────────────────────────────────
   const filteredCourses = useMemo(() =>
     courses.filter(c => {
       const matchSearch = c.title.toLowerCase().includes(courseSearch.toLowerCase());
@@ -314,18 +525,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     }),
   [courses, courseSearch, courseStatusFilter]);
 
-  // ── Review course options + filtered reviews ──────────────────────────────
-  const reviewCourseOptions = useMemo(() =>
-    [...new Set(reviews.map(r => r.course ?? r.course_title ?? '').filter(Boolean))],
-  [reviews]);
-
-  const filteredReviews = useMemo(() =>
-    reviewCourseFilter === 'all'
-      ? reviews
-      : reviews.filter(r => (r.course ?? r.course_title) === reviewCourseFilter),
-  [reviews, reviewCourseFilter]);
-
-  // Chart data
+  // ── Chart data ────────────────────────────────────────────────────────
   const chartData = useMemo(() => {
     if (monthlyData.length === 0) return [];
     if (chartRange === '3m') return monthlyData.slice(-3);
@@ -336,66 +536,134 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
   const chartTotalRevenue     = chartData.reduce((a: number, b: any) => a + (b.revenue     ?? 0), 0);
   const chartTotalEnrollments = chartData.reduce((a: number, b: any) => a + (b.enrollments ?? 0), 0);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  const addQuizQuestion = () => setQuizForm(f => ({
-    ...f,
-    questions: [...f.questions, { question: '', options: ['', '', '', ''], correct: 0, explanation: '' }],
-  }));
+  // ── Thumb preview URL ─────────────────────────────────────────────────
+  const thumbPreviewUrl = useMemo(() =>
+    editCourseForm.thumbnail ? URL.createObjectURL(editCourseForm.thumbnail) : null,
+  [editCourseForm.thumbnail]);
 
-  const handleReplyQA = async (qaId: string) => {
-    const text = replyTexts[qaId]?.trim();
-    if (!text) return;
+  // ── Preview sale price ────────────────────────────────────────────────
+  const previewSalePrice = () => {
+    const price    = Number(editCourseForm.price) || 0;
+    const discount = Number(editCourseForm.discount_percent) || 0;
+    if (price === 0) return 'Miễn phí';
+    if (discount <= 0) return formatPrice(price, 'VND');
+    return formatPrice(Math.round(price * (1 - discount / 100)), 'VND');
+  };
+
+  // ── Open edit modal ───────────────────────────────────────────────────
+  const openEditCourse = async (c: any) => {
+    setEditCourseError('');
+    setEditingCourseId(c.id);
+    setShowCourseModal(true);
+    setEditCourseLoading(true);
     try {
-      await fetch(`${API}/api/qa/${qaId}/reply/`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ text }),
-      });
+      const res = await fetch(`${API}/api/courses/mine/${c.id}/`, { headers: authHeaders() });
+      if (res.ok) {
+        const d = await res.json();
+        setEditCourseForm({
+          title:            d.title            ?? '',
+          description:      d.description      ?? '',
+          level:            d.level            ?? 'beginner',
+          price:            String(d.price     ?? ''),
+          discount_percent: String(d.discount_percent ?? ''),
+          category:         String(typeof d.category === 'object' ? (d.category?.id ?? '') : (d.category ?? '')),
+          requirements:     d.requirements     ?? '',
+          what_you_learn:   d.what_you_learn   ?? '',
+          status:           d.status           ?? 'draft',
+          thumbnail:        null,
+        });
+      }
     } catch (_) {}
-    setQaList(list => list.map(q => q.id !== qaId ? q : {
-      ...q, resolved: true,
-      replies: [...(q.replies ?? []), {
-        author: user?.full_name ?? 'Giảng viên', isInstructor: true,
-        text, time: new Date().toLocaleString('vi-VN'),
-      }],
-    }));
-    setReplyTexts(r => ({ ...r, [qaId]: '' }));
-    setOpenReply(null);
+    setEditCourseLoading(false);
   };
 
-  const handleReplyReview = async (rvId: string) => {
-    const text = reviewReply[rvId]?.trim();
-    if (!text) return;
+  // ── Save course ───────────────────────────────────────────────────────
+  const handleSaveCourse = async () => {
+    if (!editCourseForm.title.trim()) {
+      setEditCourseError('Vui lòng nhập tên khóa học.');
+      return;
+    }
+    setEditCourseLoading(true);
+    setEditCourseError('');
     try {
-      await fetch(`${API}/api/reviews/${rvId}/reply/`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ text }),
-      });
-    } catch (_) {}
-    setReviews(list => list.map(r => r.id !== rvId ? r : { ...r, replied: true, replyText: text }));
-    setReviewReply(r => ({ ...r, [rvId]: '' }));
-    setOpenReviewReply(null);
+      const hasNewThumb = Boolean(editCourseForm.thumbnail);
+      let body: FormData | string;
+      let headers: Record<string, string>;
+
+      if (hasNewThumb) {
+        const fd = new FormData();
+        fd.append('title',            editCourseForm.title.trim());
+        fd.append('description',      editCourseForm.description.trim());
+        fd.append('price',            String(Number(editCourseForm.price)));
+        fd.append('discount_percent', String(Number(editCourseForm.discount_percent)));
+        fd.append('level',            editCourseForm.level);
+        fd.append('status',           editCourseForm.status);
+        fd.append('requirements',     editCourseForm.requirements.trim());
+        fd.append('what_you_learn',   editCourseForm.what_you_learn.trim());
+        if (editCourseForm.category)  fd.append('category',  editCourseForm.category);
+        if (editCourseForm.thumbnail) fd.append('thumbnail', editCourseForm.thumbnail);
+        body    = fd;
+        headers = { Authorization: `Bearer ${localStorage.getItem('access')}` };
+      } else {
+        const payload: Record<string, any> = {
+          title:            editCourseForm.title.trim(),
+          description:      editCourseForm.description.trim(),
+          price:            Number(editCourseForm.price),
+          discount_percent: Number(editCourseForm.discount_percent),
+          level:            editCourseForm.level,
+          status:           editCourseForm.status,
+          requirements:     editCourseForm.requirements.trim(),
+          what_you_learn:   editCourseForm.what_you_learn.trim(),
+        };
+        if (editCourseForm.category) payload.category = editCourseForm.category;
+        body    = JSON.stringify(payload);
+        headers = authHeaders();
+      }
+
+      const isNew = !editingCourseId;
+      const url = isNew
+        ? `${API}/api/courses/mine/`
+        : `${API}/api/courses/mine/${editingCourseId}/`;
+
+      const res = await fetch(url, { method: isNew ? 'POST' : 'PATCH', headers, body });
+
+      if (res.ok) {
+        // Fetch lại course đầy đủ từ list serializer
+        const refreshed = await fetch(`${API}/api/courses/mine/`, { headers: authHeaders() });
+        if (refreshed.ok) {
+          const data = await refreshed.json();
+          setCourses(data.results ?? data);
+        }
+        setEditingCourseId(null);
+        setShowCourseModal(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setEditCourseError(
+          err?.detail ??
+          Object.values(err).flat().join(', ') ??
+          'Lưu thất bại. Vui lòng thử lại.'
+        );
+      }
+    } catch {
+      setEditCourseError('Lỗi kết nối. Vui lòng thử lại.');
+    }
+    setEditCourseLoading(false);
   };
 
-  const getLessonTypeLabel = (type: string) => {
-    if (type === 'theory' || type === 'video') return 'Lý thuyết';
-    if (type === 'quiz')    return 'Bài kiểm tra';
-    if (type === 'article') return 'Bài viết';
-    if (type === 'project') return 'Bài tập';
-    return type ?? '';
+  const closeModal = () => {
+    setEditingCourseId(null);
+    setShowCourseModal(false);
+    setEditCourseError('');
   };
 
+  // ── Profile save ──────────────────────────────────────────────────────
   const handleProfileSave = async () => {
     setProfileSaving(true);
     try {
       await fetch(`${API}/api/auth/me/`, {
         method: 'PATCH',
         headers: authHeaders(),
-        body: JSON.stringify({
-          full_name: profileForm.name,
-          bio:       profileForm.bio,
-        }),
+        body: JSON.stringify({ full_name: profileForm.name, bio: profileForm.bio }),
       });
       await fetch(`${API}/api/auth/profile/instructor/`, {
         method: 'PATCH',
@@ -419,30 +687,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
   const handlePasswordChange = async () => {
     setPasswordError('');
     setPasswordSuccess(false);
-    if (!passwordForm.current)          { setPasswordError('Vui lòng nhập mật khẩu hiện tại.'); return; }
-    if (passwordForm.newPw.length < 6)  { setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự.'); return; }
+    if (!passwordForm.current)         { setPasswordError('Vui lòng nhập mật khẩu hiện tại.'); return; }
+    if (passwordForm.newPw.length < 6) { setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự.'); return; }
     if (passwordForm.newPw !== passwordForm.confirm) { setPasswordError('Mật khẩu xác nhận không khớp.'); return; }
-
     setPasswordSaving(true);
     try {
       const res = await fetch(`${API}/api/auth/change-password/`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({
-          old_password: passwordForm.current,   // ✅ đúng field name
-          new_password: passwordForm.newPw,     // ✅ đúng field name
-          // KHÔNG gửi confirm — serializer không có field này, sẽ gây warning
-        }),
+        body: JSON.stringify({ old_password: passwordForm.current, new_password: passwordForm.newPw }),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        const msg = err?.old_password?.[0]
-          ?? err?.new_password?.[0]
-          ?? err?.detail
-          ?? err?.non_field_errors?.[0]
-          ?? 'Đổi mật khẩu thất bại.';
-        setPasswordError(msg);
+        setPasswordError(err?.old_password?.[0] ?? err?.new_password?.[0] ?? err?.detail ?? 'Đổi mật khẩu thất bại.');
       } else {
         setPasswordSuccess(true);
         setPasswordForm({ current: '', newPw: '', confirm: '' });
@@ -452,7 +709,577 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
     }
     setPasswordSaving(false);
   };
-  // ── Render ────────────────────────────────────────────────────────────────
+
+  //Section
+  const openAddSection = () => {
+    setEditingSectionId(null);
+    setSectionForm({ title: '', description: '', order_index: '', course: filterSectionCourse || '' });
+    setSectionError('');
+    setShowSectionModal(true);
+  };
+
+  const openEditSection = (s: any) => {
+    setEditingSectionId(s.id);
+    setSectionForm({
+      title:       s.title       ?? '',
+      description: s.description ?? '',
+      order_index: String(s.order_index ?? ''),
+      course:      String(s.course?.id ?? s.course ?? ''),
+    });
+    setSectionError('');
+    setShowSectionModal(true);
+  };
+
+  const handleSaveSection = async () => {
+    if (!sectionForm.title.trim()) { setSectionError('Vui lòng nhập tên chương.'); return; }
+    if (!sectionForm.course)       { setSectionError('Vui lòng chọn khóa học.'); return; }
+    setSectionLoading(true);
+    setSectionError('');
+    try {
+      const payload = {
+        title:       sectionForm.title.trim(),
+        description: sectionForm.description.trim(),
+        order_index: Number(sectionForm.order_index) || 0,
+        course:      sectionForm.course,
+      };
+      const isNew = !editingSectionId;
+      const url = isNew
+        ? `${API}/api/courses/mine/sections/`
+        : `${API}/api/courses/mine/sections/${editingSectionId}/`;
+      const res = await fetch(url, {
+        method:  isNew ? 'POST' : 'PATCH',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        if (isNew) setSections(prev => [...prev, saved]);
+        else       setSections(prev => prev.map(s => s.id === editingSectionId ? { ...s, ...saved } : s));
+        setShowSectionModal(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setSectionError(err?.detail ?? Object.values(err).flat().join(', ') ?? 'Lưu thất bại.');
+      }
+    } catch (_) { setSectionError('Lỗi kết nối.'); }
+    setSectionLoading(false);
+  };
+
+  const handleDeleteSection = async (s: any) => {
+    if (!confirm(`Xóa chương "${s.title}"?`)) return;
+    try {
+      const res = await fetch(`${API}/api/courses/mine/sections/${s.id}/`, {
+        method: 'DELETE', headers: authHeaders(),
+      });
+      if (res.ok || res.status === 204)
+        setSections(prev => prev.filter(x => x.id !== s.id));
+    } catch (_) {}
+  };
+
+  const openAddLesson = (sectionId = '') => {
+    setLessonForm({ ...EMPTY_LESSON, section: sectionId });
+    setLessonError('');
+    setSelectedLesson(null);
+    setModalFilterCourse('');
+    setLessonModal('add');
+  };
+
+  const openEditLesson = (l: any) => {
+    const sec = sections.find(s => s.id === (l.section?.id ?? l.section));
+    setModalFilterCourse(String(sec?.course?.id ?? sec?.course ?? ''));
+    setLessonError('');
+    setSelectedLesson(l);
+    setLessonForm({
+      title:               l.title           ?? '',
+      section:             String(l.section?.id ?? l.section ?? ''),
+      video_url:           l.video_url       ?? '',
+      video_file:          null,
+      content:             l.content         ?? '',
+      attachment:          null,
+      attachment_name:     l.attachment_name ?? '',
+      order_index:         l.order_index     ?? 0,
+      is_preview_video:    Boolean(l.is_preview_video),
+      is_preview_article:  Boolean(l.is_preview_article),
+      is_preview_resource: Boolean(l.is_preview_resource),
+      existing_video_url:  l.video_file      ?? '',
+      existing_attachment: l.attachment      ?? '',
+    });
+    setLessonModal('edit');
+  };
+
+  const closeLessonModal = () => {
+    setLessonModal(null);
+    setSelectedLesson(null);
+    setLessonError('');
+    setModalFilterCourse('');
+  };
+
+  const handleSaveLesson = async () => {
+    if (!String(lessonForm.title).trim()) { setLessonError('Tên bài học không được để trống.'); return; }
+    if (!lessonForm.section)              { setLessonError('Vui lòng chọn chương.'); return; }
+    setSavingLesson(true);
+    setLessonError('');
+    try {
+      const deletingVideo      = lessonModal === 'edit' && !lessonForm.existing_video_url && !lessonForm.video_file;
+      const deletingAttachment = lessonModal === 'edit' && !lessonForm.existing_attachment && !lessonForm.attachment;
+      const hasFile = lessonForm.video_file || lessonForm.attachment || deletingVideo || deletingAttachment;
+      let body: FormData | string;
+      let headers: Record<string, string>;
+      if (hasFile) {
+        const fd = new FormData();
+        fd.append('title',               String(lessonForm.title).trim());
+        fd.append('section',             lessonForm.section);
+        fd.append('video_url',           lessonForm.video_url);
+        fd.append('content',             lessonForm.content);
+        fd.append('attachment_name',     lessonForm.attachment_name);
+        fd.append('order_index',         String(Number(lessonForm.order_index)));
+        fd.append('is_preview_video',    lessonForm.is_preview_video    ? 'True' : 'False');
+        fd.append('is_preview_article',  lessonForm.is_preview_article  ? 'True' : 'False');
+        fd.append('is_preview_resource', lessonForm.is_preview_resource ? 'True' : 'False');
+        if (lessonForm.video_file)   fd.append('video_file', lessonForm.video_file);
+        else if (deletingVideo)      fd.append('video_file', '');
+        if (lessonForm.attachment)   fd.append('attachment', lessonForm.attachment);
+        else if (deletingAttachment) fd.append('attachment', '');
+        body    = fd;
+        headers = { Authorization: `Bearer ${localStorage.getItem('access')}` };
+      } else {
+        body = JSON.stringify({
+          title:               String(lessonForm.title).trim(),
+          section:             lessonForm.section,
+          video_url:           lessonForm.video_url,
+          content:             lessonForm.content,
+          attachment_name:     lessonForm.attachment_name,
+          order_index:         Number(lessonForm.order_index),
+          is_preview_video:    lessonForm.is_preview_video,
+          is_preview_article:  lessonForm.is_preview_article,
+          is_preview_resource: lessonForm.is_preview_resource,
+        });
+        headers = authHeaders();
+      }
+      const isNew = lessonModal === 'add';
+      const url   = isNew
+        ? `${API}/api/courses/mine/lessons/`
+        : `${API}/api/courses/mine/lessons/${selectedLesson.id}/`;
+      const res = await fetch(url, { method: isNew ? 'POST' : 'PATCH', headers, body });
+      if (res.ok) {
+        // Refresh lessons
+        const refreshUrl = filterLessonSection
+          ? `${API}/api/courses/mine/lessons/?section=${filterLessonSection}`
+          : `${API}/api/courses/mine/lessons/`;
+        const r = await fetch(refreshUrl, { headers: authHeaders() });
+        if (r.ok) setLessons(toList(await r.json()));
+        closeLessonModal();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setLessonError(err?.detail ?? err?.title?.[0] ?? `Lỗi HTTP ${res.status}`);
+      }
+    } catch (_) { setLessonError('Lỗi kết nối.'); }
+    setSavingLesson(false);
+  };
+
+  const handleDeleteLesson = async () => {
+    if (!selectedLesson) return;
+    setSavingLesson(true);
+    try {
+      const res = await fetch(`${API}/api/courses/mine/lessons/${selectedLesson.id}/`, {
+        method: 'DELETE', headers: authHeaders(),
+      });
+      if (res.ok || res.status === 204) {
+        setLessons(prev => prev.filter(l => l.id !== selectedLesson.id));
+        closeLessonModal();
+      } else setLessonError('Xóa thất bại.');
+    } catch (_) { setLessonError('Lỗi kết nối.'); }
+    setSavingLesson(false);
+  };
+
+  // ── Quiz fetch ────────────────────────────────────────────────────────
+  const fetchQuizzes = async () => {
+    setLoadingQuizzes(true);
+    try {
+      const res = await fetch(`${API}/api/quizzes/mine/`, { headers: authHeaders() });
+      if (res.ok) setQuizzes(toList(await res.json()));
+    } catch (_) {}
+    setLoadingQuizzes(false);
+  };
+
+  const fetchQuestions = async (quizId: string) => {
+    setLoadingQ(true);
+    try {
+      const res = await fetch(`${API}/api/quizzes/${quizId}/questions/`, { headers: authHeaders() });
+      if (res.ok) setQuestions(toList(await res.json()));
+    } catch (_) {}
+    setLoadingQ(false);
+  };
+
+  const fetchAttempts = async (quizId: string) => {
+    setLoadingAttempts(true);
+    try {
+      const res = await fetch(`${API}/api/quizzes/${quizId}/attempts/all/`, { headers: authHeaders() });
+      if (res.ok) setAttempts(toList(await res.json()));
+      else setAttempts([]);
+    } catch (_) { setAttempts([]); }
+    setLoadingAttempts(false);
+  };
+
+  // ── Attempt ───────────────────────────────────────────────────────────
+  const openAttemptList = (quiz: any) => {
+    setSelectedQuizForAttempt(quiz);
+    setAttempts([]); setSelectedAttempt(null);
+    setAttemptModal('list');
+    fetchAttempts(quiz.id);
+  };
+
+  const openAttemptDetail = async (attempt: any) => {
+    setSelectedAttempt(attempt);
+    setAttemptModal('detail');
+    if (!attempt.questions) {
+      setLoadingAttemptDetail(true);
+      try {
+        const res = await fetch(
+          `${API}/api/quizzes/${selectedQuizForAttempt?.id ?? attempt.quiz_id}/questions/`,
+          { headers: authHeaders() }
+        );
+        if (res.ok) {
+          const qs = toList(await res.json());
+          setSelectedAttempt((prev: any) => ({ ...prev, _questions: qs }));
+        }
+      } catch (_) {}
+      setLoadingAttemptDetail(false);
+    }
+  };
+
+  const closeAttemptModal = () => {
+    setAttemptModal(null); setSelectedQuizForAttempt(null);
+    setAttempts([]); setSelectedAttempt(null);
+  };
+
+  const backToAttemptList = () => { setSelectedAttempt(null); setAttemptModal('list'); };
+
+  // ── Quiz CRUD ─────────────────────────────────────────────────────────
+  const openAddQuiz = () => { setQuizForm({ ...EMPTY_QUIZ }); setQuizError(''); setSelectedQuiz(null); setQuizModal('add'); };
+  const openEditQuiz = (q: any) => {
+    setSelectedQuiz(q);
+    setQuizForm({ lesson: String(q.lesson?.id ?? q.lesson ?? ''), title: q.title ?? '', description: q.description ?? '', pass_score: q.pass_score ?? 70, time_limit: q.time_limit ?? 0, max_attempts: q.max_attempts ?? 0 });
+    setQuizError(''); setQuizModal('edit');
+  };
+  const openDeleteQuiz = (q: any) => { setSelectedQuiz(q); setQuizError(''); setQuizModal('delete'); };
+  const closeQuizModal = () => { setQuizModal(null); setSelectedQuiz(null); setQuizError(''); };
+
+  const handleSaveQuiz = async () => {
+    if (!quizForm.lesson)                 { setQuizError('Vui lòng chọn bài học.'); return; }
+    if (!String(quizForm.title).trim())   { setQuizError('Tên không được để trống.'); return; }
+    setSavingQuiz(true); setQuizError('');
+    try {
+      const payload = { lesson: quizForm.lesson, title: String(quizForm.title).trim(), description: String(quizForm.description).trim(), pass_score: Number(quizForm.pass_score), time_limit: Number(quizForm.time_limit), max_attempts: Number(quizForm.max_attempts) };
+      const url    = quizModal === 'add' ? `${API}/api/quizzes/mine/` : `${API}/api/quizzes/mine/${selectedQuiz.id}/`;
+      const method = quizModal === 'add' ? 'POST' : 'PATCH';
+      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      if (res.ok) { fetchQuizzes(); closeQuizModal(); }
+      else { const err = await res.json().catch(() => ({})); setQuizError(err?.detail ?? `Lỗi HTTP ${res.status}`); }
+    } catch (_) { setQuizError('Lỗi kết nối.'); }
+    setSavingQuiz(false);
+  };
+
+  const handleDeleteQuiz = async () => {
+    if (!selectedQuiz) return;
+    setSavingQuiz(true);
+    try {
+      const res = await fetch(`${API}/api/quizzes/mine/${selectedQuiz.id}/`, { method: 'DELETE', headers: authHeaders() });
+      if (res.ok || res.status === 204) { fetchQuizzes(); closeQuizModal(); }
+      else setQuizError('Xóa thất bại.');
+    } catch (_) { setQuizError('Lỗi kết nối.'); }
+    setSavingQuiz(false);
+  };
+
+  // ── Question CRUD ─────────────────────────────────────────────────────
+  const openAddQuestion = (quizId: string) => { setQuestionForm({ ...EMPTY_QUESTION }); setQuestionError(''); setSelectedQ(null); setQuestionModal('add'); setExpandedQuizId(quizId); };
+  const openEditQuestion = (q: any) => {
+    setSelectedQ(q);
+    setQuestionForm({ content: q.content ?? '', question_type: q.question_type ?? 'single', points: q.points ?? 1, explanation: q.explanation ?? '', order_index: q.order_index ?? 0, answers: q.answers?.map((a: any) => ({ content: a.content ?? '', is_correct: a.is_correct ?? false, order_index: a.order_index ?? 0 })) ?? [] });
+    setQuestionError(''); setQuestionModal('edit');
+  };
+  const openDeleteQuestion = (q: any) => { setSelectedQ(q); setQuestionError(''); setQuestionModal('delete'); };
+  const closeQuestionModal = () => { setQuestionModal(null); setSelectedQ(null); setQuestionError(''); };
+
+  const handleSaveQuestion = async () => {
+    if (!String(questionForm.content).trim()) { setQuestionError('Nội dung không được để trống.'); return; }
+    if (questionForm.answers.length < 2)      { setQuestionError('Cần ít nhất 2 đáp án.'); return; }
+    if (!questionForm.answers.some(a => a.is_correct)) { setQuestionError('Cần ít nhất 1 đáp án đúng.'); return; }
+    setSavingQ(true); setQuestionError('');
+    try {
+      const payload = { content: String(questionForm.content).trim(), question_type: questionForm.question_type, points: Number(questionForm.points), explanation: String(questionForm.explanation).trim(), order_index: Number(questionForm.order_index), answers: questionForm.answers.map((a, i) => ({ ...a, order_index: i })) };
+      const url    = questionModal === 'add' ? `${API}/api/quizzes/${expandedQuizId}/questions/` : `${API}/api/quizzes/questions/${selectedQ.id}/`;
+      const method = questionModal === 'add' ? 'POST' : 'PATCH';
+      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      if (res.ok) { if (expandedQuizId) fetchQuestions(expandedQuizId); closeQuestionModal(); }
+      else { const err = await res.json().catch(() => ({})); setQuestionError(err?.detail ?? `Lỗi HTTP ${res.status}`); }
+    } catch (_) { setQuestionError('Lỗi kết nối.'); }
+    setSavingQ(false);
+  };
+
+  const handleDeleteQuestion = async () => {
+    if (!selectedQ) return;
+    setSavingQ(true);
+    try {
+      const res = await fetch(`${API}/api/quizzes/questions/${selectedQ.id}/`, { method: 'DELETE', headers: authHeaders() });
+      if (res.ok || res.status === 204) { if (expandedQuizId) fetchQuestions(expandedQuizId); closeQuestionModal(); }
+      else setQuestionError('Xóa thất bại.');
+    } catch (_) { setQuestionError('Lỗi kết nối.'); }
+    setSavingQ(false);
+  };
+
+  const renderAttemptModal = () => {
+    if (!attemptModal) return null;
+
+    // ── Danh sách các lần làm bài ────────────────────────────────────────────
+    if (attemptModal === 'list') {
+      return (
+        <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeAttemptModal(); }}>
+          <div className="cm-box">
+            <div className="cm-header">
+              <h2 className="cm-title">Lịch sử làm bài</h2>
+              <button className="cm-close" onClick={closeAttemptModal}>✕</button>
+            </div>
+
+            <div className="cm-body cm-body--scroll">
+              {loadingAttempts ? (
+                <div className="cm-loading">
+                  <span className="cm-loading__spinner" />
+                  <span>Đang tải lịch sử…</span>
+                </div>
+              ) : attempts.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem 0' }}>
+                  Chưa có học viên nào làm bài kiểm tra này.
+                </p>
+              ) : (
+                <table className="ad-table" style={{ marginTop: 0 }}>
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Học viên</th>
+                      <th>Điểm</th>
+                      <th>Kết quả</th>
+                      <th>Bắt đầu</th>
+                      <th>Nộp bài</th>
+                      <th>Thời gian làm</th>
+                      <th>Chi tiết</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attempts.map((a, idx) => {
+                      const start    = a.started_at   ? new Date(a.started_at)   : null;
+                      const submit   = a.submitted_at ? new Date(a.submitted_at) : null;
+                      const duration = start && submit
+                        ? Math.round((submit.getTime() - start.getTime()) / 1000)
+                        : null;
+                      const mm = duration !== null ? Math.floor(duration / 60) : null;
+                      const ss = duration !== null ? duration % 60 : null;
+                      return (
+                        <tr key={a.id}>
+                          <td style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 12 }}>
+                            {idx + 1}
+                          </td>
+                          <td>
+                            <div className="ad-user-cell">
+                              <span className="ad-user-cell__name">
+                                {a.student_name ?? a.student?.full_name ?? a.student?.username ?? '—'}
+                              </span>
+                              <span className="ad-user-cell__email">
+                                {a.student_email ?? a.student?.email ?? ''}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ fontWeight: 600, color: a.passed ? '#4caf82' : '#e07a5f' }}>
+                            {(Number(a.score) / 10).toFixed(1)}
+                          </td>
+                          <td>
+                            <span style={{
+                              fontSize: 12, padding: '2px 8px', borderRadius: 5,
+                              background: a.passed ? 'rgba(76,175,130,0.15)' : 'rgba(224,122,95,0.15)',
+                              color:      a.passed ? '#4caf82'               : '#e07a5f',
+                              border:     `0.5px solid ${a.passed ? 'rgba(76,175,130,0.3)' : 'rgba(224,122,95,0.3)'}`,
+                            }}>
+                              {a.passed ? 'Đạt' : 'Chưa đạt'}
+                            </span>
+                          </td>
+                          <td className="ad-table__muted" style={{ fontSize: 12 }}>
+                            {start ? start.toLocaleString('vi-VN') : '—'}
+                          </td>
+                          <td className="ad-table__muted" style={{ fontSize: 12 }}>
+                            {submit ? submit.toLocaleString('vi-VN') : '—'}
+                          </td>
+                          <td className="ad-table__muted" style={{ fontSize: 12 }}>
+                            {mm !== null && ss !== null
+                              ? `${mm} phút ${ss} giây`
+                              : '—'}
+                          </td>
+                          <td>
+                            <button
+                              className="ad-btn-sm ad-btn-sm--view"
+                              onClick={() => openAttemptDetail(a)}
+                            >
+                              Xem
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="cm-footer">
+              <button className="cm-btn cm-btn--cancel" onClick={closeAttemptModal}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Chi tiết 1 lần làm bài ───────────────────────────────────────────────
+    if (attemptModal === 'detail' && selectedAttempt) {
+      const start    = selectedAttempt.started_at   ? new Date(selectedAttempt.started_at)   : null;
+      const submit   = selectedAttempt.submitted_at ? new Date(selectedAttempt.submitted_at) : null;
+      const duration = start && submit
+        ? Math.round((submit.getTime() - start.getTime()) / 1000)
+        : null;
+      const snapshot: Record<string, string[]> = selectedAttempt.answers_snapshot ?? {};
+
+      // Dùng questions từ QuizAttemptResultSerializer (nếu có) hoặc fallback từ _questions
+      const questions: any[] = selectedAttempt.questions ?? selectedAttempt._questions ?? [];
+
+      return (
+        <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeAttemptModal(); }}>
+          <div className="cm-box">
+            <div className="cm-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={backToAttemptList}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', fontSize: 18, lineHeight: 1, padding: '0 4px' }}
+                  title="Quay lại danh sách"
+                >
+                  ←
+                </button>
+                <h2 className="cm-title" style={{ margin: 0 }}>
+                  Chi tiết bài làm
+                </h2>
+              </div>
+              <button className="cm-close" onClick={closeAttemptModal}>✕</button>
+            </div>
+
+            <div className="cm-body cm-body--scroll">
+              {/* ── Thông tin tổng quan ── */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: 10, marginBottom: 20,
+              }}>
+                {[
+                  { label: 'Điểm số',   value: `${Number(selectedAttempt.score).toFixed(1)}%`, color: selectedAttempt.passed ? '#4caf82' : '#e07a5f' },
+                  { label: 'Kết quả',   value: selectedAttempt.passed ? 'Đạt' : 'Chưa đạt', color: selectedAttempt.passed ? '#4caf82' : '#e07a5f' },
+                  { label: 'Bắt đầu',   value: start  ? start.toLocaleString('vi-VN')  : '—', color: undefined },
+                  { label: 'Nộp bài',   value: submit ? submit.toLocaleString('vi-VN') : '—', color: undefined },
+                  { label: 'Thời gian', value: duration !== null ? `${Math.floor(duration/60)}p ${duration%60}s` : '—', color: undefined },
+                ].map(item => (
+                  <div key={item.label} style={{
+                    background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)',
+                    borderRadius: 8, padding: '10px 12px',
+                  }}>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 4 }}>{item.label}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: item.color ?? 'var(--color-text-primary)' }}>
+                      {item.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Đáp án từng câu ── */}
+              {loadingAttemptDetail ? (
+                <div className="cm-loading">
+                  <span className="cm-loading__spinner" />
+                  <span>Đang tải chi tiết câu hỏi…</span>
+                </div>
+              ) : questions.length === 0 ? (
+                <div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 12 }}>
+                    Đáp án học viên đã chọn (theo ID):
+                  </p>
+                  {Object.entries(snapshot).length === 0 ? (
+                    <p style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>Không có dữ liệu đáp án.</p>
+                  ) : Object.entries(snapshot).map(([qId, aIds]) => (
+                    <div key={qId} style={{ marginBottom: 8, fontSize: 13 }}>
+                      <span style={{ color: 'var(--color-text-secondary)' }}>Câu {qId.slice(0, 8)}…:</span>{' '}
+                      <span style={{ color: 'var(--color-text-primary)' }}>{aIds.join(', ')}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 12 }}>
+                    {questions.length} câu hỏi — đáp án học viên chọn được tô màu
+                  </p>
+                  {questions.map((q: any, idx: number) => {
+                    const chosenIds: string[] = snapshot[q.id] ?? [];
+                    return (
+                      <div key={q.id} style={{
+                        marginBottom: 14, padding: '12px 14px',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '0.5px solid rgba(255,255,255,0.07)', borderRadius: 8,
+                      }}>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                            Câu {idx + 1} · {q.points} điểm
+                          </span>
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--color-text-primary)', margin: '0 0 10px' }}>
+                          {q.content}
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {q.answers?.map((ans: any) => {
+                            const isChosen  = chosenIds.includes(String(ans.id));
+                            const isCorrect = ans.is_correct;
+                            // màu: đúng+chọn=xanh, sai+chọn=đỏ, đúng+không chọn=viền xanh nhạt, còn lại=mờ
+                            let bg      = 'rgba(255,255,255,0.02)';
+                            let border  = '0.5px solid rgba(255,255,255,0.06)';
+                            let color   = 'rgba(224,225,221,0.45)';
+                            let prefix  = '';
+                            if (isCorrect && isChosen)  { bg = 'rgba(76,175,130,0.18)'; border = '0.5px solid rgba(76,175,130,0.4)'; color = '#4caf82';  prefix = '✓ '; }
+                            else if (!isCorrect && isChosen) { bg = 'rgba(224,122,95,0.18)';  border = '0.5px solid rgba(224,122,95,0.4)';  color = '#e07a5f';  prefix = '✗ '; }
+                            else if (isCorrect && !isChosen) { border = '0.5px solid rgba(76,175,130,0.25)'; color = 'rgba(76,175,130,0.6)'; prefix = '◎ '; }
+                            return (
+                              <div key={ans.id} style={{
+                                fontSize: 13, padding: '6px 10px', borderRadius: 6,
+                                background: bg, border, color,
+                              }}>
+                                {prefix}{ans.content}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {q.explanation && (
+                          <p style={{ fontSize: 12, color: 'rgba(224,225,221,0.4)', margin: '8px 0 0', fontStyle: 'italic' }}>
+                            💡 {q.explanation}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="cm-footer">
+              <button className="cm-btn cm-btn--cancel" onClick={backToAttemptList}>← Quay lại</button>
+              <button className="cm-btn cm-btn--cancel" onClick={closeAttemptModal}>Đóng</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="id-page">
       <div className="container id-layout">
@@ -483,9 +1310,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.label}
-                {tab.id === 'qa' && pendingCount > 0 && (
-                  <span className="id-nav__badge">{pendingCount}</span>
-                )}
               </button>
             ))}
           </nav>
@@ -545,15 +1369,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                   </ResponsiveContainer>
                 </div>
               )}
-
-              {pendingCount > 0 && (
-                <button className="id-alert id-alert--warning" onClick={() => setActiveTab('qa')}>
-                  <div>
-                    <div className="id-alert__title">{pendingCount} câu hỏi chưa được trả lời</div>
-                    <div className="id-alert__sub">Nhấn để xem và trả lời học viên →</div>
-                  </div>
-                </button>
-              )}
             </div>
           )}
 
@@ -602,7 +1417,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 <div className="id-form-card__title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="id-form-card__title">Thông tin cơ bản</h3>
                   {!profileEditing ? (
-                    <button className="id-btn-sm" onClick={() => setProfileEditing(true)}>✏️ Chỉnh sửa</button>
+                    <button className="id-btn-sm" onClick={() => setProfileEditing(true)}>Chỉnh sửa</button>
                   ) : (
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="id-btn-primary" onClick={handleProfileSave} disabled={profileSaving}>
@@ -629,8 +1444,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">Email</label>
-                    <input className="id-field__input" type="email" disabled
-                      value={profileForm.email} />
+                    <input className="id-field__input" type="email" disabled value={profileForm.email} />
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">Số điện thoại</label>
@@ -643,12 +1457,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                     <input className="id-field__input" type="number" min="0" disabled={!profileEditing}
                       value={profileForm.years_experience}
                       onChange={e => setProfileForm(f => ({ ...f, years_experience: e.target.value }))} />
-                  </div>
-                  <div className="id-field">
-                    <label className="id-field__label">Website cá nhân</label>
-                    <input className="id-field__input" placeholder="https://..." disabled={!profileEditing}
-                      value={profileForm.website}
-                      onChange={e => setProfileForm(f => ({ ...f, website: e.target.value }))} />
                   </div>
                   <div className="id-field id-field--full">
                     <label className="id-field__label">Chuyên môn</label>
@@ -669,30 +1477,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                     <textarea className="id-field__textarea" rows={4} disabled={!profileEditing}
                       value={profileForm.bio}
                       onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="id-form-card">
-                <h3 className="id-form-card__title">Mạng xã hội</h3>
-                <div className="id-form-grid">
-                  <div className="id-field">
-                    <label className="id-field__label">Facebook</label>
-                    <input className="id-field__input" placeholder="facebook.com/..." disabled={!profileEditing}
-                      value={profileForm.facebook}
-                      onChange={e => setProfileForm(f => ({ ...f, facebook: e.target.value }))} />
-                  </div>
-                  <div className="id-field">
-                    <label className="id-field__label">LinkedIn</label>
-                    <input className="id-field__input" placeholder="linkedin.com/in/..." disabled={!profileEditing}
-                      value={profileForm.linkedin}
-                      onChange={e => setProfileForm(f => ({ ...f, linkedin: e.target.value }))} />
-                  </div>
-                  <div className="id-field id-field--full">
-                    <label className="id-field__label">YouTube</label>
-                    <input className="id-field__input" placeholder="youtube.com/@..." disabled={!profileEditing}
-                      value={profileForm.youtube}
-                      onChange={e => setProfileForm(f => ({ ...f, youtube: e.target.value }))} />
                   </div>
                 </div>
               </div>
@@ -727,12 +1511,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 )}
                 <div className="id-form-actions">
                   <button className="id-btn-primary" onClick={handlePasswordChange} disabled={passwordSaving}>
-                    {passwordSaving ? 'Đang lưu…' : '🔒 Đổi mật khẩu'}
+                    {passwordSaving ? 'Đang lưu…' : 'Cập nhật mật khẩu'}
                   </button>
                 </div>
               </div>
-
-              
             </div>
           )}
 
@@ -815,47 +1597,51 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                 </div>
               )}
 
-              {!loadingCourses && courses.length > 0 && (
-                <div className="id-chart-card">
-                  <div className="id-chart-card__header">
-                    <div className="id-chart-card__title">Doanh thu theo khóa học</div>
-                  </div>
-                  <div className="id-table-wrap" style={{ border: 'none' }}>
-                    <table className="id-table">
-                      <thead>
-                        <tr><th>Khóa học</th><th>Học viên</th><th>Hoàn thành</th><th>Doanh thu</th></tr>
-                      </thead>
-                      <tbody>
-                        {courses.map(c => {
-                          const enrolled       = Number(c.total_students) || 0;
-                          const price          = c.sale_price != null ? Number(c.sale_price) : Number(c.price) ?? 0;
-                          const revenue        = price * enrolled;
-                          const completionRate = Number(c.completion_rate) || Number(c.completionRate) || 0;
-                          return (
-                            <tr key={c.id}>
-                              <td className="id-table__title">{c.title}</td>
-                              <td>{enrolled.toLocaleString()}</td>
-                              <td>
-                                <div className="id-progress-cell">
-                                  <div className="id-progress-bar">
-                                    <div className="id-progress-fill" style={{ width: `${completionRate}%` }} />
+              {!loadingCourses && courses.length > 0 && (() => {
+                const avgCompletion = courses.reduce((sum, c) =>
+                  sum + (Number(c.completion_rate) || Number(c.completionRate) || 0), 0
+                ) / courses.length;
+
+                return (
+                  <div className="id-chart-card">
+                    <div className="id-chart-card__header">
+                      <div className="id-chart-card__title">Doanh thu theo khóa học</div>
+                    </div>
+                    <div className="id-table-wrap" style={{ border: 'none' }}>
+                      <table className="id-table">
+                        <thead>
+                          <tr><th>Khóa học</th><th>Học viên</th><th>Tiến độ TB</th><th>Doanh thu</th></tr>
+                        </thead>
+                        <tbody>
+                          {courses.map(c => {
+                            const enrolled       = Number(c.total_students) || 0;
+                            const price          = c.sale_price != null ? Number(c.sale_price) : Number(c.price) ?? 0;
+                            const revenue        = price * enrolled;
+                            const completionRate = Number(c.completion_rate) || Number(c.completionRate) || 0;
+                            return (
+                              <tr key={c.id}>
+                                <td className="id-table__title">{c.title}</td>
+                                <td>{enrolled.toLocaleString()}</td>
+                                <td>
+                                  <div className="id-progress-cell">
+                                    <div className="id-progress-bar">
+                                      <div className="id-progress-fill" style={{ width: `${completionRate}%` }} />
+                                    </div>
+                                    <span>{completionRate}%</span>
                                   </div>
-                                  <span>{completionRate}%</span>
-                                </div>
-                              </td>
-                              <td className="id-table__positive">
-                                {formatPrice(revenue, 'VND')}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                </td>
+                                <td className="id-table__positive">{formatPrice(revenue, 'VND')}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                );
+              })()}
+                      </div>
+                    )}
 
           {/* ════ COURSES ════ */}
           {activeTab === 'courses' && (
@@ -867,103 +1653,49 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                     {loadingCourses ? '…' : `${filteredCourses.length} / ${courses.length} khóa học`}
                   </p>
                 </div>
-                <button className="id-btn-primary" onClick={() => setShowCourseForm(v => !v)}>
-                  {showCourseForm ? 'Hủy' : '+ Tạo khóa học'}
-                </button>
               </div>
 
               {/* ── Search + filter bar ── */}
-              <div className="id-filter-bar">
-                <div className="id-search-wrap">
-                  <svg className="id-search-wrap__icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  <input
-                    className="id-field__input id-search-input"
-                    placeholder="Tìm kiếm khóa học..."
-                    value={courseSearch}
-                    onChange={e => setCourseSearch(e.target.value)}
-                  />
-                  {courseSearch && (
-                    <button className="id-search-wrap__clear" onClick={() => setCourseSearch('')}>✕</button>
-                  )}
-                </div>
-                <div className="id-chart-filters">
-                  {(['all', 'draft', 'review', 'published', 'archived'] as const).map(f => (
-                    <button
-                      key={f}
-                      className={`id-chart-filter-btn${courseStatusFilter === f ? ' id-chart-filter-btn--active' : ''}`}
-                      onClick={() => setCourseStatusFilter(f as any)}
-                    >
-                      {f === 'all' ? 'Tất cả'
-                        : f === 'draft'     ? 'Nháp'
-                        : f === 'review'    ? 'Chờ duyệt'
-                        : f === 'published' ? 'Đã đăng'
-                        : 'Đã ẩn'}
-                    </button>
-                  ))}
-                </div>
+              <div className="ad-filters">
+                <input
+                  className="ad-search"
+                  type="search"
+                  placeholder="Tìm kiếm khóa học..."
+                  value={courseSearch}
+                  onChange={e => setCourseSearch(e.target.value)}
+                />
+                <select
+                  className="ad-select"
+                  value={courseStatusFilter}
+                  onChange={e => setCourseStatusFilter(e.target.value as any)}
+                >
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="draft">Nháp</option>
+                  <option value="review">Chờ duyệt</option>
+                  <option value="published">Đã đăng</option>
+                  <option value="archived">Đã ẩn</option>
+                </select>
+                {(courseSearch || courseStatusFilter !== 'all') && (
+                  <button
+                    className="filter-clear"
+                    onClick={() => { setCourseSearch(''); setCourseStatusFilter('all'); }}
+                  >
+                    ✕ Xoá lọc
+                  </button>
+                )}
+                <button className="id-btn-primary" style={{ marginLeft: 'auto' }} onClick={() => {
+                  setEditingCourseId(null);
+                  setEditCourseForm({
+                    title: '', description: '', level: 'beginner', price: '',
+                    discount_percent: '', category: '', requirements: '', what_you_learn: '',
+                    status: 'draft', thumbnail: null,
+                  });
+                  setEditCourseError('');
+                  setShowCourseModal(true);
+                }}>
+                  + Tạo khóa học
+                </button>
               </div>
-
-              {/* ── Create form ── */}
-              {showCourseForm && (
-                <div className="id-form-card">
-                  <h3 className="id-form-card__title">Tạo khóa học mới</h3>
-                  <div className="id-form-grid">
-                    <div className="id-field id-field--full">
-                      <label className="id-field__label">Tên khóa học</label>
-                      <input className="id-field__input" placeholder="Ví dụ: Tiếng Anh B2 — Nâng cao"
-                        value={courseForm.title}
-                        onChange={e => setCourseForm(f => ({ ...f, title: e.target.value }))} />
-                    </div>
-                    <div className="id-field id-field--full">
-                      <label className="id-field__label">Mô tả ngắn</label>
-                      <textarea className="id-field__textarea" rows={3} placeholder="Mô tả ngắn gọn..."
-                        value={courseForm.description}
-                        onChange={e => setCourseForm(f => ({ ...f, description: e.target.value }))} />
-                    </div>
-                    <div className="id-field">
-                      <label className="id-field__label">Cấp độ</label>
-                      <select className="id-field__input" value={courseForm.level}
-                        onChange={e => setCourseForm(f => ({ ...f, level: e.target.value }))}>
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                      </select>
-                    </div>
-                    <div className="id-field">
-                      <label className="id-field__label">Học phí (VND)</label>
-                      <input className="id-field__input" type="number" placeholder="0 = Miễn phí"
-                        value={courseForm.price}
-                        onChange={e => setCourseForm(f => ({ ...f, price: e.target.value }))} />
-                    </div>
-                  </div>
-                  <div className="id-form-actions">
-                    <button className="id-btn-primary" onClick={async () => {
-                      try {
-                        const res = await fetch(`${API}/api/courses/mine/`, {
-                          method: 'POST',
-                          headers: authHeaders(),
-                          body: JSON.stringify({
-                            title:       courseForm.title,
-                            description: courseForm.description,
-                            level:       courseForm.level,
-                            price:       Number(courseForm.price) || 0,
-                          }),
-                        });
-                        if (res.ok) {
-                          const created = await res.json();
-                          setCourses(prev => [created, ...prev]);
-                          setCourseForm({ title: '', description: '', level: 'Beginner', price: '' });
-                          setShowCourseForm(false);
-                        }
-                      } catch (_) {}
-                    }}>Lưu nháp</button>
-                    <button className="id-btn-secondary" onClick={() => setShowCourseForm(false)}>Hủy</button>
-                  </div>
-                </div>
-              )}
 
               {loadingCourses ? (
                 <p className="id-muted">Đang tải…</p>
@@ -972,91 +1704,254 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
                   {courses.length === 0 ? 'Chưa có khóa học nào.' : 'Không tìm thấy kết quả phù hợp.'}
                 </p>
               ) : (
-                <div className="id-course-list">
-                  {filteredCourses.map(c => {
-                    const price = c.sale_price != null ? Number(c.sale_price) : Number(c.price) ?? 0;
-                    const students = Number(c.total_students) || 0;
+                <div className="id-table-wrap" style={{ border: 'none' }}>
+                  <table className="id-table">
+                    <thead>
+                      <tr>
+                        <th>Khóa học</th>
+                        <th>Học viên</th>
+                        <th>Học phí</th>
+                        <th>Trạng thái</th>
+                        <th>thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCourses.map(c => {
+                        const price = c.sale_price != null ? Number(c.sale_price) : Number(c.price) ?? 0;
+                        const studs = Number(c.total_students) || 0;
+                        const statusLabel: Record<string, string> = {
+                          draft: 'Nháp', review: 'Chờ duyệt', published: 'Đã đăng', archived: 'Đã ẩn',
+                        };
+                        const statusColor: Record<string, string> = {
+                          draft: 'draft', review: 'review', published: 'published', archived: 'archived',
+                        };
+                        return (
+                          <tr key={c.id}>
+                            <td className="id-table__title">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                {thumbSrc(c.thumbnail) && (
+                                  <img src={thumbSrc(c.thumbnail)!} alt={c.title} className="id-course-row__thumb"
+                                    style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                                )}
+                                {c.title}
+                              </div>
+                            </td>
+                            <td>{studs.toLocaleString()}</td>
+                            <td>{price > 0 ? formatPrice(price, 'VND') : 'Miễn phí'}</td>
+                            <td>
+                              <select
+                                className={`id-badge id-badge--${statusColor[c.status] ?? 'draft'} id-badge--select`}
+                                value={c.status}
+                                disabled={c.status === 'published' || c.status === 'archived'}
+                                onChange={async e => {
+                                  const newStatus = e.target.value;
+                                  if (c.status === 'draft' && newStatus === 'review') {
+                                    try {
+                                      const res = await fetch(`${API}/api/courses/mine/${c.id}/submit/`, {
+                                        method: 'POST', headers: authHeaders(),
+                                      });
+                                      if (res.ok) setCourses(prev => prev.map(x => x.id === c.id ? { ...x, status: 'review' } : x));
+                                    } catch (_) {}
+                                    return;
+                                  }
+                                  alert(`Không thể tự chuyển trạng thái. Vui lòng liên hệ admin.`);
+                                }}
+                              >
+                                <option value="draft">Nháp</option>
+                                <option value="review">Chờ duyệt</option>
+                                <option value="published" disabled>Đã đăng</option>
+                                <option value="archived" disabled>Đã ẩn</option>
+                              </select>
+                            </td>
+                            <td>
+                              <div className="id-course-row__actions">
+                                <button className="id-btn-sm" onClick={() => openEditCourse(c)}>Sửa</button>
 
-                    const statusLabel: Record<string, string> = {
-                      draft:     'Nháp',
-                      review:    'Chờ duyệt',
-                      published: 'Đã đăng',
-                      archived:  'Đã ẩn',
-                    };
-                    const statusColor: Record<string, string> = {
-                      draft:     'draft',
-                      review:    'review',
-                      published: 'published',
-                      archived:  'archived',
-                    };
+                                {c.status === 'published' && Number(c.total_students) === 0 && (
+                                  <button
+                                    className="id-btn-sm id-btn-sm--warning"
+                                    onClick={async () => {
+                                      if (!confirm(`Lưu trữ "${c.title}"?`)) return;
+                                      try {
+                                        const res = await fetch(`${API}/api/courses/mine/${c.id}/archive/`, {
+                                          method: 'POST', headers: authHeaders(),
+                                        });
+                                        if (res.ok) {
+                                          const refreshed = await fetch(`${API}/api/courses/mine/`, { headers: authHeaders() });
+                                          if (refreshed.ok) setCourses((await refreshed.json()).results ?? []);
+                                        } else {
+                                          const err = await res.json().catch(() => ({}));
+                                          alert(err?.detail || 'Không thể lưu trữ.');
+                                        }
+                                      } catch (_) { alert('Lỗi kết nối.'); }
+                                    }}
+                                  >Lưu trữ</button>
+                                )}
 
-                    return (
-                      <div key={c.id} className="id-course-row">
-                        {thumbSrc(c.thumbnail) && (
-                          <img src={thumbSrc(c.thumbnail)!} alt={c.title} className="id-course-row__thumb" />
-                        )}
-                        <div className="id-course-row__info">
-                          <span className="id-course-row__title">{c.title}</span>
-                          <span className="id-course-row__meta">
-                            {students.toLocaleString()} học viên · {formatPrice(price, 'VND')} / học viên
-                          </span>
-                        </div>
+                                {c.status === 'archived' && c.published_at && (
+                                  <button
+                                    className="id-btn-sm id-btn-sm--success"
+                                    onClick={async () => {
+                                      if (!confirm(`Đăng lại "${c.title}"?`)) return;
+                                      try {
+                                        const res = await fetch(`${API}/api/courses/mine/${c.id}/unarchive/`, {
+                                          method: 'POST', headers: authHeaders(),
+                                        });
+                                        if (res.ok) {
+                                          const refreshed = await fetch(`${API}/api/courses/mine/`, { headers: authHeaders() });
+                                          if (refreshed.ok) setCourses((await refreshed.json()).results ?? []);
+                                        } else {
+                                          const err = await res.json().catch(() => ({}));
+                                          alert(err?.detail || 'Không thể đăng lại.');
+                                        }
+                                      } catch (_) { alert('Lỗi kết nối.'); }
+                                    }}
+                                  >Đăng lại</button>
+                                )}
 
-                        {/* Dropdown đổi trạng thái */}
-                        <select
-                          className={`id-badge id-badge--${statusColor[c.status] ?? 'draft'} id-badge--select`}
-                          value={c.status}
-                          onChange={async e => {
-                            const newStatus = e.target.value;
-                            // draft → review: dùng submit endpoint
-                            if (c.status === 'draft' && newStatus === 'review') {
-                              try {
-                                const res = await fetch(`${API}/api/courses/mine/${c.id}/submit/`, {
-                                  method: 'POST', headers: authHeaders(),
-                                });
-                                if (res.ok) setCourses(prev => prev.map(x => x.id === c.id ? { ...x, status: 'review' } : x));
-                              } catch (_) {}
-                              return;
-                            }
-                            // Các trường hợp khác (nếu backend hỗ trợ) — giữ nguyên hoặc thông báo
-                            alert(`Không thể tự chuyển sang trạng thái "${statusLabel[newStatus]}". Vui lòng liên hệ admin.`);
-                          }}
-                        >
-                          <option value="draft">Nháp</option>
-                          <option value="review">Chờ duyệt</option>
-                          <option value="published" disabled>Đã đăng</option>
-                          <option value="archived"  disabled>Đã ẩn</option>
+                                {(c.status === 'draft' || c.status === 'review') && (
+                                  <button
+                                    className="id-btn-sm id-btn-sm--danger"
+                                    onClick={async () => {
+                                      if (!confirm(`Xóa "${c.title}"?`)) return;
+                                      try {
+                                        const res = await fetch(`${API}/api/courses/mine/${c.id}/`, {
+                                          method: 'DELETE', headers: authHeaders(),
+                                        });
+                                        if (res.ok || res.status === 204)
+                                          setCourses(prev => prev.filter(x => x.id !== c.id));
+                                      } catch (_) {}
+                                    }}
+                                  >Xóa</button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════ SECTIONS ════ */}
+          {activeTab === 'sections' && (
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Quản lý chương học</h1>
+                <p className="ad-page-sub">
+                  {loadingSections ? 'Đang tải…' : `${sections.filter(s => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse).length} chương`}
+                </p>
+              </div>
+              <div className="ad-toolbar">
+                <div className="ad-filters">
+                  <select className="ad-select" value={filterSectionCourse}
+                    onChange={e => setFilterSectionCourse(e.target.value)}>
+                    <option value="">Tất cả khóa học</option>
+                    {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
+                  {filterSectionCourse && (
+                    <button className="filter-clear" onClick={() => setFilterSectionCourse('')}>✕ Xoá lọc</button>
+                  )}
+                </div>
+                <button className="ad-btn-add-course" onClick={openAddSection}>＋ Thêm chương</button>
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Tên chương</th>
+                      <th>Khóa học</th>
+                      <th>Mô tả</th>
+                      <th>thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingSections ? (
+                      <tr><td colSpan={5} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                    ) : sections
+                        .filter(s => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse)
+                        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                        .length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                          🔍 Không có chương nào.
+                        </td>
+                      </tr>
+                    ) : sections
+                        .filter(s => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse)
+                        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+                        .map(s => (
+                      <tr key={s.id}>
+                        <td style={{ textAlign: 'center' }}>{s.order_index ?? '—'}</td>
+                        <td><span className="ad-table__title">{s.title}</span></td>
+                        <td>{courses.find(c => c.id === (s.course?.id ?? s.course))?.title ?? '—'}</td>
+                        <td className="ad-table__muted">{s.description || '—'}</td>
+                        <td>
+                          <div className="ad-actions">
+                            <button className="ad-btn-sm ad-btn-sm--edit" onClick={() => openEditSection(s)}>Sửa</button>
+                            <button className="ad-btn-sm ad-btn-sm--approve" onClick={() => {
+                              setFilterLessonSection(s.id);
+                              setActiveTab('lessons' as Tab);
+                            }}>Bài học</button>
+                            <button className="ad-btn-sm ad-btn-sm--delete" onClick={() => handleDeleteSection(s)}>Xóa</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Modal */}
+              {showSectionModal && (
+                <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) setShowSectionModal(false); }}>
+                  <div className="cm-box">
+                    <div className="cm-header">
+                      <h2 className="cm-title">{editingSectionId ? '✏️ Sửa chương' : '➕ Thêm chương'}</h2>
+                      <button className="cm-close" onClick={() => setShowSectionModal(false)}>✕</button>
+                    </div>
+                    <div className="cm-body cm-body--scroll">
+                      <div className="cm-field">
+                        <label className="cm-label">Khóa học <span className="cm-required">*</span></label>
+                        <select className="cm-select" value={sectionForm.course}
+                          onChange={e => setSectionForm(f => ({ ...f, course: e.target.value }))}>
+                          <option value="">-- Chọn khóa học --</option>
+                          {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                         </select>
-
-                        <div className="id-course-row__actions">
-                          <button className="id-btn-sm" onClick={() => {
-                            setCourseForm({
-                              title:       c.title,
-                              description: c.description ?? '',
-                              level:       c.level       ?? 'beginner',
-                              price:       String(c.price ?? ''),
-                            });
-                            setShowCourseForm(true);
-                            // TODO: set editing id để PATCH thay vì POST
-                          }}>Sửa</button>
-                          <button className="id-btn-sm id-btn-sm--danger" onClick={async () => {
-                            if (!confirm(`Xóa "${c.title}"?`)) return;
-                            try {
-                              const res = await fetch(`${API}/api/courses/mine/${c.id}/`, {
-                                method: 'DELETE', headers: authHeaders(),
-                              });
-                              // 204 hoặc 200 → backend archive, cập nhật local
-                              if (res.ok || res.status === 204) {
-                                setCourses(prev => prev.map(x =>
-                                  x.id === c.id ? { ...x, status: 'archived' } : x
-                                ));
-                              }
-                            } catch (_) {}
-                          }}>Xóa</button>
-                        </div>
                       </div>
-                    );
-                  })}
+                      <div className="cm-field">
+                        <label className="cm-label">Tên chương <span className="cm-required">*</span></label>
+                        <input className="cm-input" placeholder="Ví dụ: Giới thiệu khóa học"
+                          value={sectionForm.title}
+                          onChange={e => setSectionForm(f => ({ ...f, title: e.target.value }))} />
+                      </div>
+                      <div className="cm-field">
+                        <label className="cm-label">Mô tả</label>
+                        <textarea className="cm-textarea" rows={3}
+                          value={sectionForm.description}
+                          onChange={e => setSectionForm(f => ({ ...f, description: e.target.value }))} />
+                      </div>
+                      <div className="cm-field">
+                        <label className="cm-label">Thứ tự</label>
+                        <input className="cm-input" type="number" min={0}
+                          value={sectionForm.order_index}
+                          onChange={e => setSectionForm(f => ({ ...f, order_index: e.target.value }))} />
+                      </div>
+                      {sectionError && <p className="cm-error">{sectionError}</p>}
+                    </div>
+                    <div className="cm-footer">
+                      <button className="cm-btn cm-btn--save" onClick={handleSaveSection} disabled={sectionLoading}>
+                        {sectionLoading ? '⏳ Đang lưu…' : editingSectionId ? 'Lưu thay đổi' : 'Thêm chương'}
+                      </button>
+                      <button className="cm-btn cm-btn--cancel" onClick={() => setShowSectionModal(false)} disabled={sectionLoading}>
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1064,502 +1959,1186 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({ onNavigate, o
 
           {/* ════ LESSONS ════ */}
           {activeTab === 'lessons' && (
-            <div className="id-content">
-              <div className="id-page-header id-page-header--row">
-                <div>
-                  <h1 className="id-page-title">Quản lý bài học</h1>
-                  <p className="id-page-sub">Thêm bài học, lý thuyết và tài liệu</p>
-                </div>
-                <button className="id-btn-primary" onClick={() => setShowLessonForm(v => !v)}>
-                  {showLessonForm ? 'Hủy' : '+ Thêm bài học'}
-                </button>
-              </div>
-
-              {showLessonForm && (
-                <div className="id-form-card">
-                  <h3 className="id-form-card__title">Thêm bài học mới</h3>
-                  <div className="id-form-grid">
-                    <div className="id-field">
-                      <label className="id-field__label">Khóa học</label>
-                      <select className="id-field__input" value={lessonForm.courseId}
-                        onChange={e => setLessonForm(f => ({ ...f, courseId: e.target.value }))}>
-                        <option value="">Chọn khóa học...</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                      </select>
-                    </div>
-                    <div className="id-field">
-                      <label className="id-field__label">Loại bài học</label>
-                      <select className="id-field__input" value={lessonForm.type}
-                        onChange={e => setLessonForm(f => ({ ...f, type: e.target.value }))}>
-                        <option value="theory">Lý thuyết</option>
-                        <option value="article">Bài viết</option>
-                        <option value="project">Bài tập</option>
-                      </select>
-                    </div>
-                    <div className="id-field id-field--full">
-                      <label className="id-field__label">Tiêu đề bài học</label>
-                      <input className="id-field__input" placeholder="Ví dụ: Phát âm nguyên âm đôi"
-                        value={lessonForm.title}
-                        onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))} />
-                    </div>
-                    <div className="id-field id-field--full">
-                      <label className="id-field__label">
-                        {lessonForm.type === 'theory' ? 'Upload lý thuyết' : 'Upload tài liệu'}
-                      </label>
-                      <label className="id-upload-area">
-                        <input type="file" style={{ display: 'none' }}
-                          accept={lessonForm.type === 'theory' ? 'video/*' : '.pdf,.doc,.docx'} />
-                        <span className="id-upload-area__text">Kéo thả hoặc bấm để chọn file</span>
-                        <span className="id-upload-area__hint">
-                          {lessonForm.type === 'theory' ? 'MP4, MOV · Tối đa 500MB' : 'PDF, DOC · Tối đa 50MB'}
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                  <div className="id-form-actions">
-                    <button className="id-btn-primary" onClick={() => setShowLessonForm(false)}>Lưu bài học</button>
-                  </div>
-                </div>
-              )}
-
-              <div className="id-lesson-list">
-                {loadingCourses ? (
-                  <p className="id-muted">Đang tải…</p>
-                ) : courses.length === 0 ? (
-                  <p className="id-muted">Chưa có bài học nào.</p>
-                ) : (
-                  courses.map(course => {
-                    const allLessons = (course.curriculum ?? course.sections ?? [])
-                      .flatMap((s: any) => s.lessons ?? []);
-                    return (
-                      <div key={course.id} className="id-lesson-group">
-                        <div className="id-lesson-group__header">
-                          <span className="id-lesson-group__title">{course.title}</span>
-                          <span className="id-lesson-group__count">
-                            {course.lesson_count ?? course.total_lessons ?? allLessons.length} bài
-                          </span>
-                        </div>
-                        {allLessons.length === 0 ? (
-                          <p className="id-muted" style={{ padding: '8px 0 8px 16px' }}>Chưa có bài học.</p>
-                        ) : (
-                          allLessons.slice(0, 5).map((lesson: any, i: number) => (
-                            <div key={lesson.id} className="id-lesson-row">
-                              <span className="id-lesson-row__num">{i + 1}</span>
-                              <span className="id-lesson-row__title">{lesson.title}</span>
-                              <span className="id-lesson-row__type">
-                                {getLessonTypeLabel(lesson.type ?? lesson.lesson_type ?? '')}
-                              </span>
-                              <span className="id-lesson-row__duration">{lesson.duration ?? ''}</span>
-                              <div className="id-lesson-row__actions">
-                                <button className="id-btn-sm">Sửa</button>
-                                <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ════ QUIZ ════ */}
-          {activeTab === 'quiz' && (
-            <div className="id-content">
-              <div className="id-page-header id-page-header--row">
-                <div>
-                  <h1 className="id-page-title">Bài kiểm tra</h1>
-                  <p className="id-page-sub">{quizList.length} bài kiểm tra</p>
-                </div>
-                <button className="id-btn-primary" onClick={() => setShowQuizForm(v => !v)}>
-                  {showQuizForm ? 'Hủy' : '+ Tạo bài kiểm tra'}
-                </button>
-              </div>
-
-              {showQuizForm && (
-                <div className="id-form-card">
-                  <h3 className="id-form-card__title">Tạo bài kiểm tra mới</h3>
-                  <div className="id-form-grid">
-                    <div className="id-field">
-                      <label className="id-field__label">Khóa học</label>
-                      <select className="id-field__input" value={quizForm.courseId}
-                        onChange={e => setQuizForm(f => ({ ...f, courseId: e.target.value }))}>
-                        <option value="">Chọn khóa học...</option>
-                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                      </select>
-                    </div>
-                    <div className="id-field">
-                      <label className="id-field__label">Tiêu đề bài kiểm tra</label>
-                      <input className="id-field__input" placeholder="Ví dụ: Kiểm tra chương 1"
-                        value={quizForm.title}
-                        onChange={e => setQuizForm(f => ({ ...f, title: e.target.value }))} />
-                    </div>
-                  </div>
-                  <div className="id-quiz-questions">
-                    {quizForm.questions.map((q, qi) => (
-                      <div key={qi} className="id-quiz-question">
-                        <div className="id-quiz-question__header">
-                          <span className="id-quiz-question__num">Câu {qi + 1}</span>
-                          <span className="id-quiz-question__hint">Chọn radio = đáp án đúng</span>
-                        </div>
-                        <input className="id-field__input" placeholder="Nội dung câu hỏi..."
-                          value={q.question}
-                          onChange={e => setQuizForm(f => {
-                            const qs = [...f.questions]; qs[qi] = { ...qs[qi], question: e.target.value };
-                            return { ...f, questions: qs };
-                          })} />
-                        <div className="id-quiz-options">
-                          {q.options.map((opt, oi) => (
-                            <div key={oi} className="id-quiz-option">
-                              <input type="radio" name={`correct-${qi}`} checked={q.correct === oi}
-                                onChange={() => setQuizForm(f => {
-                                  const qs = [...f.questions]; qs[qi] = { ...qs[qi], correct: oi };
-                                  return { ...f, questions: qs };
-                                })} />
-                              <input className="id-field__input" placeholder={`Đáp án ${String.fromCharCode(65 + oi)}`}
-                                value={opt}
-                                onChange={e => setQuizForm(f => {
-                                  const qs = [...f.questions];
-                                  const opts = [...qs[qi].options]; opts[oi] = e.target.value;
-                                  qs[qi] = { ...qs[qi], options: opts };
-                                  return { ...f, questions: qs };
-                                })} />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="id-field">
-                          <label className="id-field__label">Giải thích đáp án (tuỳ chọn)</label>
-                          <input className="id-field__input" placeholder="Giải thích tại sao đáp án này đúng..."
-                            value={q.explanation}
-                            onChange={e => setQuizForm(f => {
-                              const qs = [...f.questions]; qs[qi] = { ...qs[qi], explanation: e.target.value };
-                              return { ...f, questions: qs };
-                            })} />
-                        </div>
-                      </div>
-                    ))}
-                    <button className="id-btn-secondary" onClick={addQuizQuestion}>+ Thêm câu hỏi</button>
-                  </div>
-                  <div className="id-form-actions">
-                    <button className="id-btn-primary" onClick={() => setShowQuizForm(false)}>Lưu bài kiểm tra</button>
-                  </div>
-                </div>
-              )}
-
-              <div className="id-quiz-list">
-                {loadingCourses ? (
-                  <p className="id-muted">Đang tải…</p>
-                ) : quizList.length === 0 ? (
-                  <p className="id-muted">Chưa có bài kiểm tra nào. Nhấn "+ Tạo bài kiểm tra" để bắt đầu.</p>
-                ) : (
-                  quizList.map(q => (
-                    <div key={q.id} className="id-quiz-row">
-                      <div className="id-quiz-row__info">
-                        <span className="id-quiz-row__title">{q.title}</span>
-                        <span className="id-quiz-row__meta">
-                          {q.course} · {q.questions} câu · {q.attempts} lượt làm
-                          {q.avgScore ? ` · Điểm TB: ${q.avgScore}%` : ''}
-                        </span>
-                      </div>
-                      <div className="id-quiz-row__actions">
-                        <button className="id-btn-sm">Sửa</button>
-                        <button className="id-btn-sm id-btn-sm--danger">Xóa</button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ════ STUDENTS ════ */}
-          {activeTab === 'students' && (
-            <div className="id-content">
-              <div className="id-page-header">
-                <h1 className="id-page-title">Danh sách học viên</h1>
-                <p className="id-page-sub">
-                  {loadingStudents ? '…' : `${students.length} học viên đang học`}
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Quản lý bài học</h1>
+                <p className="ad-page-sub">
+                  {loadingLessons ? 'Đang tải…' : `${lessons.length} bài học`}
                 </p>
               </div>
-
-              <div className="id-table-wrap">
-                {loadingStudents ? (
-                  <p className="id-muted">Đang tải…</p>
-                ) : students.length === 0 ? (
-                  <p className="id-muted">Chưa có học viên nào.</p>
-                ) : (
-                  <table className="id-table">
-                    <thead>
+              <div className="ad-toolbar">
+                <div className="ad-filters">
+                  <select className="ad-select" value={filterLessonCourse}
+                    onChange={e => { setFilterLessonCourse(e.target.value); setFilterLessonSection(''); }}>
+                    <option value="">Tất cả khóa học</option>
+                    {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
+                  <select className="ad-select" value={filterLessonSection}
+                    onChange={e => setFilterLessonSection(e.target.value)}>
+                    <option value="">Tất cả chương</option>
+                    {sections
+                      .filter(s => !filterLessonCourse || String(s.course?.id ?? s.course) === filterLessonCourse)
+                      .map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                  </select>
+                  {(filterLessonCourse || filterLessonSection) && (
+                    <button className="filter-clear" onClick={() => { setFilterLessonCourse(''); setFilterLessonSection(''); }}>
+                      ✕ Xoá lọc
+                    </button>
+                  )}
+                </div>
+                <button className="ad-btn-add-course" onClick={() => openAddLesson()}>＋ Thêm bài học</button>
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Tên bài học</th>
+                      <th>Chương</th>
+                      <th>Xem thử</th>
+                      <th>thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingLessons ? (
+                      <tr><td colSpan={5} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                    ) : lessons.length === 0 ? (
                       <tr>
-                        <th>Học viên</th>
-                        <th>Khóa học</th>
-                        <th>Tiến độ</th>
-                        <th>Hoạt động</th>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                          🔍 Không có bài học nào.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {students.map(s => (
-                        <tr key={s.id}>
-                          <td>
-                            <div className="id-student-cell">
-                              <span className="id-student-cell__name">{s.name}</span>
-                              <span className="id-student-cell__email">{s.email}</span>
-                            </div>
-                          </td>
-                          <td>{s.course}</td>
-                          <td>
-                            <div className="id-progress-cell">
-                              <div className="id-progress-bar">
-                                <div className="id-progress-fill" style={{ width: `${s.progress}%` }} />
+                    ) : lessons.map(l => (
+                      <tr key={l.id}>
+                        <td style={{ textAlign: 'center' }}>{l.order_index ?? '—'}</td>
+                        <td><span className="ad-table__title">{l.title}</span></td>
+                        <td>{sections.find(s => s.id === (l.section?.id ?? l.section))?.title ?? '—'}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          {l.is_preview_video    ? '🎬' : ''}
+                          {l.is_preview_article  ? '📝' : ''}
+                          {l.is_preview_resource ? '📎' : ''}
+                          {!l.is_preview_video && !l.is_preview_article && !l.is_preview_resource ? '—' : ''}
+                        </td>
+                        <td>
+                          <div className="ad-actions">
+                            <button className="ad-btn-sm ad-btn-sm--edit" onClick={() => openEditLesson(l)}>Sửa</button>
+                            <button className="ad-btn-sm ad-btn-sm--delete" onClick={() => {
+                              setSelectedLesson(l);
+                              setLessonError('');
+                              setLessonModal('delete');
+                            }}>Xóa</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Modal */}
+              {lessonModal && (() => {
+                if (lessonModal === 'delete') return (
+                  <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeLessonModal(); }}>
+                    <div className="cm-box cm-box--sm">
+                      <div className="cm-header">
+                        <h2 className="cm-title"><span className="cm-title-icon cm-title-icon--del">🗑</span>Xác nhận xóa</h2>
+                        <button className="cm-close" onClick={closeLessonModal}>✕</button>
+                      </div>
+                      <div className="cm-body">
+                        <p className="cm-delete-desc">Bạn có chắc muốn xóa bài học:</p>
+                        <p className="cm-delete-name">"{selectedLesson?.title}"</p>
+                        <p className="cm-delete-warn">⚠ Hành động này không thể hoàn tác.</p>
+                        {lessonError && <p className="cm-error">{lessonError}</p>}
+                      </div>
+                      <div className="cm-footer">
+                        <button className="cm-btn cm-btn--danger" onClick={handleDeleteLesson} disabled={savingLesson}>
+                          {savingLesson ? '⏳ Đang xóa…' : 'Xóa bài học'}
+                        </button>
+                        <button className="cm-btn cm-btn--cancel" onClick={closeLessonModal} disabled={savingLesson}>Hủy</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+
+                const isEdit = lessonModal === 'edit';
+                const filteredSectionsForModal = modalFilterCourse
+                  ? sections.filter(s => String(s.course?.id ?? s.course) === modalFilterCourse)
+                  : sections;
+                const hasVideo      = !!lessonForm.video_url.trim() || !!lessonForm.video_file || !!lessonForm.existing_video_url;
+                const hasAttachment = !!lessonForm.attachment || !!lessonForm.attachment_name.trim() || !!lessonForm.existing_attachment;
+
+                return (
+                  <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeLessonModal(); }}>
+                    <div className="cm-box">
+                      <div className="cm-header">
+                        <h2 className="cm-title">
+                          <span className={`cm-title-icon cm-title-icon--${isEdit ? 'edit' : 'add'}`}>{isEdit ? '✏' : '＋'}</span>
+                          {isEdit ? 'Chỉnh sửa bài học' : 'Thêm bài học mới'}
+                        </h2>
+                        <button className="cm-close" onClick={closeLessonModal}>✕</button>
+                      </div>
+                      <div className="cm-body cm-body--scroll">
+                        <div className="cm-row">
+                          <div className="cm-field">
+                            <label className="cm-label">Khóa học</label>
+                            <select className="cm-select" value={modalFilterCourse}
+                              onChange={e => { setModalFilterCourse(e.target.value); setLessonForm(f => ({ ...f, section: '' })); }}>
+                              <option value="">-- Tất cả --</option>
+                              {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                            </select>
+                          </div>
+                          <div className="cm-field">
+                            <label className="cm-label">Chương <span className="cm-required">*</span></label>
+                            <select className="cm-select" value={lessonForm.section}
+                              onChange={e => setLessonForm(f => ({ ...f, section: e.target.value }))}>
+                              <option value="">-- Chọn chương --</option>
+                              {filteredSectionsForModal.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="cm-row">
+                          <div className="cm-field">
+                            <label className="cm-label">Tên bài học <span className="cm-required">*</span></label>
+                            <input className="cm-input" type="text" placeholder="Ví dụ: Bài 1 – Giới thiệu"
+                              value={lessonForm.title}
+                              onChange={e => setLessonForm(f => ({ ...f, title: e.target.value }))} />
+                          </div>
+                          <div className="cm-field">
+                            <label className="cm-label">Thứ tự</label>
+                            <input className="cm-input" type="number" min={0}
+                              value={lessonForm.order_index}
+                              onChange={e => setLessonForm(f => ({ ...f, order_index: e.target.value }))} />
+                          </div>
+                        </div>
+                        <div className="cm-section-block">
+                          <div className="cm-section-block__header">
+                            <span>🎬 Video</span>
+                            <label className="cm-checkbox-label">
+                              <input type="checkbox" className="cm-checkbox" checked={lessonForm.is_preview_video}
+                                disabled={!hasVideo}
+                                onChange={e => setLessonForm(f => ({ ...f, is_preview_video: e.target.checked }))} />
+                              <span>Cho xem thử</span>
+                            </label>
+                          </div>
+                          <div className="cm-field">
+                            <label className="cm-label">URL Video</label>
+                            <input className="cm-input" type="url" placeholder="https://..."
+                              value={lessonForm.video_url}
+                              onChange={e => setLessonForm(f => ({ ...f, video_url: e.target.value }))} />
+                          </div>
+                          <div className="cm-field">
+                            <label className="cm-label">Hoặc upload file video</label>
+                            <input className="cm-input cm-input--file" type="file" accept="video/*"
+                              onChange={e => setLessonForm(f => ({ ...f, video_file: e.target.files?.[0] ?? null }))} />
+                            {lessonForm.video_file && <span className="cm-hint">📎 {lessonForm.video_file.name}</span>}
+                            {isEdit && !lessonForm.video_file && lessonForm.existing_video_url && (
+                              <div className="cm-existing-file">
+                                <span>File hiện tại:</span>
+                                <a href={lessonForm.existing_video_url} target="_blank" rel="noreferrer">
+                                  {lessonForm.existing_video_url.split('/').pop()}
+                                </a>
+                                <button type="button" className="cm-existing-file__delete"
+                                  onClick={() => setLessonForm(f => ({ ...f, existing_video_url: '', is_preview_video: false }))}>
+                                  Xóa
+                                </button>
                               </div>
-                              <span>{s.progress}%</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="cm-section-block">
+                          <div className="cm-section-block__header">
+                            <span>📝 Bài viết (Markdown)</span>
+                            <label className="cm-checkbox-label">
+                              <input type="checkbox" className="cm-checkbox" checked={lessonForm.is_preview_article}
+                                disabled={!lessonForm.content.trim()}
+                                onChange={e => setLessonForm(f => ({ ...f, is_preview_article: e.target.checked }))} />
+                              <span>Cho xem thử</span>
+                            </label>
+                          </div>
+                          <textarea className="cm-textarea" rows={5} placeholder="# Tiêu đề&#10;Nội dung Markdown..."
+                            value={lessonForm.content}
+                            onChange={e => setLessonForm(f => ({ ...f, content: e.target.value }))} />
+                        </div>
+                        <div className="cm-section-block">
+                          <div className="cm-section-block__header">
+                            <span>📎 Tài liệu đính kèm</span>
+                            <label className="cm-checkbox-label">
+                              <input type="checkbox" className="cm-checkbox" checked={lessonForm.is_preview_resource}
+                                disabled={!hasAttachment}
+                                onChange={e => setLessonForm(f => ({ ...f, is_preview_resource: e.target.checked }))} />
+                              <span>Cho xem thử</span>
+                            </label>
+                          </div>
+                          <div className="cm-row">
+                            <div className="cm-field">
+                              <label className="cm-label">Tên tài liệu</label>
+                              <input className="cm-input" type="text" placeholder="Ví dụ: Slide bài 1.pdf"
+                                value={lessonForm.attachment_name}
+                                onChange={e => setLessonForm(f => ({ ...f, attachment_name: e.target.value }))} />
+                            </div>
+                            <div className="cm-field">
+                              <label className="cm-label">Upload file</label>
+                              <input className="cm-input cm-input--file" type="file"
+                                onChange={e => setLessonForm(f => ({ ...f, attachment: e.target.files?.[0] ?? null }))} />
+                              {lessonForm.attachment && <span className="cm-hint">📎 {lessonForm.attachment.name}</span>}
+                              {isEdit && !lessonForm.attachment && lessonForm.existing_attachment && (
+                                <div className="cm-existing-file">
+                                  <span>File hiện tại:</span>
+                                  <a href={lessonForm.existing_attachment} target="_blank" rel="noreferrer">
+                                    {lessonForm.attachment_name || lessonForm.existing_attachment.split('/').pop()}
+                                  </a>
+                                  <button type="button" className="cm-existing-file__delete"
+                                    onClick={() => setLessonForm(f => ({ ...f, existing_attachment: '', attachment_name: '', is_preview_resource: false }))}>
+                                    Xóa
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {lessonError && <p className="cm-error">{lessonError}</p>}
+                      </div>
+                      <div className="cm-footer">
+                        <button className="cm-btn cm-btn--save" onClick={handleSaveLesson} disabled={savingLesson}>
+                          {savingLesson ? '⏳ Đang lưu…' : isEdit ? 'Lưu thay đổi' : 'Tạo bài học'}
+                        </button>
+                        <button className="cm-btn cm-btn--cancel" onClick={closeLessonModal} disabled={savingLesson}>Hủy</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ════ QUIZZES ════ */}
+          {activeTab === 'quizzes' && (
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Quản lý bài kiểm tra</h1>
+                <p className="ad-page-sub">{loadingQuizzes ? 'Đang tải…' : `${quizzes.length} bài kiểm tra`}</p>
+              </div>
+              <div className="ad-toolbar">
+                <div className="ad-filters">
+                  <select className="ad-select" value={filterQuizLesson} onChange={e => setFilterQuizLesson(e.target.value)}>
+                    <option value="">Tất cả bài học</option>
+                    {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  </select>
+                  {filterQuizLesson && <button className="filter-clear" onClick={() => setFilterQuizLesson('')}>✕ Xoá lọc</button>}
+                </div>
+                <button className="ad-btn-add-course" onClick={openAddQuiz}>＋ Thêm bài kiểm tra</button>
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Tên bài kiểm tra</th><th>Bài học</th><th>Điểm đạt</th>
+                      <th>Thời gian</th><th>Câu hỏi</th><th>thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingQuizzes ? (
+                      <tr><td colSpan={6} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                    ) : quizzes.filter(q => !filterQuizLesson || String(q.lesson?.id ?? q.lesson) === filterQuizLesson).length === 0 ? (
+                      <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>🔍 Không có bài kiểm tra nào.</td></tr>
+                    ) : quizzes.filter(q => !filterQuizLesson || String(q.lesson?.id ?? q.lesson) === filterQuizLesson).map(q => {
+                      const lesson = lessons.find(l => l.id === (q.lesson?.id ?? q.lesson));
+                      const isExpanded = expandedQuizId === q.id;
+                      return (
+                        <React.Fragment key={q.id}>
+                          <tr>
+                            <td><span className="ad-table__title">{q.title}</span></td>
+                            <td className="ad-table__muted">{lesson?.title ?? '—'}</td>
+                            <td>{q.pass_score}%</td>
+                            <td>{q.time_limit > 0 ? `${q.time_limit} phút` : 'Không giới hạn'}</td>
+                            <td>
+                              <button style={{ background: 'none', border: 'none', color: '#5ba4de', cursor: 'pointer', fontSize: 13 }}
+                                onClick={() => { if (isExpanded) { setExpandedQuizId(null); } else { setExpandedQuizId(q.id); fetchQuestions(q.id); } }}>
+                                {isExpanded ? '▾ Ẩn' : '▸ Xem câu hỏi'}
+                              </button>
+                            </td>
+                            <td>
+                              <div className="ad-actions">
+                                <button className="ad-btn-sm ad-btn-sm--edit" onClick={() => openEditQuiz(q)}>Sửa</button>
+                                <button className="ad-btn-sm" style={{ color: '#5ba4de', borderColor: 'rgba(91,164,222,0.3)' }} onClick={() => openAttemptList(q)}>Lịch sử</button>
+                                <button className="ad-btn-sm ad-btn-sm--approve" onClick={() => { setExpandedQuizId(isExpanded ? null : q.id); if (!isExpanded) fetchQuestions(q.id); }}>
+                                  {isExpanded ? '▾ Ẩn câu hỏi' : '▸ Câu hỏi'}
+                                </button>
+                                <button className="ad-btn-sm ad-btn-sm--delete" onClick={() => openDeleteQuiz(q)}>Xóa</button>
+                              </div>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr>
+                              <td colSpan={6} style={{ padding: 0 }}>
+                                <div style={{ background: 'rgba(27,38,59,0.6)', padding: '12px 20px', borderTop: '1px solid rgba(119,141,169,0.1)' }}>
+                                  {loadingQ ? <p className="ad-empty">Đang tải câu hỏi…</p>
+                                  : questions.length === 0 ? <p className="ad-empty">Chưa có câu hỏi nào.</p>
+                                  : questions.map((ques, idx) => (
+                                    <div key={ques.id} style={{ marginBottom: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                                        <div style={{ flex: 1 }}>
+                                          <span style={{ fontSize: 12, color: 'rgba(224,225,221,0.4)' }}>
+                                            Câu {idx + 1} · {({ single: 'Chọn 1', multiple: 'Chọn nhiều', true_false: 'Đúng/Sai' } as Record<string,string>)[ques.question_type]} · {ques.points} điểm
+                                          </span>
+                                          <p style={{ fontSize: 13, color: '#e0e1dd', margin: '4px 0 6px' }}>{ques.content}</p>
+                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                            {ques.answers?.map((a: any) => (
+                                              <span key={a.id} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 5, background: a.is_correct ? 'rgba(76,175,130,0.15)' : 'rgba(255,255,255,0.04)', color: a.is_correct ? '#4caf82' : 'rgba(224,225,221,0.5)', border: `0.5px solid ${a.is_correct ? 'rgba(76,175,130,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                                                {a.is_correct ? '✓ ' : ''}{a.content}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                        <div className="ad-actions">
+                                          <button className="ad-btn-sm ad-btn-sm--edit" onClick={() => openEditQuestion(ques)}>Sửa</button>
+                                          <button className="ad-btn-sm ad-btn-sm--delete" onClick={() => openDeleteQuestion(ques)}>Xóa</button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <button className="ad-btn-sm ad-btn-sm--approve" style={{ marginTop: 4 }} onClick={() => openAddQuestion(q.id)}>＋ Thêm câu hỏi</button>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Quiz Modal */}
+              {quizModal && (() => {
+                if (quizModal === 'delete') return (
+                  <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeQuizModal(); }}>
+                    <div className="cm-box cm-box--sm">
+                      <div className="cm-header">
+                        <h2 className="cm-title"><span className="cm-title-icon cm-title-icon--del">🗑</span>Xác nhận xóa</h2>
+                        <button className="cm-close" onClick={closeQuizModal}>✕</button>
+                      </div>
+                      <div className="cm-body">
+                        <p className="cm-delete-desc">Bạn có chắc muốn xóa:</p>
+                        <p className="cm-delete-name">"{selectedQuiz?.title}"</p>
+                        <p className="cm-delete-warn">⚠ Tất cả câu hỏi và lịch sử làm bài sẽ bị xóa.</p>
+                        {quizError && <p className="cm-error">{quizError}</p>}
+                      </div>
+                      <div className="cm-footer">
+                        <button className="cm-btn cm-btn--danger" onClick={handleDeleteQuiz} disabled={savingQuiz}>{savingQuiz ? '⏳…' : 'Xóa'}</button>
+                        <button className="cm-btn cm-btn--cancel" onClick={closeQuizModal} disabled={savingQuiz}>Hủy</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+                const isEdit = quizModal === 'edit';
+                return (
+                  <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeQuizModal(); }}>
+                    <div className="cm-box">
+                      <div className="cm-header">
+                        <h2 className="cm-title"><span className={`cm-title-icon cm-title-icon--${isEdit ? 'edit' : 'add'}`}>{isEdit ? '✏' : '＋'}</span>{isEdit ? 'Chỉnh sửa bài kiểm tra' : 'Tạo bài kiểm tra'}</h2>
+                        <button className="cm-close" onClick={closeQuizModal}>✕</button>
+                      </div>
+                      <div className="cm-body cm-body--scroll">
+                        <div className="cm-field">
+                          <label className="cm-label">Bài học <span className="cm-required">*</span></label>
+                          <select className="cm-select" value={quizForm.lesson} onChange={e => setQuizForm(f => ({ ...f, lesson: e.target.value }))}>
+                            <option value="">-- Chọn bài học --</option>
+                            {lessons.map(l => {
+                              const sec = sections.find(s => s.id === (l.section?.id ?? l.section));
+                              const course = courses.find(c => c.id === (sec?.course?.id ?? sec?.course));
+                              return <option key={l.id} value={l.id}>{course?.title ? `[${course.title}] ` : ''}{sec?.title ? `${sec.title} / ` : ''}{l.title}</option>;
+                            })}
+                          </select>
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Tên bài kiểm tra <span className="cm-required">*</span></label>
+                          <input className="cm-input" type="text" placeholder="Ví dụ: Kiểm tra chương 1" value={quizForm.title} onChange={e => setQuizForm(f => ({ ...f, title: e.target.value }))} />
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Hướng dẫn</label>
+                          <textarea className="cm-textarea" rows={2} value={quizForm.description} onChange={e => setQuizForm(f => ({ ...f, description: e.target.value }))} />
+                        </div>
+                        <div className="cm-row">
+                          <div className="cm-field">
+                            <label className="cm-label">Điểm đạt (%)</label>
+                            <input className="cm-input" type="number" min={0} max={100} value={quizForm.pass_score} onChange={e => setQuizForm(f => ({ ...f, pass_score: e.target.value }))} />
+                          </div>
+                          <div className="cm-field">
+                            <label className="cm-label">Thời gian (phút) <span className="cm-hint">— 0 = không giới hạn</span></label>
+                            <input className="cm-input" type="number" min={0} value={quizForm.time_limit} onChange={e => setQuizForm(f => ({ ...f, time_limit: e.target.value }))} />
+                          </div>
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Số lần làm tối đa <span className="cm-hint">— 0 = không giới hạn</span></label>
+                          <input className="cm-input" type="number" min={0} value={quizForm.max_attempts} onChange={e => setQuizForm(f => ({ ...f, max_attempts: e.target.value }))} />
+                        </div>
+                        {quizError && <p className="cm-error">{quizError}</p>}
+                      </div>
+                      <div className="cm-footer">
+                        <button className="cm-btn cm-btn--save" onClick={handleSaveQuiz} disabled={savingQuiz}>{savingQuiz ? '⏳…' : isEdit ? 'Lưu thay đổi' : 'Tạo bài kiểm tra'}</button>
+                        <button className="cm-btn cm-btn--cancel" onClick={closeQuizModal} disabled={savingQuiz}>Hủy</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Question Modal */}
+              {questionModal && (() => {
+                if (questionModal === 'delete') return (
+                  <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeQuestionModal(); }}>
+                    <div className="cm-box cm-box--sm">
+                      <div className="cm-header">
+                        <h2 className="cm-title"><span className="cm-title-icon cm-title-icon--del">🗑</span>Xóa câu hỏi</h2>
+                        <button className="cm-close" onClick={closeQuestionModal}>✕</button>
+                      </div>
+                      <div className="cm-body">
+                        <p className="cm-delete-desc">Xóa câu hỏi:</p>
+                        <p className="cm-delete-name">"{selectedQ?.content?.slice(0, 80)}"</p>
+                        {questionError && <p className="cm-error">{questionError}</p>}
+                      </div>
+                      <div className="cm-footer">
+                        <button className="cm-btn cm-btn--danger" onClick={handleDeleteQuestion} disabled={savingQ}>{savingQ ? '⏳…' : 'Xóa'}</button>
+                        <button className="cm-btn cm-btn--cancel" onClick={closeQuestionModal} disabled={savingQ}>Hủy</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+                const isEdit = questionModal === 'edit';
+                return (
+                  <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeQuestionModal(); }}>
+                    <div className="cm-box">
+                      <div className="cm-header">
+                        <h2 className="cm-title"><span className={`cm-title-icon cm-title-icon--${isEdit ? 'edit' : 'add'}`}>{isEdit ? '✏' : '＋'}</span>{isEdit ? 'Chỉnh sửa câu hỏi' : 'Thêm câu hỏi'}</h2>
+                        <button className="cm-close" onClick={closeQuestionModal}>✕</button>
+                      </div>
+                      <div className="cm-body cm-body--scroll">
+                        <div className="cm-row">
+                          <div className="cm-field">
+                            <label className="cm-label">Loại câu hỏi</label>
+                            <select className="cm-select" value={questionForm.question_type} onChange={e => setQuestionForm(f => ({ ...f, question_type: e.target.value }))}>
+                              <option value="single">Chọn 1 đáp án</option>
+                              <option value="multiple">Chọn nhiều đáp án</option>
+                              <option value="true_false">Đúng / Sai</option>
+                            </select>
+                          </div>
+                          <div className="cm-field">
+                            <label className="cm-label">Điểm</label>
+                            <input className="cm-input" type="number" min={1} value={questionForm.points} onChange={e => setQuestionForm(f => ({ ...f, points: e.target.value }))} />
+                          </div>
+                          <div className="cm-field">
+                            <label className="cm-label">Thứ tự</label>
+                            <input className="cm-input" type="number" min={1} value={questionForm.order_index} onChange={e => setQuestionForm(f => ({ ...f, order_index: e.target.value }))} />
+                          </div>
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Nội dung câu hỏi <span className="cm-required">*</span></label>
+                          <textarea className="cm-textarea" rows={3} value={questionForm.content} onChange={e => setQuestionForm(f => ({ ...f, content: e.target.value }))} />
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Giải thích đáp án</label>
+                          <textarea className="cm-textarea" rows={2} value={questionForm.explanation} onChange={e => setQuestionForm(f => ({ ...f, explanation: e.target.value }))} />
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Đáp án <span className="cm-required">*</span></label>
+                          {questionForm.answers.map((ans, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                              <input type={questionForm.question_type === 'multiple' ? 'checkbox' : 'radio'} checked={ans.is_correct}
+                                onChange={e => {
+                                  const next = [...questionForm.answers];
+                                  if (questionForm.question_type !== 'multiple') next.forEach((a, i) => { next[i] = { ...a, is_correct: false }; });
+                                  next[idx] = { ...next[idx], is_correct: e.target.checked };
+                                  setQuestionForm(f => ({ ...f, answers: next }));
+                                }}
+                                style={{ flexShrink: 0, accentColor: '#4caf82' }} />
+                              <input className="cm-input" type="text" placeholder={`Đáp án ${idx + 1}`} value={ans.content}
+                                onChange={e => { const next = [...questionForm.answers]; next[idx] = { ...next[idx], content: e.target.value }; setQuestionForm(f => ({ ...f, answers: next })); }}
+                                style={{ flex: 1 }} />
+                              {questionForm.answers.length > 2 && (
+                                <button onClick={() => setQuestionForm(f => ({ ...f, answers: f.answers.filter((_, i) => i !== idx) }))}
+                                  style={{ background: 'none', border: 'none', color: '#e07a5f', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>✕</button>
+                              )}
+                            </div>
+                          ))}
+                          <button onClick={() => setQuestionForm(f => ({ ...f, answers: [...f.answers, { content: '', is_correct: false, order_index: f.answers.length }] }))}
+                            style={{ fontSize: 12, color: '#5ba4de', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>＋ Thêm đáp án</button>
+                        </div>
+                        {questionError && <p className="cm-error">{questionError}</p>}
+                      </div>
+                      <div className="cm-footer">
+                        <button className="cm-btn cm-btn--save" onClick={handleSaveQuestion} disabled={savingQ}>{savingQ ? '⏳…' : isEdit ? 'Lưu thay đổi' : 'Thêm câu hỏi'}</button>
+                        <button className="cm-btn cm-btn--cancel" onClick={closeQuestionModal} disabled={savingQ}>Hủy</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {renderAttemptModal()}
+            </div>
+          )}
+          
+          {/* ════ ENROLLMENTS ════ */}
+          {activeTab === 'enrollments' && (
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Đăng ký học</h1>
+                <p className="ad-page-sub">
+                  {loadingEnrollments
+                    ? 'Đang tải…'
+                    : `${filteredEnrollments.length} / ${enrollments.length} lượt đăng ký`}
+                </p>
+              </div>
+              <div className="ad-filters">
+                <input
+                  className="ad-search"
+                  type="search"
+                  placeholder="Tìm theo tên học viên, khóa học..."
+                  value={searchEnrollment}
+                  onChange={e => setSearchEnrollment(e.target.value)}
+                />
+                <select
+                  className="ad-select"
+                  value={filterEnrollStatus}
+                  onChange={e => setFilterEnrollStatus(e.target.value)}
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="active">Đang học</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="cancelled">Đã huỷ</option>
+                </select>
+                {(searchEnrollment || filterEnrollStatus) && (
+                  <button className="filter-clear"
+                    onClick={() => { setSearchEnrollment(''); setFilterEnrollStatus(''); }}>
+                    ✕ Xoá lọc
+                  </button>
+                )}
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Học viên</th>
+                      <th>Khóa học</th>
+                      <th>Ngày đăng ký</th>
+                      <th>Tiến độ</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingEnrollments ? (
+                      <tr><td colSpan={5} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                    ) : filteredEnrollments.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                          🔍 Không tìm thấy lượt đăng ký phù hợp.
+                        </td>
+                      </tr>
+                    ) : filteredEnrollments.map(e => {
+                      const status   = e.status ?? 'active';
+                      const progress = e.progress_pct ?? e.progress_percent ?? null;
+                      const ENROLL_STATUS: Record<string, string> = {
+                        active: 'Đang học', completed: 'Hoàn thành',
+                        cancelled: 'Đã huỷ', refunded: 'Đã hoàn tiền',
+                      };
+                      const ENROLL_BADGE: Record<string, string> = {
+                        active: 'ad-badge--status-active', completed: 'ad-badge--pay-success',
+                        cancelled: 'ad-badge--status-banned', refunded: 'ad-badge--pay-refunded',
+                      };
+                      return (
+                        <tr key={e.id}>
+                          <td>
+                            <div className="ad-user-cell">
+                              <span className="ad-user-cell__name">
+                                {e.student_name ?? e.student?.full_name ?? '—'}
+                              </span>
+                              <span className="ad-user-cell__email">
+                                {e.student_email ?? e.student?.email ?? ''}
+                              </span>
                             </div>
                           </td>
-                          <td className="id-table__muted">{s.lastActive || s.joinedDate}</td>
+                          <td className="ad-table__title">
+                            {e.course_title ?? e.course?.title ?? '—'}
+                          </td>
+                          <td className="ad-table__muted">
+                            {e.enrolled_at
+                              ? new Date(e.enrolled_at).toLocaleDateString('vi-VN')
+                              : '—'}
+                          </td>
+                          <td>
+                            {progress !== null ? (
+                              <div className="ad-progress">
+                                <div className="ad-progress__bar">
+                                  <div className="ad-progress__fill"
+                                    style={{ width: `${Math.min(100, Math.round(progress))}%` }} />
+                                </div>
+                                <span className="ad-progress__label">{Math.round(progress)}%</span>
+                              </div>
+                            ) : (
+                              <span style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>—</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`ad-badge ${ENROLL_BADGE[status] ?? ''}`}>
+                              {ENROLL_STATUS[status] ?? status}
+                            </span>
+                          </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
 
-          {/* ════ QA ════ */}
-          {activeTab === 'qa' && (
-            <div className="id-content">
-              <div className="id-page-header id-page-header--row">
-                <div>
-                  <h1 className="id-page-title">Hỏi & Đáp</h1>
-                  <p className="id-page-sub">{filteredQA.length} câu hỏi · {pendingCount} chưa trả lời</p>
-                </div>
-                <div className="id-chart-filters">
-                  {(['all', 'pending', 'resolved'] as QAFilter[]).map(f => (
-                    <button
-                      key={f}
-                      className={`id-chart-filter-btn${qaFilter === f ? ' id-chart-filter-btn--active' : ''}`}
-                      onClick={() => setQaFilter(f)}
-                    >
-                      {f === 'all' ? 'Tất cả' : f === 'pending' ? `Chờ (${pendingCount})` : 'Đã trả lời'}
-                    </button>
-                  ))}
-                </div>
+          {/* ════ PAYMENTS ════ */}
+          {activeTab === 'payments' && (
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Thanh toán</h1>
+                <p className="ad-page-sub">
+                  {loadingPayments ? 'Đang tải…' : `${filteredPayments.length} / ${payments.length} giao dịch`}
+                </p>
+              </div>
+              <div className="ad-filters">
+                <input className="ad-search" type="search"
+                  placeholder="Tìm theo học viên, khóa học..."
+                  value={searchPayment}
+                  onChange={e => setSearchPayment(e.target.value)} />
+                <select className="ad-select" value={filterPayStatus}
+                  onChange={e => setFilterPayStatus(e.target.value)}>
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="success">Thành công</option>
+                  <option value="pending">Chờ xử lý</option>
+                  <option value="refund_requested">Yêu cầu hoàn</option>
+                  <option value="refunded">Đã hoàn tiền</option>
+                  <option value="failed">Thất bại</option>
+                </select>
+                {(searchPayment || filterPayStatus) && (
+                  <button className="filter-clear"
+                    onClick={() => { setSearchPayment(''); setFilterPayStatus(''); }}>
+                    ✕ Xoá lọc
+                  </button>
+                )}
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Học viên</th><th>Khóa học</th>
+                      <th>Số tiền</th><th>Ngày</th>
+                      <th>Trạng thái</th><th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingPayments ? (
+                      <tr><td colSpan={6} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                    ) : filteredPayments.length === 0 ? (
+                      <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                        🔍 Không có giao dịch nào.
+                      </td></tr>
+                    ) : filteredPayments.map(p => {
+                      const status = p.status ?? 'pending';
+                      return (
+                        <tr key={p.id}>
+                          <td>
+                            <div className="ad-user-cell">
+                              <span className="ad-user-cell__name">{p.student_name ?? '—'}</span>
+                              <span className="ad-user-cell__email">{p.student_email ?? ''}</span>
+                            </div>
+                          </td>
+                          <td className="ad-table__title">{p.course_title ?? '—'}</td>
+                          <td style={{ color: '#4caf82', fontWeight: 600 }}>
+                            {formatPrice(p.amount ?? p.price ?? 0, 'VND')}
+                          </td>
+                          <td className="ad-table__muted">
+                            {p.created_at ? new Date(p.created_at).toLocaleDateString('vi-VN') : '—'}
+                          </td>
+                          <td>
+                            <span className={`ad-badge ad-badge--pay-${status}`}>
+                              {STATUS_LABEL[status] ?? status}
+                            </span>
+                          </td>
+                          <td>
+                            <button className="ad-btn-sm ad-btn-sm--view"
+                              onClick={() => openPaymentDetail(p.id)}>
+                              Xem
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
 
-              <div className="id-qa-list">
-                {loadingQA ? (
-                  <p className="id-muted">Đang tải…</p>
-                ) : filteredQA.length === 0 ? (
-                  <p className="id-qa-empty">Không có câu hỏi nào.</p>
-                ) : (
-                  filteredQA.map((qa: any) => (
-                    <div key={qa.id} className={`id-qa-card id-qa-card--${qa.resolved ? 'resolved' : 'pending'}`}>
-                      <div className="id-qa-question">
-                        <div className="id-qa-question__top">
-                          {qa.student?.avatar
-                            ? <img className="id-qa-question__avatar" src={qa.student.avatar} alt={qa.student?.name ?? ''} />
-                            : (
-                              <div className="id-qa-question__avatar" style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: '#1B263B', color: '#778da9', fontWeight: 700, fontSize: 14,
-                              }}>
-                                {(qa.student?.name ?? qa.student_name ?? '?').charAt(0)}
-                              </div>
-                            )
-                          }
-                          <div>
-                            <div className="id-qa-question__name">{qa.student?.name ?? qa.student_name ?? '—'}</div>
-                            <div className="id-qa-question__meta">
-                              {qa.course ?? qa.course_title ?? ''}{qa.lesson ? ` · ${qa.lesson}` : ''} · {qa.askedAt ?? qa.created_at ?? ''}
+              {/* Payment Detail Modal */}
+              {showPaymentModal && (
+                <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closePaymentDetail(); }}>
+                  <div className="cm-box cm-box--sm">
+                    <div className="cm-header">
+                      <h2 className="cm-title">Chi tiết giao dịch</h2>
+                      <button className="cm-close" onClick={closePaymentDetail}>✕</button>
+                    </div>
+                    <div className="cm-body">
+                      {loadingDetail ? (
+                        <div className="cm-loading"><span className="cm-loading__spinner" /><span>Đang tải…</span></div>
+                      ) : !paymentDetail ? (
+                        <p style={{ color: 'var(--color-text-secondary)' }}>Không tìm thấy giao dịch.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {[
+                            { label: 'Học viên',   value: paymentDetail.student_name ?? '—' },
+                            { label: 'Email',      value: paymentDetail.student_email ?? '—' },
+                            { label: 'Khóa học',   value: paymentDetail.course_title ?? '—' },
+                            { label: 'Số tiền',    value: formatPrice(paymentDetail.amount ?? 0, 'VND') },
+                            { label: 'Trạng thái', value: STATUS_LABEL[paymentDetail.status] ?? paymentDetail.status ?? '—' },
+                            { label: 'Ngày',       value: paymentDetail.created_at ? new Date(paymentDetail.created_at).toLocaleString('vi-VN') : '—' },
+                            { label: 'Mã GD',      value: paymentDetail.transaction_code ?? paymentDetail.id ?? '—' },
+                          ].map(item => (
+                            <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12,
+                              padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{item.label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textAlign: 'right' }}>
+                                {item.value}
+                              </span>
                             </div>
-                          </div>
-                          <span className={`id-qa-question__status id-qa-question__status--${qa.resolved ? 'resolved' : 'pending'}`}>
-                            {qa.resolved ? '✓ Đã trả lời' : '⏳ Chờ trả lời'}
-                          </span>
-                        </div>
-                        <p className="id-qa-question__text">{qa.question ?? qa.content ?? ''}</p>
-                      </div>
-
-                      {(qa.replies ?? []).map((rep: any, i: number) => (
-                        <div key={i} className={`id-qa-reply ${rep.isInstructor ? 'id-qa-reply--instructor' : 'id-qa-reply--student'}`}>
-                          <div className="id-qa-reply__avatar-placeholder">
-                            {rep.isInstructor ? 'GV' : rep.author?.charAt(0) ?? '?'}
-                          </div>
-                          <div>
-                            <div className="id-qa-reply__author">
-                              {rep.author}
-                              {rep.isInstructor && <span className="id-qa-reply__instructor-tag"> · Giảng viên</span>}
+                          ))}
+                          {/* LÝ DO HOÀN TIỀN — thêm sau phần .map(item => ...) */}
+                          {(paymentDetail.status === 'refund_requested' || paymentDetail.refund_reason) && (
+                            <div style={{
+                              marginTop: 4, padding: '10px 12px', borderRadius: 8,
+                              background: 'rgba(255, 193, 7, 0.07)',
+                              border: '1px solid rgba(255, 193, 7, 0.22)',
+                              display: 'flex', flexDirection: 'column', gap: 6,
+                            }}>
+                              <span>
+                                Lý do hoàn tiền
+                              </span>
+                              <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
+                                {paymentDetail.refund_reason?.trim()
+                                  ? paymentDetail.refund_reason
+                                  : <em style={{ color: 'var(--color-text-secondary)' }}>Học viên không để lại lý do.</em>
+                                }
+                              </p>
                             </div>
-                            <p className="id-qa-reply__text">{rep.text ?? rep.content ?? ''}</p>
-                            <div className="id-qa-reply__time">{rep.time ?? rep.created_at ?? ''}</div>
-                          </div>
-                        </div>
-                      ))}
-
-                      {!qa.resolved && (
-                        <div className="id-qa-action">
-                          {openReply === qa.id ? (
-                            <div className="id-qa-reply-form">
-                              <textarea
-                                className="id-qa-reply-form__textarea"
-                                rows={2}
-                                placeholder="Nhập câu trả lời của bạn..."
-                                value={replyTexts[qa.id] || ''}
-                                onChange={e => setReplyTexts(r => ({ ...r, [qa.id]: e.target.value }))}
-                              />
-                              <div className="id-qa-reply-form__actions">
-                                <button className="id-btn-secondary" onClick={() => setOpenReply(null)}>Hủy</button>
-                                <button className="id-btn-primary" onClick={() => handleReplyQA(qa.id)}>Gửi trả lời</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button className="id-btn-sm" onClick={() => setOpenReply(qa.id)}>
-                              ✎ Trả lời câu hỏi này
-                            </button>
                           )}
                         </div>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
+                    <div className="cm-footer">
+                      <button className="cm-btn cm-btn--cancel" onClick={closePaymentDetail}>Đóng</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* ════ REVIEWS ════ */}
           {activeTab === 'reviews' && (
-            <div className="id-content">
-              <div className="id-page-header id-page-header--row">
-                <div>
-                  <h1 className="id-page-title">Đánh giá khóa học</h1>
-                  <p className="id-page-sub">
-                    {filteredReviews.length} đánh giá{avgRating !== '—' ? ` · Trung bình ${avgRating} ★` : ''}
-                  </p>
-                </div>
-                {reviewCourseOptions.length > 1 && (
-                  <select
-                    className="id-field__input id-review-course-select"
-                    value={reviewCourseFilter}
-                    onChange={e => setReviewCourseFilter(e.target.value)}
-                  >
-                    <option value="all">Tất cả khóa học</option>
-                    {reviewCourseOptions.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Đánh giá khóa học</h1>
+                <p className="ad-page-sub">
+                  {loadingReviews ? 'Đang tải…' : `${filteredReviews.length} / ${reviews.length} đánh giá`}
+                </p>
+              </div>
+              <div className="ad-filters">
+                <input className="ad-search" type="search"
+                  placeholder="Tìm theo học viên, khóa học, nội dung..."
+                  value={searchReview} onChange={e => setSearchReview(e.target.value)} />
+                <select className="ad-select" value={filterReviewRating}
+                  onChange={e => setFilterReviewRating(e.target.value)}>
+                  <option value="">Tất cả số sao</option>
+                  {[5,4,3,2,1].map(s => <option key={s} value={String(s)}>{s} sao</option>)}
+                </select>
+                <select className="ad-select" value={filterReviewCourse}
+                  onChange={e => setFilterReviewCourse(e.target.value)}>
+                  <option value="">Tất cả khóa học</option>
+                  {courses.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+                </select>
+                {(searchReview || filterReviewRating || filterReviewCourse) && (
+                  <button className="filter-clear"
+                    onClick={() => { setSearchReview(''); setFilterReviewRating(''); setFilterReviewCourse(''); }}>
+                    ✕ Xoá lọc
+                  </button>
                 )}
               </div>
-
-              {/* Summary — chỉ hiển thị khi xem tất cả hoặc có đủ data */}
-              {filteredReviews.length > 0 && (
-                <div className="id-review-summary">
-                  <div className="id-review-summary__score">
-                    <div className="id-review-summary__big">
-                      {filteredReviews.length > 0
-                        ? (filteredReviews.reduce((a, r) => a + Number(r.rating), 0) / filteredReviews.length).toFixed(1)
-                        : '—'}
-                    </div>
-                    <div className="id-review-summary__stars">★★★★★</div>
-                    <div className="id-review-summary__sub">Điểm trung bình</div>
-                  </div>
-                  <div className="id-review-summary__bars">
-                    {[5, 4, 3, 2, 1].map(star => {
-                      const count = filteredReviews.filter(r => Math.round(Number(r.rating)) === star).length;
-                      const pct   = filteredReviews.length > 0 ? Math.round((count / filteredReviews.length) * 100) : 0;
-                      return (
-                        <div key={star} className="id-review-bar-row">
-                          <span className="id-review-bar-label">{star} ★</span>
-                          <div className="id-review-bar-track">
-                            <div className="id-review-bar-fill" style={{ width: `${pct}%` }} />
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Học viên</th><th>Khóa học</th>
+                      <th>Số sao</th><th>Nhận xét</th>
+                      <th>Trạng thái</th><th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingReviews ? (
+                      <tr><td colSpan={6} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                    ) : filteredReviews.length === 0 ? (
+                      <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                        🔍 Không tìm thấy đánh giá nào.
+                      </td></tr>
+                    ) : filteredReviews.map(r => (
+                      <tr key={r.id} style={{ opacity: r.is_hidden ? 0.5 : 1 }}>
+                        <td>
+                          <div className="ad-user-cell">
+                            <span className="ad-user-cell__name">{r.student_name ?? '—'}</span>
+                            <span className="ad-user-cell__email">{r.student_email ?? ''}</span>
                           </div>
-                          <span className="id-review-bar-pct">{pct}%</span>
+                        </td>
+                        <td className="ad-table__title">{r.course_title ?? '—'}</td>
+                        <td>
+                          <span style={{ color: '#f5a623' }}>{'★'.repeat(r.rating)}</span>
+                          <span style={{ color: 'rgba(255,255,255,0.2)' }}>{'☆'.repeat(5 - r.rating)}</span>
+                        </td>
+                        <td className="ad-table__muted" title={r.comment}>
+                          {r.comment || <em>Không có nhận xét</em>}
+                        </td>
+                        <td>
+                          {r.is_reported
+                            ? <span className="ad-badge ad-review-badge--reported">🚩 Đã báo cáo</span>
+                            : r.is_hidden
+                              ? <span className="ad-badge ad-review-badge--hidden">Đã ẩn</span>
+                              : <span className="ad-badge ad-review-badge--visible">Hiển thị</span>
+                          }
+                        </td>
+                        <td>
+                          <div className="ad-actions">
+                            <button className="ad-btn-sm" onClick={() => openViewReview(r)}>Xem</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Modal xem chi tiết */}
+              {reviewModal === 'view' && selectedReview && (
+                <div className="ad-modal-overlay" onClick={closeReviewModal}>
+                  <div className="ad-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+                    <h2 className="ad-modal__title">Chi tiết đánh giá</h2>
+                    <div className="ad-modal__body">
+                      {[
+                        { label: 'Học viên', value: `${selectedReview.student_name ?? '—'} ${selectedReview.student_email ? `(${selectedReview.student_email})` : ''}` },
+                        { label: 'Khóa học', value: selectedReview.course_title ?? '—' },
+                        { label: 'Ngày đánh giá', value: selectedReview.created_at ? new Date(selectedReview.created_at).toLocaleString('vi-VN') : '—' },
+                      ].map(item => (
+                        <div key={item.label} className="ad-modal__field">
+                          <span className="ad-modal__field-label">{item.label}</span>
+                          <span className="ad-modal__field-value">{item.value}</span>
                         </div>
-                      );
-                    })}
+                      ))}
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Số sao</span>
+                        <span>
+                          <span style={{ color: '#f5a623' }}>{'★'.repeat(selectedReview.rating)}</span>
+                          <span style={{ color: 'rgba(255,255,255,0.2)' }}>{'☆'.repeat(5 - selectedReview.rating)}</span>
+                          <span style={{ marginLeft: 6, fontSize: 12, opacity: 0.6 }}>{selectedReview.rating}/5</span>
+                        </span>
+                      </div>
+                      <div className="ad-modal__field" style={{ alignItems: 'flex-start' }}>
+                        <span className="ad-modal__field-label">Nhận xét</span>
+                        {selectedReview.comment
+                          ? <p className="ad-modal__field-value--comment" style={{ margin: 0, textAlign: 'right' }}>
+                              {selectedReview.comment}
+                            </p>
+                          : <span className="ad-modal__field-value--empty">Không có nhận xét</span>}
+                      </div>
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Trạng thái</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          {selectedReview.is_hidden
+                            ? <span className="ad-badge ad-review-badge--hidden">Đang ẩn</span>
+                            : <span className="ad-badge ad-review-badge--visible">Đang hiển thị</span>}
+                          {!selectedReview.is_hidden && (
+                            <button className="ad-btn-sm ad-btn-sm--refund"
+                              onClick={() => { closeReviewModal(); openReportModal(selectedReview); }}>
+                              Báo cáo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="ad-modal__footer">
+                      <button className="ad-modal__cancel" onClick={closeReviewModal}>Đóng</button>
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="id-review-list">
-                {loadingReviews ? (
-                  <p className="id-muted">Đang tải…</p>
-                ) : filteredReviews.length === 0 ? (
-                  <p className="id-muted">Chưa có đánh giá nào.</p>
-                ) : (
-                  filteredReviews.map((rv: any) => (
-                    <div key={rv.id} className="id-review-card">
-                      <div className="id-review-card__body">
-                        <div className="id-review-card__top">
-                          {rv.student?.avatar
-                            ? <img className="id-review-card__avatar" src={rv.student.avatar} alt={rv.student?.name ?? ''} />
-                            : (
-                              <div className="id-review-card__avatar" style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: '#1B263B', color: '#778da9', fontWeight: 700, fontSize: 14,
-                              }}>
-                                {(rv.student?.name ?? rv.student_name ?? '?').charAt(0)}
-                              </div>
-                            )
-                          }
-                          <div>
-                            <div className="id-review-card__name">{rv.student?.name ?? rv.student_name ?? '—'}</div>
-                            <div className="id-review-card__course">
-                              {rv.course ?? rv.course_title ?? ''} · {(rv.date ?? rv.created_at ?? '').slice(0, 10)}
-                            </div>
-                          </div>
-                          <div className="id-review-card__stars">
-                            {'★'.repeat(Math.round(Number(rv.rating)))}
-                            {'☆'.repeat(5 - Math.round(Number(rv.rating)))}
-                          </div>
+              {/* Modal báo cáo đánh giá */}
+              {reportModal && reportingReview && (
+                <div className="ad-modal-overlay" onClick={() => !submittingReport && setReportModal(false)}>
+                  <div className="ad-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+                    <h2 className="ad-modal__title">🚩 Báo cáo đánh giá</h2>
+                    <div className="ad-modal__body">
+                      {/* Tóm tắt review bị báo cáo */}
+                      <div style={{
+                        padding: '10px 12px', borderRadius: 8, marginBottom: 12,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                      }}>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 4 }}>
+                          {reportingReview.student_name ?? '—'} · {reportingReview.course_title ?? '—'}
                         </div>
-                        <p className="id-review-card__comment">{rv.comment ?? rv.content ?? ''}</p>
+                        <div>
+                          <span style={{ color: '#f5a623' }}>{'★'.repeat(reportingReview.rating)}</span>
+                          <span style={{ color: 'rgba(255,255,255,0.15)' }}>{'☆'.repeat(5 - reportingReview.rating)}</span>
+                        </div>
+                        {reportingReview.comment && (
+                          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--color-text-primary)', lineHeight: 1.5 }}>
+                            "{reportingReview.comment}"
+                          </p>
+                        )}
                       </div>
 
-                      {rv.replied && rv.replyText && (
-                        <div className="id-review-reply">
-                          <div className="id-review-reply__avatar-placeholder">GV</div>
-                          <div>
-                            <div className="id-review-reply__author">
-                              {user?.full_name || 'Giảng viên'}
-                              <span className="id-review-reply__tag"> · Giảng viên</span>
-                            </div>
-                            <p className="id-review-reply__text">{rv.replyText}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {!rv.replied && (
-                        <div className="id-review-action">
-                          {openReviewReply === rv.id ? (
-                            <div className="id-review-reply-form">
-                              <textarea
-                                className="id-review-reply-form__textarea"
-                                rows={2}
-                                placeholder="Phản hồi đánh giá này..."
-                                value={reviewReply[rv.id] || ''}
-                                onChange={e => setReviewReply(r => ({ ...r, [rv.id]: e.target.value }))}
-                              />
-                              <div className="id-review-reply-form__actions">
-                                <button className="id-btn-secondary" onClick={() => setOpenReviewReply(null)}>Hủy</button>
-                                <button className="id-btn-primary" onClick={() => handleReplyReview(rv.id)}>Gửi phản hồi</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button className="id-btn-sm" onClick={() => setOpenReviewReply(rv.id)}>
-                              ✎ Phản hồi đánh giá
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      {/* Ô nhập lý do */}
+                      <label style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 6 }}>
+                        Lý do báo cáo <span style={{ color: '#f5a623' }}>*</span>
+                      </label>
+                      <textarea
+                        rows={4}
+                        placeholder="Mô tả lý do bạn cho rằng đánh giá này vi phạm..."
+                        value={reportReason}
+                        onChange={e => setReportReason(e.target.value)}
+                        style={{
+                          width: '100%', boxSizing: 'border-box',
+                          padding: '10px 12px', borderRadius: 8,
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          color: 'var(--color-text-primary)',
+                          fontSize: 13, lineHeight: 1.6, resize: 'vertical',
+                          outline: 'none',
+                        }}
+                      />
+                      <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                        Admin sẽ xem xét và quyết định ẩn hoặc xóa đánh giá này.
+                      </p>
                     </div>
-                  ))
-                )}
-              </div>
+                    <div className="ad-modal__footer">
+                      <button
+                        className="ad-btn-sm ad-btn-sm--refund"
+                        onClick={handleSubmitReport}
+                        disabled={submittingReport || !reportReason.trim()}
+                      >
+                        {submittingReport ? 'Đang gửi…' : '🚩 Gửi báo cáo'}
+                      </button>
+                      <button
+                        className="ad-modal__cancel"
+                        onClick={() => setReportModal(false)}
+                        disabled={submittingReport}
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
+          {/* ════ COURSE MODAL (cm-* styles, giống Admin) ════ */}
+          {showCourseModal && (
+            <div className="cm-overlay" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+              <div className="cm-box">
+
+                {/* Header */}
+                <div className="cm-header">
+                  <h2 className="cm-title">
+                    <span className={`cm-title-icon ${editingCourseId ? 'cm-title-icon--edit' : 'cm-title-icon--add'}`}>
+                      {editingCourseId ? '✏️' : '➕'}
+                    </span>
+                    {editingCourseId ? 'Chỉnh sửa khóa học' : 'Tạo khóa học mới'}
+                  </h2>
+                  <button className="cm-close" onClick={closeModal}>✕</button>
+                </div>
+
+                {/* Body */}
+                <div className="cm-body cm-body--scroll">
+                  {editCourseLoading && !editCourseForm.title ? (
+                    <div className="cm-loading">
+                      <div className="cm-loading__spinner" />
+                      Đang tải…
+                    </div>
+                  ) : (
+                    <>
+                      {/* Tên khóa học */}
+                      <div className="cm-field">
+                        <label className="cm-label">
+                          Tên khóa học <span className="cm-required">*</span>
+                        </label>
+                        <input
+                          className="cm-input"
+                          placeholder="Ví dụ: Tiếng Anh giao tiếp cơ bản"
+                          value={editCourseForm.title}
+                          onChange={e => setEditCourseForm(f => ({ ...f, title: e.target.value }))}
+                        />
+                      </div>
+
+                      {/* Mô tả */}
+                      <div className="cm-field">
+                        <label className="cm-label">Mô tả chi tiết</label>
+                        <textarea
+                          className="cm-textarea"
+                          rows={3}
+                          placeholder="Mô tả nội dung, mục tiêu khóa học…"
+                          value={editCourseForm.description}
+                          onChange={e => setEditCourseForm(f => ({ ...f, description: e.target.value }))}
+                        />
+                      </div>
+
+                      {/* Ảnh bìa */}
+                      <div className="cm-field">
+                        <label className="cm-label">Ảnh bìa (thumbnail)</label>
+                        {editingCourseId && !editCourseForm.thumbnail && (() => {
+                          const src = thumbSrc(courses.find(c => c.id === editingCourseId)?.thumbnail ?? null);
+                          return src ? (
+                            <div className="cm-thumb-preview">
+                              <img src={src} alt="Ảnh bìa hiện tại" className="cm-thumb-img" />
+                              <span className="cm-thumb-hint">Chọn file mới để thay thế</span>
+                            </div>
+                          ) : null;
+                        })()}
+                        <input
+                          className="cm-input cm-input--file"
+                          type="file"
+                          accept="image/*"
+                          key={editingCourseId ?? 'new'}
+                          onChange={e => setEditCourseForm(f => ({ ...f, thumbnail: e.target.files?.[0] ?? null }))}
+                        />
+                        {thumbPreviewUrl && (
+                          <div className="cm-thumb-preview">
+                            <img src={thumbPreviewUrl} alt="Xem trước" className="cm-thumb-img" />
+                            <button
+                              className="cm-thumb-remove"
+                              onClick={() => setEditCourseForm(f => ({ ...f, thumbnail: null }))}
+                            >✕ Bỏ chọn</button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Học phí + Giảm giá */}
+                      <div className="cm-row">
+                        <div className="cm-field">
+                          <label className="cm-label">Học phí gốc (VNĐ)</label>
+                          <input
+                            className="cm-input"
+                            type="number"
+                            min={0}
+                            value={editCourseForm.price}
+                            onChange={e => setEditCourseForm(f => ({ ...f, price: e.target.value }))}
+                          />
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Giảm giá (%)</label>
+                          <input
+                            className="cm-input"
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={editCourseForm.discount_percent}
+                            onChange={e => setEditCourseForm(f => ({ ...f, discount_percent: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <p className="cm-preview-price">
+                        Giá bán: <strong>{previewSalePrice()}</strong>
+                      </p>
+
+                      {/* Trình độ + Trạng thái */}
+                      <div className="cm-row">
+                        <div className="cm-field">
+                          <label className="cm-label">Trình độ</label>
+                          <select
+                            className="cm-select"
+                            value={editCourseForm.level}
+                            onChange={e => setEditCourseForm(f => ({ ...f, level: e.target.value }))}
+                          >
+                            <option value="beginner">Cơ bản</option>
+                            <option value="intermediate">Trung cấp</option>
+                            <option value="advanced">Nâng cao</option>
+                          </select>
+                        </div>
+                        <div className="cm-field">
+                          <label className="cm-label">Trạng thái</label>
+                          <select
+                            className="cm-select"
+                            value={editCourseForm.status}
+                            onChange={e => setEditCourseForm(f => ({ ...f, status: e.target.value }))}
+                          >
+                            <option value="draft">Nháp</option>
+                            <option value="review">Chờ duyệt</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Danh mục */}
+                      <div className="cm-field">
+                        <label className="cm-label">Danh mục</label>
+                        <select
+                          className="cm-select"
+                          value={editCourseForm.category}
+                          onChange={e => setEditCourseForm(f => ({ ...f, category: e.target.value }))}
+                        >
+                          <option value="">-- Không có --</option>
+                          {categories.map(cat => (
+                            <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Yêu cầu đầu vào */}
+                      <div className="cm-field">
+                        <label className="cm-label">Yêu cầu đầu vào</label>
+                        <textarea
+                          className="cm-textarea"
+                          rows={2}
+                          placeholder="Ví dụ: Biết đọc bảng chữ cái tiếng Anh…"
+                          value={editCourseForm.requirements}
+                          onChange={e => setEditCourseForm(f => ({ ...f, requirements: e.target.value }))}
+                        />
+                      </div>
+
+                      {/* Học được gì */}
+                      <div className="cm-field">
+                        <label className="cm-label">Học được gì</label>
+                        <textarea
+                          className="cm-textarea"
+                          rows={2}
+                          placeholder="Ví dụ: Giao tiếp tự tin trong các tình huống hàng ngày…"
+                          value={editCourseForm.what_you_learn}
+                          onChange={e => setEditCourseForm(f => ({ ...f, what_you_learn: e.target.value }))}
+                        />
+                      </div>
+
+                      {editCourseError && <p className="cm-error">{editCourseError}</p>}
+                    </>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="cm-footer">
+                  <button
+                    className="cm-btn cm-btn--save"
+                    onClick={handleSaveCourse}
+                    disabled={editCourseLoading}
+                  >
+                    {editCourseLoading ? '⏳ Đang lưu…' : editingCourseId ? 'Lưu thay đổi' : 'Tạo khóa học'}
+                  </button>
+                  <button className="cm-btn cm-btn--cancel" onClick={closeModal} disabled={editCourseLoading}>
+                    Hủy
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

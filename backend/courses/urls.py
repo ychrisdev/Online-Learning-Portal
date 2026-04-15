@@ -1,6 +1,7 @@
 """
 courses/urls.py  (ĐÃ SỬA — thêm admin/<uuid:id>/ cho CRUD)
 """
+
 from django.urls import path
 from .views import (
     AdminCourseApproveView,
@@ -31,6 +32,14 @@ from .views import (
     AdminReviewListView,    # ← thêm
     AdminReviewDetailView,
     AdminReviewToggleHideView,
+    InstructorCourseUnarchiveView,
+    InstructorCourseArchiveView,
+    InstructorSectionListCreateView,
+    InstructorSectionDetailView,
+    InstructorLessonListCreateView,
+    InstructorLessonDetailView,
+    InstructorReviewListView,
+    InstructorReviewReportView,
 )
 
 urlpatterns = [
@@ -55,6 +64,8 @@ urlpatterns = [
     # ── Admin Category ──────────────────────────────────────────────────────────────
     path('categories/<uuid:id>/', CategoryDetailView.as_view(), name='category-detail'),
     # ── Admin Reviews ─────────────────────────────────────────────────────────────
+    path('reviews/mine/', InstructorReviewListView.as_view(), name='instructor-review-list'),
+    path('reviews/report/<uuid:pk>/', InstructorReviewReportView.as_view(), name='instructor-review-report'),
     path('reviews/admin/',           AdminReviewListView.as_view(),   name='admin-review-list'),
     path('reviews/admin/<uuid:pk>/', AdminReviewDetailView.as_view(), name='admin-review-detail'),
     path('reviews/admin/<uuid:pk>/toggle-hide/', AdminReviewToggleHideView.as_view(), name='admin-review-toggle-hide'),
@@ -63,12 +74,18 @@ urlpatterns = [
     path('mine/',                  InstructorCourseListView.as_view(),   name='instructor-course-list'),
     path('mine/<uuid:id>/',        InstructorCourseDetailView.as_view(), name='instructor-course-detail'),
     path('mine/<uuid:id>/submit/', SubmitCourseReviewView.as_view(),     name='course-submit'),
+    path('mine/<uuid:id>/unarchive/', InstructorCourseUnarchiveView.as_view(), name='instructor-course-unarchive'),
+    path('mine/<uuid:id>/archive/',   InstructorCourseArchiveView.as_view(),   name='instructor-course-archive'),
 
     # ── Instructor — sections & lessons ───────────────────────────────────────
     path('<uuid:course_id>/sections/',          SectionListCreateView.as_view(), name='section-list'),
+    path('mine/sections/',           InstructorSectionListCreateView.as_view(), name='instructor-section-list'),
+    path('mine/sections/<uuid:id>/', InstructorSectionDetailView.as_view(),     name='instructor-section-detail'),
     path('sections/<uuid:section_id>/lessons/', LessonListCreateView.as_view(),  name='lesson-list'),
     path('lessons/<uuid:id>/',                  LessonDetailView.as_view(),      name='lesson-detail'),
     path('lessons/<uuid:id>/content/',          LessonContentView.as_view(),     name='lesson-content'),
+    path('mine/lessons/',           InstructorLessonListCreateView.as_view(), name='instructor-lesson-list'),
+    path('mine/lessons/<uuid:id>/', InstructorLessonDetailView.as_view(),     name='instructor-lesson-detail'),
 
     # ── Enroll ────────────────────────────────────────────────────────────────
     path('<uuid:id>/enroll/', EnrollCourseView.as_view(), name='course-enroll'),
