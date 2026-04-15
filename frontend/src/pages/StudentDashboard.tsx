@@ -990,7 +990,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                               <td><span className="ad-table__title">{a.quiz_title ?? '—'}</span></td>
                               <td className="ad-table__muted">{a.course_title ?? '—'}</td>
                               <td style={{ fontWeight: 600, color: a.passed ? '#4caf82' : '#e07a5f' }}>
-                                {Number(a.score).toFixed(1)}%
+                                {(() => {
+                                  const score10 = Number(a.score) / 10;
+                                  return `${Number.isInteger(score10) ? score10 : score10.toFixed(1)}`;
+                                })()}
                               </td>
                               <td>
                                 <span style={{
@@ -1131,7 +1134,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                         <th>Mã chứng chỉ</th>
                         <th>Ngày cấp</th>
                         <th>Trạng thái</th>
-                        <th>FIle chứng chỉ</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1164,27 +1166,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                             >
                               ✓ Hoàn thành
                             </span>
-                          </td>
-
-                          <td>
-                            {cert.cert_file ? (
-                              <a
-                                href={
-                                  cert.cert_file.startsWith('http')
-                                    ? cert.cert_file
-                                    : `${API}${cert.cert_file}`
-                                }
-                                target="_blank"
-                                rel="noreferrer"
-                                className="ad-btn-sm ad-btn-sm--view"
-                                style={{ textDecoration: 'none' }}
-                              >
-                                📄 Tải xuống
-                              </a>
-                            ) : (
-                              <span style={{ color: 'var(--color-text-secondary)' }}>—</span>
-                            )}
-                          </td>
+                          </td>                      
                         </tr>
                       ))}
                     </tbody>

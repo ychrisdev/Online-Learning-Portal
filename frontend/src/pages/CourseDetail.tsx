@@ -386,8 +386,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
         setReviewSent(true);
         const updated = await refreshAndRetry(`${API}/api/courses/${course.slug}/`);
         if (updated.ok) setCourse(await updated.json());
-        const rv = await refreshAndRetry(`${API}/api/courses/${course.slug}/reviews/`);
-        if (rv.ok) setReviews(await rv.json());
         const mine = await refreshAndRetry(`${API}/api/courses/${course.slug}/reviews/me/`);
         if (mine.ok) {
           const data = await mine.json();
@@ -1044,7 +1042,26 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ courseId, onNavigate, isLog
                       value={reviewText} onChange={(e) => setReviewText(e.target.value)} />
                     <button className="cd-btn-enroll cd-rv-submit"
                       disabled={!reviewRating || !reviewText.trim()}
-                      onClick={() => { if (!isLoggedIn) { onNavigate("auth"); return; } submitReview(reviewRating, reviewText); }}
+                      onClick={() => {
+                        if (!isLoggedIn) {
+                          onNavigate("auth");
+                          return;
+                        }
+
+                        const role = localStorage.getItem("role");
+
+                        if (role !== "student") {
+                          alert("Chỉ học viên mới được đánh giá.");
+                          return;
+                        }
+
+                        if (!isEnrolled) {
+                          alert("Bạn cần đăng ký khóa học trước khi đánh giá.");
+                          return;
+                        }
+
+                        submitReview(reviewRating, reviewText);
+                      }}
                     >
                       {isLoggedIn ? "Gửi đánh giá" : "Đăng nhập để đánh giá"}
                     </button>

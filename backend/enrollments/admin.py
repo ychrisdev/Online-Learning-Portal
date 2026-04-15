@@ -24,8 +24,8 @@ class ProgressInline(admin.TabularInline):
 class CertificateInline(admin.StackedInline):
     model = Certificate
     extra = 0
-    readonly_fields = ('cert_number', 'cert_file', 'issued_at')
-    fields = ('cert_number', 'cert_file', 'issued_at')
+    readonly_fields = ('cert_number', 'issued_at')
+    fields = ('cert_number', 'issued_at')
     can_delete = False
 
     def has_add_permission(self, request, obj=None):

@@ -49,7 +49,7 @@ class CertificateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Certificate
-        fields = ['id', 'cert_number', 'cert_file', 'issued_at', 'course_title']
+        fields = ['id', 'cert_number', 'issued_at', 'course_title']
 
 def _calc_progress_pct(obj):
     """Tính % tiến độ học — dùng chung cho Instructor và Admin serializer."""

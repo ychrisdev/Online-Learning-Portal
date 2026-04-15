@@ -194,9 +194,12 @@ class MyCertificateListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Certificate.objects.filter(
-            enrollment__student=self.request.user
-        ).select_related('enrollment__course')
+        return (
+            Certificate.objects
+            .filter(enrollment__student=self.request.user)
+            .select_related('enrollment__course')
+            .order_by('-issued_at')   # ✅ thêm dòng này
+        )
 
 
 # ── Instructor ────────────────────────────────────────────────────────────────

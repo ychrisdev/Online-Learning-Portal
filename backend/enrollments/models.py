@@ -97,7 +97,6 @@ class Certificate(models.Model):
         Enrollment, on_delete=models.CASCADE, related_name='certificate'
     )
     cert_number = models.CharField('Mã chứng chỉ', max_length=50, unique=True)
-    cert_file   = models.FileField('File chứng chỉ (PDF)', upload_to='certificates/', blank=True)
     issued_at   = models.DateTimeField('Ngày cấp', auto_now_add=True)
 
     class Meta:
