@@ -51,6 +51,7 @@ class QuestionWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Question
         fields = ['id', 'quiz', 'content', 'question_type', 'points', 'explanation', 'order_index', 'answers']
+        read_only_fields = ['quiz']
 
     def create(self, validated_data):
         answers_data = validated_data.pop('answers', [])

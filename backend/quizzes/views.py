@@ -51,19 +51,15 @@ class QuizListCreateView(generics.ListCreateAPIView):
 
 
 class QuizUpdateView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    GET / PUT / PATCH / DELETE /api/quizzes/<id>/
-    Instructor chỉnh sửa / xoá bài kiểm tra — 5.2.3
-    """
     serializer_class   = QuizWriteSerializer
     permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
     lookup_field       = 'id'
 
     def get_queryset(self):
-        if self.request.user.is_admin_user:
+        user = self.request.user
+        if getattr(user, 'role', None) == 'admin' or getattr(user, 'is_admin_user', False):
             return Quiz.objects.all()
-        return Quiz.objects.filter(lesson__section__course__instructor=self.request.user)
-
+        return Quiz.objects.filter(lesson__section__course__instructor=user)
 
 class QuestionListCreateView(generics.ListCreateAPIView):
     """
