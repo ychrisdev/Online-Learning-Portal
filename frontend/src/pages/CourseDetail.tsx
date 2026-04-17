@@ -971,7 +971,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                 <>
                                   {activeLesson.video_file && (
                                     <p className="cd-lesson__video-label">
-                                      🔗 Video từ URL
                                     </p>
                                   )}
                                   <iframe
@@ -988,7 +987,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                               <>
                                 {activeLesson.video_file && (
                                   <p className="cd-lesson__video-label">
-                                    🔗 Video từ URL
                                   </p>
                                 )}
                                 <video
@@ -1003,7 +1001,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           <>
                             {activeLesson.video_url && (
                               <p className="cd-lesson__video-label">
-                                📁 Video tải lên
                               </p>
                             )}
                             <video
@@ -1027,7 +1024,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     {activeLesson.attachment && (
                       <div className="cd-lesson__attachments">
                         <h4 className="cd-lesson__attachments-title">
-                          📎 Tài liệu đính kèm
+                          File tài liệu 
                         </h4>
                         <a
                           href={
@@ -1039,16 +1036,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           rel="noopener noreferrer"
                           className="cd-lesson__attach-item"
                         >
-                          <span className="cd-lesson__attach-icon">
-                            {getFileIcon(
-                              activeLesson.attachment_name ??
-                                activeLesson.attachment,
-                            )}
-                          </span>
+                          
                           <span className="cd-lesson__attach-link">
                             {activeLesson.attachment_name ?? "Tải tài liệu"}
                           </span>
-                          <span className="cd-lesson__attach-dl">⬇</span>
+                          <span className="cd-lesson__attach-dl"></span>
                         </a>
                       </div>
                     )}
@@ -1081,7 +1073,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                 ) : quizError ? (
                   <div className="cd-quiz__intro">
                     <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
-                    <div className="cd-quiz__blocked"> {quizError}</div>
+                    <div className="cd-quiz__blocked">
+                      {quizError === "No Quiz matches the given query."
+                        ? "Không tìm thấy bài kiểm tra"
+                        : quizError}
+                    </div>
                     <button
                       className="cd-btn-secondary"
                       onClick={() => setActiveTab("lesson")}
@@ -1568,47 +1564,38 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   {course.total_students?.toLocaleString() ?? 0} học viên
                 </span>
               </div>
-              <div className="cd-price-card__price-row">
-                <span className="cd-price-card__price">
-                  {(course.sale_price ?? course.price ?? 0) > 0
-                    ? formatPrice(course.sale_price ?? course.price ?? 0, "VND")
-                    : "Miễn phí"}
-                </span>
-                {discount > 0 && course.price > 0 && (
-                  <>
-                    <span className="cd-price-card__original">
-                      {formatPrice(course.price, "VND")}
-                    </span>
-                    <span className="cd-price-card__discount">
-                      -{discount}%
-                    </span>
-                  </>
-                )}
-              </div>
+              
               {isEnrolled ? (
-                <button
-                  className="cd-btn-enroll"
-                  onClick={() => setActiveTab("lesson")}
-                >
+                <div className="cd-price-card__enrolled-badge">
+                  Đã đăng ký
+                </div>
+              ) : (
+                <div className="cd-price-card__price-row">
+                  <span className="cd-price-card__price">
+                    {(course.sale_price ?? course.price ?? 0) > 0
+                      ? formatPrice(course.sale_price ?? course.price ?? 0, "VND")
+                      : "Miễn phí"}
+                  </span>
+                  {discount > 0 && course.price > 0 && (
+                    <>
+                      <span className="cd-price-card__original">
+                        {formatPrice(course.price, "VND")}
+                      </span>
+                      <span className="cd-price-card__discount">
+                        -{discount}%
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              {isEnrolled ? (
+                <button className="cd-btn-enroll" onClick={() => setActiveTab("lesson")}>
                   ▶ Tiếp tục học
                 </button>
               ) : (
-                <button
-                  className="cd-btn-enroll"
-                  onClick={handleEnroll}
-                  disabled={enrolling}
-                >
-                  {enrolling
-                    ? "Đang đăng ký…"
-                    : isLoggedIn
-                      ? "Đăng ký học ngay"
-                      : "Đăng nhập để học"}
+                <button className="cd-btn-enroll" onClick={handleEnroll} disabled={enrolling}>
+                  {enrolling ? "Đang đăng ký…" : isLoggedIn ? "Đăng ký học ngay" : "Đăng nhập để học"}
                 </button>
-              )}
-              {isEnrolled && (
-                <div className="cd-price-card__enrolled-badge">
-                  ✓ Đã đăng ký
-                </div>
               )}
               {isEnrolled && (
                 <div className="cd-progress-bar-wrap">

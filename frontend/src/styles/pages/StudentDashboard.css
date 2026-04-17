@@ -93,16 +93,21 @@
 
 .db-profile__level {
   position: absolute;
-  bottom: 0;
-  right: -4px;
+  bottom: -12px;        /* nằm ngay dưới avatar */
+  left: 50%;            /* căn giữa */
+  transform: translateX(-50%);
+
   background: #415a77;
   color: #e0e1dd;
   font-size: 0.65rem;
   font-weight: var(--fw-bold);
-  padding: 0.1em 0.4em;
+  padding: 0.3em 0.6em;  /* sửa dấu , -> . và tăng padding */
+  
   border-radius: var(--radius-full);
   border: 1.5px solid #0d1b2a;
   letter-spacing: 0.03em;
+
+  white-space: nowrap;   /* 🔥 QUAN TRỌNG: không cho xuống dòng */
 }
 
 .db-profile__name {
@@ -110,6 +115,7 @@
   font-weight: var(--fw-semibold);
   color: #e0e1dd;
   display: block;
+  padding-top: 1cqb;
 }
 .db-profile__email {
   font-size: var(--text-xs);
@@ -1136,4 +1142,80 @@ select.db-input {
   color: rgba(224, 225, 221, 0.4);
   border-left: 2px solid rgba(119, 141, 169, 0.25);
   padding-left: 10px;
+}
+
+/* ── Courses tab ────────────────────────────────────────────────── */
+.db-courses__progress-cell {
+  min-width: 160px;
+}
+
+.db-table__price {
+  color: #4caf82;
+  font-weight: 600;
+}
+
+.db-courses__progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+/* ── Quizzes tab ────────────────────────────────────────────────── */
+.db-quiz__score--passed { font-weight: 600; color: #4caf82; }
+.db-quiz__score--failed { font-weight: 600; color: #e07a5f; }
+
+.db-quiz__badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+.db-quiz__badge--passed {
+  background: rgba(76, 175, 130, 0.15);
+  color: #4caf82;
+}
+.db-quiz__badge--failed {
+  background: rgba(224, 122, 95, 0.15);
+  color: #e07a5f;
+}
+
+/* ── Payment modal detail rows ──────────────────────────────────── */
+.cm-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+}
+
+.cm-detail-row__label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.cm-detail-row__value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+/* ── Certificate badge ──────────────────────────────────────────── */
+.db-cert__badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: rgba(76, 175, 130, 0.15);
+  color: #4caf82;
+  border: 0.5px solid rgba(76, 175, 130, 0.3);
+}
+
+.ad-table__empty-cell {
+  text-align: center;      /* căn giữa ngang */
+  vertical-align: middle;  /* căn giữa dọc */
+}
+
+.ad-table__empty-text {
+  display: inline-block;
+  padding: 0.5cm;
 }

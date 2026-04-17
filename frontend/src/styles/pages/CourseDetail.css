@@ -186,9 +186,11 @@
 }
 
 .cd-curriculum__summary {
-  font-size: var(--text-sm);
-  color: rgba(224, 225, 221, 0.4);
+  font-size: 1.2rem;
+  color: #fefffc;
   margin-bottom: var(--space-1);
+  text-align: center;
+  margin-top: var(--space-3);
 }
 
 .cd-chapter {
@@ -313,7 +315,11 @@
 .cd-lesson__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-2);
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .cd-md-h2 {
@@ -391,8 +397,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-5);
-  padding: var(--space-8) 0;
+  gap: var(--space-4);
+
+  padding: var(--space-5) var(--space-4);
+
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.05);
+
   text-align: center;
 }
 .cd-quiz__intro-title {
@@ -596,6 +608,7 @@
   gap: var(--space-4);
 }
 .cd-rv-card {
+  position: relative;
   background: #1b263b;
   border: 1px solid rgba(119, 141, 169, 0.13);
   border-radius: var(--radius-lg);
@@ -606,7 +619,9 @@
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
+  padding: 0 var(--space-2);
 }
+
 .cd-rv-avatar {
   width: 36px;
   height: 36px;
@@ -630,6 +645,7 @@
   color: #f59e0b;
   font-size: var(--text-sm);
   letter-spacing: 1px;
+  align-self: center;
 }
 .cd-rv-comment {
   font-size: var(--text-sm);
@@ -638,22 +654,40 @@
 }
 
 .cd-rv-form {
-  background: #1b263b;
-  border: 1px solid rgba(119, 141, 169, 0.15);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  background: linear-gradient(135deg, rgba(27, 38, 59, 0.95), rgba(13, 27, 42, 0.8));
+  border: 1px solid rgba(119, 141, 169, 0.2);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+.cd-rv-form::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #415a77, #778da9, #9f9f9f);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 .cd-rv-form-title {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   font-weight: var(--fw-bold);
   color: #e0e1dd;
+  letter-spacing: -0.01em;
 }
 .cd-rv-star-input {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
+  background: rgba(13, 27, 42, 0.4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(119, 141, 169, 0.12);
 }
 .cd-rv-star-btn {
   font-size: 1.75rem;
@@ -698,9 +732,9 @@
 
 .cd-rv-success {
   font-size: var(--text-sm);
-  color: #4caf82;
-  background: rgba(76, 175, 130, 0.1);
-  border: 1px solid rgba(76, 175, 130, 0.25);
+  color: #fffcfc;
+  background: rgba(255, 250, 250, 0.1);
+  border: 1px solid rgba(253, 253, 253, 0.25);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   text-align: center;
@@ -828,6 +862,7 @@
   font-family: var(--font-body);
   cursor: pointer;
   transition: all var(--transition-fast);
+  margin-top: 10px;
 }
 .cd-btn-secondary:hover {
   border-color: rgba(119, 141, 169, 0.6);
@@ -1196,13 +1231,15 @@
   margin-top: 10px;
 }
 .cd-rv-edit-btn {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
   background: none;
   border: none;
   cursor: pointer;
   font-size: 15px;
   padding: 2px 6px;
   border-radius: 4px;
-  margin-left: auto;
   opacity: 0.6;
   transition: opacity 0.15s;
 }
@@ -1216,6 +1253,32 @@
   margin: 16px 0 6px;
   padding-left: 2px;
 }
+.cd-lesson__video-wrap {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid rgba(119, 141, 169, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  margin-bottom: var(--space-4);
+  background: #000;
+}
+
+.cd-lesson__iframe {
+  width: 75%;
+  aspect-ratio: 16 / 9;
+  border: none;
+  display: block;
+  border-radius: var(--radius-lg);
+  margin: 0 auto;
+}
+
+.cd-lesson__video {
+  width: 75%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  background: #000;
+  border-radius: var(--radius-lg);
+  margin: 0 auto;
+}
 
 .cd-lesson__video-label:first-child {
   margin-top: 0;
@@ -1224,7 +1287,7 @@
 .cd-progress-bar-wrap   { margin-top: 10px; }
 .cd-progress-bar-track  { background: #e5e7eb; border-radius: 99px; height: 8px; overflow: hidden; }
 .cd-progress-bar-fill   { background: #6366f1; height: 100%; border-radius: 99px; transition: width .4s ease; }
-.cd-progress-bar-label  { font-size: 12px; color: #6b7280; margin-top: 4px; display: block; }
+.cd-progress-bar-label  { font-size: 12px; color: #6b7280; margin-top: 12px; display: block; }
 
 .cd-btn-enroll--disabled {
   background: #d1d5db;
@@ -1250,4 +1313,41 @@
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateX(-50%) translateY(10px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.cd-price-card__enrolled-badge {
+   font-size: 1.2rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(135, 135, 135, 0.12);
+  border: 1.5px solid rgba(157, 160, 159, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+  letter-spacing: 0.01em;
+  padding-top: var(--space-3);
+  border-top: none;
+}
+.cd-lesson__video-wrap {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid rgba(119, 141, 169, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  margin-bottom: var(--space-4);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-3);
+}
+.cd-lesson__attachments-title {
+  margin-bottom: 8px; /* hoặc 10px tùy bạn */
+  padding-left: 120px;
+}
+.cd-lesson__attach-item {
+  display: block;
+  padding-left: 120px;
+}
+.cd-quiz__blocked {
+  margin-top: 5px;
+  margin-bottom: 2px;
 }

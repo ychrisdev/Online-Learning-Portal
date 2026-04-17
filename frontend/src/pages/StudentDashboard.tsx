@@ -518,11 +518,24 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>⏳ Đang tải…</p>
                 </div>
               ) : activeCourses.length === 0 ? (
-                <div className="id-form-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                  <p style={{ color: 'var(--color-text-secondary)', marginBottom: 16 }}>Bạn chưa đăng ký khóa học nào.</p>
-                  <button className="id-btn-primary" onClick={() => onNavigate('courses')}>
-                    Khám phá khóa học
-                  </button>
+                <div className="ad-table-wrap">
+                  <table className="ad-table">
+                    <thead>
+                      <tr>
+                        <th>Khóa học</th>
+                        <th>Học phí</th>
+                        <th>Tiến độ</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={4} className="ad-table__empty-cell">                          
+                          <span className="ad-table__empty-text">🔍 Bạn chưa đăng ký khóa học nào.</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -539,14 +552,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                       {activeCourses.map(c => (
                         <tr key={c.id}>
                           <td>
-                            <div className="ad-user-cell" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                              {thumbnailSrc(c.course_thumbnail) && (
-                                <img
-                                  src={thumbnailSrc(c.course_thumbnail)!}
-                                  alt={c.course_title}
-                                  style={{ width: 56, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
-                                />
-                              )}
+                            <div className="ad-user-cell" style={{ display: 'flex', gap: 12 }}>
+                          
                               <div>
                                 <span className="ad-user-cell__name">{c.course_title}</span>
                                 {c.instructor_name && (
@@ -555,15 +562,15 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                               </div>
                             </div>
                           </td>
-                          <td style={{ color: '#4caf82', fontWeight: 600 }}>
+                          <td className="db-table__price">
                             {c.amount !== undefined ? formatPrice(c.amount, 'VND') : 'Miễn phí'}
                           </td>
-                          <td style={{ minWidth: 160 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <td className="db-courses__progress-cell">
+                            <div className="db-courses__progress-wrap">
                               <div className="db-progress-bar">
                                 <div className="db-progress-bar__fill" style={{ width: `${c.progress ?? 0}%` }} />
                               </div>
-                              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                              <span className="db-muted">
                                 {c.progress ?? 0}%
                                 {c.total_lessons > 0 && ` · ${c.completed_lessons}/${c.total_lessons} bài`}
                               </span>
@@ -609,7 +616,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   </thead>
                   <tbody>
                     {loadingPayments ? (
-                      <tr><td colSpan={5} style={{ textAlign: 'center' }}>⏳ Đang tải…</td></tr>
+                      <tr><td colSpan={5} style={{ textAlign: 'center' }}>Đang tải…</td></tr>
                     ) : payments.length === 0 ? (
                       <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
                         🔍 Chưa có giao dịch nào.
@@ -619,7 +626,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                       return (
                         <tr key={p.id}>
                           <td className="ad-table__title">{p.course_title || '—'}</td>
-                          <td style={{ color: '#4caf82', fontWeight: 600 }}>
+                          <td className="db-table__price">
                             {formatPrice(p.amount, 'VND')}
                           </td>
                           <td className="ad-table__muted">
@@ -644,7 +651,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                                 </button>
                               )}
                               {status === 'refund_requested' && (
-                                <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                               <span className="db-muted">
                                   Đang chờ xử lý
                                 </span>
                               )}
@@ -678,12 +685,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                             { label: 'Phương thức', value: paymentDetail.method || '—' },
                             { label: 'Mã GD',      value: paymentDetail.ref_code || paymentDetail.id || '—' },
                           ].map(item => (
-                            <div key={item.label} style={{
-                              display: 'flex', justifyContent: 'space-between', gap: 12,
-                              padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-                            }}>
-                              <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{item.label}</span>
-                              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', textAlign: 'right' }}>
+                            <div key={item.label} className="cm-detail-row">
+                              <span className="cm-detail-row__label">{item.label}</span>
+                              <span className="cm-detail-row__value">
                                 {item.value}
                               </span>
                             </div>
@@ -924,7 +928,28 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
               {loadingQuizAttempts ? (
                 <p className="db-muted">Đang tải…</p>
               ) : quizAttempts.length === 0 ? (
-                <p className="db-muted">Chưa có lần kiểm tra nào.</p>
+                <div className="ad-table-wrap">
+                  <table className="ad-table">
+                    <thead>
+                      <tr>
+                        <th>Bài kiểm tra</th>
+                        <th>Khóa học</th>
+                        <th>Điểm</th>
+                        <th>Kết quả</th>
+                        <th>Thời gian làm</th>
+                        <th>Ngày nộp</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>                        
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                          🔍 Chưa có lần kiểm tra nào.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               ) : (() => {
                 const filtered = quizAttempts.filter(a => {
                   if (quizSortCourse !== 'all' && a.course_title !== quizSortCourse) return false;
@@ -962,18 +987,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                             <tr key={a.id}>
                               <td><span className="ad-table__title">{a.quiz_title ?? '—'}</span></td>
                               <td className="ad-table__muted">{a.course_title ?? '—'}</td>
-                              <td style={{ fontWeight: 600, color: a.passed ? '#4caf82' : '#e07a5f' }}>
+                              <td className={a.passed ? 'db-quiz__score db-quiz__score--passed' : 'db-quiz__score db-quiz__score--failed'}>
                                 {(() => {
                                   const score10 = Number(a.score) / 10;
                                   return `${Number.isInteger(score10) ? score10 : score10.toFixed(1)}`;
                                 })()}
                               </td>
                               <td>
-                                <span style={{
-                                  fontSize: 12, padding: '2px 8px', borderRadius: 5,
-                                  background: a.passed ? 'rgba(76,175,130,0.15)' : 'rgba(224,122,95,0.15)',
-                                  color: a.passed ? '#4caf82' : '#e07a5f',
-                                }}>
+                                <span className={a.passed ? 'db-quiz__badge db-quiz__badge--passed' : 'db-quiz__badge db-quiz__badge--failed'}>
                                   {a.passed ? 'Đạt' : 'Chưa đạt'}
                                 </span>
                               </td>
@@ -1092,11 +1113,24 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   </p>
                 </div>
               ) : certificates.length === 0 ? (
-                <div className="id-form-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                  <p style={{ color: 'var(--color-text-secondary)', marginBottom: 16 }}>
-                    Bạn chưa có chứng chỉ nào.
-                  </p>
-                  <p className="db-muted">Hoàn thành khóa học để nhận chứng chỉ.</p>
+                <div className="ad-table-wrap">
+                  <table className="ad-table">
+                    <thead>
+                      <tr>
+                        <th>Khóa học</th>
+                        <th>Mã chứng chỉ</th>
+                        <th>Ngày cấp</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colSpan={4} className="ad-table__empty-cell">      
+                          <span className="ad-table__empty-text">🔍 Bạn chưa có chứng chỉ nào. </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -1127,16 +1161,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                           </td>
 
                           <td>
-                            <span
-                              style={{
-                                fontSize: 12,
-                                padding: '4px 10px',
-                                borderRadius: 5,
-                                background: 'rgba(76,175,130,0.15)',
-                                color: '#4caf82',
-                                border: '0.5px solid rgba(76,175,130,0.3)',
-                              }}
-                            >
+                            <span className="db-cert__badge">
                               ✓ Hoàn thành
                             </span>
                           </td>                      
