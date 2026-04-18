@@ -410,10 +410,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     }
   };
 
+  // fetchQuizFromLesson — CHỈ fetch quiz data, KHÔNG start attempt
   const fetchQuizFromLesson = async (lessonId: string) => {
     if (!localStorage.getItem("access")) {
-      setQuizLoading(false);
-      setQuizBlocked(false);
       setQuizError("Vui lòng đăng nhập để làm bài kiểm tra");
       setApiQuiz(null);
       return;
@@ -429,10 +428,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       );
       const data = await res.json();
       if (!res.ok) {
-        console.log("Quiz 400 detail:", data);
-        if (res.status === 400) {
-          setQuizBlocked(true);
-        }
+        if (res.status === 400) setQuizBlocked(true);
         const detail = Array.isArray(data)
           ? data[0]
           : data.detail || "Không thể tải bài kiểm tra";
@@ -441,16 +437,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       }
       setApiQuiz(data);
       setCurrentQuizId(data.id);
-      const startRes = await refreshAndRetry(
-        `${API}/api/quizzes/${data.id}/start/`,
-        {
-          method: "POST",
-        },
-      );
-      if (startRes.ok) {
-        const { attempt_id } = await startRes.json();
-        setCurrentAttemptId(attempt_id);
-      }
     } catch (err: any) {
       setQuizError(`Lỗi kết nối: ${err.message}`);
     } finally {
@@ -970,8 +956,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                               return (
                                 <>
                                   {activeLesson.video_file && (
-                                    <p className="cd-lesson__video-label">
-                                    </p>
+                                    <p className="cd-lesson__video-label"></p>
                                   )}
                                   <iframe
                                     className="cd-lesson__iframe"
@@ -986,8 +971,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                             return (
                               <>
                                 {activeLesson.video_file && (
-                                  <p className="cd-lesson__video-label">
-                                  </p>
+                                  <p className="cd-lesson__video-label"></p>
                                 )}
                                 <video
                                   className="cd-lesson__video"
@@ -1000,8 +984,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         {activeLesson.video_file && (
                           <>
                             {activeLesson.video_url && (
-                              <p className="cd-lesson__video-label">
-                              </p>
+                              <p className="cd-lesson__video-label"></p>
                             )}
                             <video
                               className="cd-lesson__video"
@@ -1024,7 +1007,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     {activeLesson.attachment && (
                       <div className="cd-lesson__attachments">
                         <h4 className="cd-lesson__attachments-title">
-                          File tài liệu 
+                          File tài liệu
                         </h4>
                         <a
                           href={
@@ -1036,7 +1019,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           rel="noopener noreferrer"
                           className="cd-lesson__attach-item"
                         >
-                          
                           <span className="cd-lesson__attach-link">
                             {activeLesson.attachment_name ?? "Tải tài liệu"}
                           </span>
@@ -1052,11 +1034,12 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
             {activeTab === "quiz" && (
               <div className="cd-tab-content cd-quiz">
                 {!activeLessonId ? (
+                  /* ── Chưa chọn bài học ── */
                   <div className="cd-quiz__intro">
-                    <h2>Bài kiểm tra</h2>
-                    <p>
-                      Vui lòng chọn một bài học có bài kiểm tra từ chương trình
-                      học.
+                    <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
+                    <p className="cd-quiz__intro-sub">
+                      Chọn một bài học có bài kiểm tra từ chương trình học để
+                      bắt đầu.
                     </p>
                     <button
                       className="cd-btn-secondary"
@@ -1066,11 +1049,13 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     </button>
                   </div>
                 ) : quizLoading ? (
+                  /* ── Loading ── */
                   <div className="cd-lesson__loading">
                     <div className="cd-spinner" />
                     <p>Đang tải bài kiểm tra…</p>
                   </div>
                 ) : quizError ? (
+                  /* ── Error ── */
                   <div className="cd-quiz__intro">
                     <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
                     <div className="cd-quiz__blocked">
@@ -1082,54 +1067,77 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                       className="cd-btn-secondary"
                       onClick={() => setActiveTab("lesson")}
                     >
-                      ← Quay lại bài học
+                      Quay lại bài học
                     </button>
                   </div>
                 ) : !apiQuiz ? (
+                  /* ── Không có quiz ── */
                   <div className="cd-quiz__intro">
-                    <h2>Bài kiểm tra</h2>
-                    <p>Hiện chưa có bài kiểm tra cho bài học này.</p>
+                    <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
+                    <p className="cd-quiz__intro-sub">
+                      Bài học này chưa có bài kiểm tra.
+                    </p>
                     <button
                       className="cd-btn-secondary"
-                      onClick={() => {
-                        setLessonTargetTab("quiz");
-                        setActiveTab("curriculum");
-                      }}
+                      onClick={() => setActiveTab("curriculum")}
                     >
                       Chọn bài học khác
                     </button>
                   </div>
                 ) : quizResult ? (
+                  /* ════ KẾT QUẢ ════ */
                   <div className="cd-quiz__result">
+                    {/* Circle score */}
                     <div
-                      className={`cd-quiz__result-circle ${quizResult.passed ? "cd-quiz__result-circle--pass" : "cd-quiz__result-circle--fail"}`}
+                      className={`cd-quiz__result-circle ${
+                        quizResult.passed
+                          ? "cd-quiz__result-circle--pass"
+                          : "cd-quiz__result-circle--fail"
+                      }`}
                     >
                       <span className="cd-quiz__result-score">
                         {quizResult.score}%
                       </span>
                       <span className="cd-quiz__result-label">
-                        {quizResult.passed ? "✓ Đạt" : "✗ Chưa đạt"}
+                        {quizResult.passed ? "Đạt" : "Chưa đạt"}
                       </span>
                     </div>
+
+                    {/* Info rows */}
                     <div className="cd-quiz__result-info">
-                      <p>
-                        Điểm cần đạt: <strong>{passScore}%</strong>
-                      </p>
-                      <p>
-                        Điểm bạn đạt được: <strong>{quizResult.score}%</strong>
-                      </p>
+                      <div className="cd-quiz__result-info-row">
+                        <span>Điểm cần đạt</span>
+                        <span>{passScore}%</span>
+                      </div>
+                      <div className="cd-quiz__result-info-row">
+                        <span>Điểm của bạn</span>
+                        <span
+                          style={{
+                            color: quizResult.passed ? "#4caf82" : "#e05c5c",
+                          }}
+                        >
+                          {quizResult.score}%
+                        </span>
+                      </div>
+                      <div className="cd-quiz__result-info-row">
+                        <span>Số câu</span>
+                        <span>
+                          {quizResult.questions?.length ?? quizQuestions.length}{" "}
+                          câu
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Review */}
                     <div className="cd-quiz__review">
-                      <h3 className="cd-quiz__review-title">Xem lại bài làm</h3>
+                      <p className="cd-quiz__review-title">Xem lại bài làm</p>
                       {quizResult.questions?.map((q: any, idx: number) => {
                         const myAnswers =
                           quizResult.answers_snapshot?.[q.id] || [];
                         return (
                           <div key={q.id} className="cd-quiz__review-item">
                             <div className="cd-quiz__review-q">
-                              <strong>
-                                Câu {idx + 1}: {q.content}
-                              </strong>
+                              <strong>Câu {idx + 1}:</strong> {q.content}
                             </div>
                             {q.answers.map((a: any) => {
                               const isChosen = myAnswers.includes(a.id);
@@ -1147,13 +1155,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                 </div>
                               );
                             })}
-                            <p className="cd-quiz__review-explain">
-                              <strong>Giải thích:</strong> {q.explanation}
-                            </p>
+                            {q.explanation && (
+                              <p className="cd-quiz__review-explain">
+                                <strong>Giải thích:</strong> {q.explanation}
+                              </p>
+                            )}
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* Actions */}
                     <div className="cd-quiz__result-actions">
                       <button
                         className="cd-btn-enroll"
@@ -1170,6 +1182,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     </div>
                   </div>
                 ) : !quizStarted ? (
+                  /* ════ MÀN HÌNH GIỚI THIỆU ════ */
                   <div className="cd-quiz__intro">
                     <h2 className="cd-quiz__intro-title">
                       {apiQuiz.title || "Bài kiểm tra"}
@@ -1179,19 +1192,50 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         {apiQuiz.description}
                       </p>
                     )}
-                    <p className="cd-quiz__intro-sub">
-                      {quizQuestions.length} câu hỏi
-                      {apiQuiz.time_limit > 0
-                        ? ` · Thời gian: ${apiQuiz.time_limit} phút`
-                        : " · Không giới hạn thời gian"}
-                    </p>
+
+                    {/* Info list */}
                     <ul className="cd-quiz__intro-info">
-                      <li>Điểm cần đạt: {passScore}%</li>
+                      <li>
+                        <div className="quiz__info">
+                          <span>Số câu hỏi: </span>
+                          <span>{quizQuestions.length} câu</span>
+                        </div>
+                      </li>
+                      <li>
+                        <div className="quiz__info">
+                          <span>Thời gian: </span>
+                          <span>
+                            {apiQuiz.time_limit > 0
+                              ? `${apiQuiz.time_limit} phút`
+                              : "Không giới hạn"}
+                          </span>
+                        </div>
+                      </li>
+                      <li>
+                        <div className="quiz__info">
+                          <span>Điểm đạt: </span>
+                          <span style={{ color: "#4caf82", fontWeight: 600 }}>
+                            {passScore}%
+                          </span>
+                        </div>
+                      </li>
                       {apiQuiz.max_attempts > 0 && (
-                        <li>Số lần làm tối đa: {apiQuiz.max_attempts}</li>
+                        <li>
+                          <span
+                            style={{
+                              color: "rgba(224,225,221,0.4)",
+                              fontSize: "0.6875rem",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                            }}
+                          >
+                            Số lần làm
+                          </span>
+                          <span>Tối đa {apiQuiz.max_attempts} lần</span>
+                        </li>
                       )}
-                      <li>Có thể xem lại bài làm sau khi nộp</li>
                     </ul>
+
                     {quizBlocked ? (
                       <button
                         className="cd-btn-enroll cd-btn-enroll--disabled"
@@ -1202,14 +1246,40 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     ) : (
                       <button
                         className="cd-btn-enroll"
-                        onClick={() => setQuizStarted(true)}
+                        onClick={async () => {
+                          if (!currentQuizId) return;
+                          try {
+                            const startRes = await refreshAndRetry(
+                              `${API}/api/quizzes/${currentQuizId}/start/`,
+                              { method: "POST" },
+                            );
+                            if (startRes.ok) {
+                              const { attempt_id } = await startRes.json();
+                              setCurrentAttemptId(attempt_id);
+                              setQuizStarted(true);
+                            } else {
+                              const err = await startRes
+                                .json()
+                                .catch(() => ({}));
+                              const detail = Array.isArray(err)
+                                ? err[0]
+                                : (err.detail ?? "Không thể bắt đầu làm bài.");
+                              setQuizBlocked(true);
+                              setQuizError(detail);
+                            }
+                          } catch (err: any) {
+                            setQuizError(`Lỗi kết nối: ${err.message}`);
+                          }
+                        }}
                       >
                         Bắt đầu làm bài
                       </button>
                     )}
                   </div>
                 ) : (
+                  /* ════ ĐANG LÀM BÀI ════ */
                   <div className="cd-quiz__question">
+                    {/* Progress bar */}
                     <div className="cd-quiz__progress">
                       <div className="cd-quiz__progress-bar">
                         <div
@@ -1220,87 +1290,172 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         />
                       </div>
                       <span className="cd-quiz__progress-text">
-                        Câu {currentQ + 1} / {quizQuestions.length}
+                        {currentQ + 1} / {quizQuestions.length}
                       </span>
                       {apiQuiz?.time_limit > 0 && (
                         <span
                           className={`cd-quiz__timer${timeLeft <= 60 ? " cd-quiz__timer--warning" : ""}`}
                         >
-                          ⏱ {formatTime(timeLeft)}
+                          {formatTime(timeLeft)}
                         </span>
                       )}
                     </div>
+
                     {currentQuestion && (
                       <>
+                        {/* Question number label */}
+                        <div className="cd-quiz__q-num">
+                          Question {currentQ + 1}
+                        </div>
+
+                        {/* Question text */}
                         <h3 className="cd-quiz__q-text">
                           {currentQuestion.content}
                         </h3>
+
+                        {/* Hint for multiple choice */}
                         {isMultipleType(currentQuestion.question_type) && (
                           <p className="cd-quiz__hint">
                             Chọn tất cả đáp án đúng
                           </p>
                         )}
+
+                        {/* Options */}
                         <div className="cd-quiz__options">
-                          {currentQuestion.answers?.map((ans: any) => {
-                            const isSelected = selected.has(ans.id);
-                            let cls = "cd-quiz__option";
-                            if (answered) {
-                              if (ans.is_correct)
-                                cls += " cd-quiz__option--correct";
-                              else if (isSelected)
-                                cls += " cd-quiz__option--wrong";
-                              cls += " cd-quiz__option--disabled";
-                            } else {
-                              if (isSelected)
-                                cls += " cd-quiz__option--selected";
-                            }
-                            return (
-                              <button
-                                key={ans.id}
-                                className={cls}
-                                onClick={() =>
-                                  handleSelectAnswer(
-                                    ans.id,
-                                    currentQuestion.question_type,
-                                  )
+                          {currentQuestion.answers?.map(
+                            (ans: any, ansIdx: number) => {
+                              const label = String.fromCharCode(65 + ansIdx);
+                              const isSelected = selected.has(ans.id);
+                              const isSingle =
+                                currentQuestion.question_type === "single" ||
+                                currentQuestion.question_type === "true_false";
+                              const isMultiple = isMultipleType(
+                                currentQuestion.question_type,
+                              );
+
+                              let cls = "cd-quiz__option";
+                              let feedbackLabel = null;
+
+                              if (answered) {
+                                if (ans.is_correct === true) {
+                                  cls += " cd-quiz__option--correct";
+                                  feedbackLabel = (
+                                    <span className="cd-quiz__option-feedback cd-quiz__option-feedback--correct">
+                                      ✓ Đúng
+                                    </span>
+                                  );
+                                } else if (isSelected) {
+                                  cls += " cd-quiz__option--wrong";
+                                  feedbackLabel = (
+                                    <span className="cd-quiz__option-feedback cd-quiz__option-feedback--wrong">
+                                      ✗ Sai
+                                    </span>
+                                  );
                                 }
-                                disabled={answered}
-                              >
-                                <span className="cd-quiz__option-checkbox">
-                                  {isMultipleType(currentQuestion.question_type)
-                                    ? isSelected
-                                      ? "☑"
-                                      : "☐"
-                                    : isSelected
-                                      ? "◉"
-                                      : "○"}
-                                </span>
-                                {ans.content}
-                              </button>
-                            );
-                          })}
+                                cls += " cd-quiz__option--disabled";
+                              } else if (isSelected) {
+                                cls += " cd-quiz__option--selected";
+                              }
+
+                              const icon = answered
+                                ? ans.is_correct
+                                  ? isMultiple
+                                    ? "☑"
+                                    : "◉"
+                                  : isSelected
+                                    ? isMultiple
+                                      ? "☒"
+                                      : "◎"
+                                    : isMultiple
+                                      ? "☐"
+                                      : "○"
+                                : isSelected
+                                  ? isMultiple
+                                    ? "☑"
+                                    : "◉"
+                                  : isMultiple
+                                    ? "☐"
+                                    : "○";
+
+                              return (
+                                <button
+                                  key={ans.id}
+                                  className={cls}
+                                  onClick={() =>
+                                    handleSelectAnswer(
+                                      ans.id,
+                                      currentQuestion.question_type,
+                                    )
+                                  }
+                                  disabled={answered}
+                                >
+                                  <span className="cd-quiz__option-label">
+                                    {label}
+                                  </span>
+                                  <span className="cd-quiz__option-text">
+                                    {ans.content}
+                                  </span>
+                                  {feedbackLabel}
+                                </button>
+                              );
+                            },
+                          )}
                         </div>
-                        {!answered && (
-                          <button
-                            className="cd-btn-enroll cd-quiz__next-btn"
-                            onClick={handleAnswerQuestion}
-                          >
-                            Xác nhận đáp án
-                          </button>
-                        )}
+
                         {answered && (
-                          <button
-                            className="cd-btn-enroll cd-quiz__next-btn"
-                            onClick={handleNextQuestion}
-                            disabled={quizSubmitting}
-                          >
-                            {currentQ + 1 < quizQuestions.length
-                              ? "Câu tiếp theo"
-                              : quizSubmitting
-                                ? "Đang nộp…"
-                                : "Nộp bài"}
-                          </button>
+                          <div className="cd-quiz__feedback">
+                            {(() => {
+                              const correctIds =
+                                currentQuestion.answers
+                                  ?.filter((a: any) => a.is_correct)
+                                  .map((a: any) => a.id) ?? [];
+                              const selectedArr = Array.from(selected);
+                              const allCorrect =
+                                correctIds.length === selectedArr.length &&
+                                selectedArr.every((id) =>
+                                  correctIds.includes(id),
+                                );
+
+                              return (
+                                <>
+                                  <span className="cd-quiz__feedback-label">
+                                    {allCorrect ? "✓ Đúng" : "✗ Chưa đúng"}
+                                  </span>
+
+                                  <p className="cd-quiz__explanation">
+                                    {quizExplanations[currentQuestion.id] ||
+                                      currentQuestion.explanation ||
+                                      "Không có giải thích."}
+                                  </p>
+                                </>
+                              );
+                            })()}
+                          </div>
                         )}
+
+                        {/* Action row */}
+                        <div className="cd-quiz__actions">
+                          {!answered ? (
+                            <button
+                              className="cd-btn-enroll cd-quiz__next-btn"
+                              onClick={handleAnswerQuestion}
+                            >
+                              Xác nhận
+                            </button>
+                          ) : (
+                            <button
+                              className="cd-btn-enroll cd-quiz__next-btn"
+                              onClick={handleNextQuestion}
+                              disabled={quizSubmitting}
+                            >
+                              {currentQ + 1 < quizQuestions.length
+                                ? "Câu tiếp theo"
+                                : quizSubmitting
+                                  ? "Đang nộp…"
+                                  : "Nộp bài"}
+                            </button>
+                          )}
+                        </div>
                       </>
                     )}
                   </div>
@@ -1564,16 +1719,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   {course.total_students?.toLocaleString() ?? 0} học viên
                 </span>
               </div>
-              
+
               {isEnrolled ? (
-                <div className="cd-price-card__enrolled-badge">
-                  Đã đăng ký
-                </div>
+                <div className="cd-price-card__enrolled-badge">Đã đăng ký</div>
               ) : (
                 <div className="cd-price-card__price-row">
                   <span className="cd-price-card__price">
                     {(course.sale_price ?? course.price ?? 0) > 0
-                      ? formatPrice(course.sale_price ?? course.price ?? 0, "VND")
+                      ? formatPrice(
+                          course.sale_price ?? course.price ?? 0,
+                          "VND",
+                        )
                       : "Miễn phí"}
                   </span>
                   {discount > 0 && course.price > 0 && (
@@ -1589,12 +1745,23 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                 </div>
               )}
               {isEnrolled ? (
-                <button className="cd-btn-enroll" onClick={() => setActiveTab("lesson")}>
+                <button
+                  className="cd-btn-enroll"
+                  onClick={() => setActiveTab("lesson")}
+                >
                   ▶ Tiếp tục học
                 </button>
               ) : (
-                <button className="cd-btn-enroll" onClick={handleEnroll} disabled={enrolling}>
-                  {enrolling ? "Đang đăng ký…" : isLoggedIn ? "Đăng ký học ngay" : "Đăng nhập để học"}
+                <button
+                  className="cd-btn-enroll"
+                  onClick={handleEnroll}
+                  disabled={enrolling}
+                >
+                  {enrolling
+                    ? "Đang đăng ký…"
+                    : isLoggedIn
+                      ? "Đăng ký học ngay"
+                      : "Đăng nhập để học"}
                 </button>
               )}
               {isEnrolled && (

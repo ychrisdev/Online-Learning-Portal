@@ -1,0 +1,344 @@
+[1mdiff --git a/backend/quizzes/serializers.py b/backend/quizzes/serializers.py[m
+[1mindex 5a94660..4d1a992 100644[m
+[1m--- a/backend/quizzes/serializers.py[m
+[1m+++ b/backend/quizzes/serializers.py[m
+[36m@@ -8,9 +8,7 @@[m [mfrom .models import Answer, Question, Quiz, QuizAttempt[m
+ class AnswerSerializer(serializers.ModelSerializer):[m
+     class Meta:[m
+         model  = Answer[m
+[31m-        fields = ['id', 'content', 'order_index'][m
+[31m-        # Không trả về is_correct khi student xem đề — ẩn đáp án đúng[m
+[31m-[m
+[32m+[m[32m        fields = ['id', 'content', 'is_correct', 'order_index'][m
+ [m
+ class AnswerWithCorrectSerializer(serializers.ModelSerializer):[m
+     """Dùng sau khi nộp bài — trả về is_correct để hiển thị kết quả."""[m
+[1mdiff --git a/frontend/src/pages/CourseDetail.tsx b/frontend/src/pages/CourseDetail.tsx[m
+[1mindex 5a3e621..fe6b0ef 100644[m
+[1m--- a/frontend/src/pages/CourseDetail.tsx[m
+[1m+++ b/frontend/src/pages/CourseDetail.tsx[m
+[36m@@ -410,10 +410,9 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+     }[m
+   };[m
+ [m
+[32m+[m[32m  // fetchQuizFromLesson — CHỈ fetch quiz data, KHÔNG start attempt[m[41m[m
+   const fetchQuizFromLesson = async (lessonId: string) => {[m
+     if (!localStorage.getItem("access")) {[m
+[31m-      setQuizLoading(false);[m
+[31m-      setQuizBlocked(false);[m
+       setQuizError("Vui lòng đăng nhập để làm bài kiểm tra");[m
+       setApiQuiz(null);[m
+       return;[m
+[36m@@ -429,10 +428,7 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+       );[m
+       const data = await res.json();[m
+       if (!res.ok) {[m
+[31m-        console.log("Quiz 400 detail:", data);[m
+[31m-        if (res.status === 400) {[m
+[31m-          setQuizBlocked(true);[m
+[31m-        }[m
+[32m+[m[32m        if (res.status === 400) setQuizBlocked(true);[m[41m[m
+         const detail = Array.isArray(data)[m
+           ? data[0][m
+           : data.detail || "Không thể tải bài kiểm tra";[m
+[36m@@ -441,16 +437,6 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+       }[m
+       setApiQuiz(data);[m
+       setCurrentQuizId(data.id);[m
+[31m-      const startRes = await refreshAndRetry([m
+[31m-        `${API}/api/quizzes/${data.id}/start/`,[m
+[31m-        {[m
+[31m-          method: "POST",[m
+[31m-        },[m
+[31m-      );[m
+[31m-      if (startRes.ok) {[m
+[31m-        const { attempt_id } = await startRes.json();[m
+[31m-        setCurrentAttemptId(attempt_id);[m
+[31m-      }[m
+     } catch (err: any) {[m
+       setQuizError(`Lỗi kết nối: ${err.message}`);[m
+     } finally {[m
+[36m@@ -1060,11 +1046,12 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+             {activeTab === "quiz" && ([m
+               <div className="cd-tab-content cd-quiz">[m
+                 {!activeLessonId ? ([m
+[32m+[m[32m                  /* ── Chưa chọn bài học ── */[m[41m[m
+                   <div className="cd-quiz__intro">[m
+[31m-                    <h2>Bài kiểm tra</h2>[m
+[31m-                    <p>[m
+[31m-                      Vui lòng chọn một bài học có bài kiểm tra từ chương trình[m
+[31m-                      học.[m
+[32m+[m[32m                    <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>[m[41m[m
+[32m+[m[32m                    <p className="cd-quiz__intro-sub">[m[41m[m
+[32m+[m[32m                      Chọn một bài học có bài kiểm tra từ chương trình học để[m[41m[m
+[32m+[m[32m                      bắt đầu.[m[41m[m
+                     </p>[m
+                     <button[m
+                       className="cd-btn-secondary"[m
+[36m@@ -1074,66 +1061,91 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+                     </button>[m
+                   </div>[m
+                 ) : quizLoading ? ([m
+[32m+[m[32m                  /* ── Loading ── */[m[41m[m
+                   <div className="cd-lesson__loading">[m
+                     <div className="cd-spinner" />[m
+                     <p>Đang tải bài kiểm tra…</p>[m
+                   </div>[m
+                 ) : quizError ? ([m
+[32m+[m[32m                  /* ── Error ── */[m[41m[m
+                   <div className="cd-quiz__intro">[m
+                     <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>[m
+[31m-                    <div className="cd-quiz__blocked"> {quizError}</div>[m
+[32m+[m[32m                    <div className="cd-quiz__blocked">{quizError}</div>[m[41m[m
+                     <button[m
+                       className="cd-btn-secondary"[m
+                       onClick={() => setActiveTab("lesson")}[m
+                     >[m
+[31m-                      ← Quay lại bài học[m
+[32m+[m[32m                      Quay lại bài học[m[41m[m
+                     </button>[m
+                   </div>[m
+                 ) : !apiQuiz ? ([m
+[32m+[m[32m                  /* ── Không có quiz ── */[m[41m[m
+                   <div className="cd-quiz__intro">[m
+[31m-                    <h2>Bài kiểm tra</h2>[m
+[31m-                    <p>Hiện chưa có bài kiểm tra cho bài học này.</p>[m
+[32m+[m[32m                    <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>[m[41m[m
+[32m+[m[32m                    <p className="cd-quiz__intro-sub">[m[41m[m
+[32m+[m[32m                      Bài học này chưa có bài kiểm tra.[m[41m[m
+[32m+[m[32m                    </p>[m[41m[m
+                     <button[m
+                       className="cd-btn-secondary"[m
+[31m-                      onClick={() => {[m
+[31m-                        setLessonTargetTab("quiz");[m
+[31m-                        setActiveTab("curriculum");[m
+[31m-                      }}[m
+[32m+[m[32m                      onClick={() => setActiveTab("curriculum")}[m[41m[m
+                     >[m
+                       Chọn bài học khác[m
+                     </button>[m
+                   </div>[m
+                 ) : quizResult ? ([m
+[32m+[m[32m                  /* ════ KẾT QUẢ ════ */[m[41m[m
+                   <div className="cd-quiz__result">[m
+[32m+[m[32m                    {/* Circle score */}[m[41m[m
+                     <div[m
+[31m-                      className={`cd-quiz__result-circle ${quizResult.passed ? "cd-quiz__result-circle--pass" : "cd-quiz__result-circle--fail"}`}[m
+[32m+[m[32m                      className={`cd-quiz__result-circle ${[m[41m[m
+[32m+[m[32m                        quizResult.passed[m[41m[m
+[32m+[m[32m                          ? "cd-quiz__result-circle--pass"[m[41m[m
+[32m+[m[32m                          : "cd-quiz__result-circle--fail"[m[41m[m
+[32m+[m[32m                      }`}[m[41m[m
+                     >[m
+                       <span className="cd-quiz__result-score">[m
+                         {quizResult.score}%[m
+                       </span>[m
+                       <span className="cd-quiz__result-label">[m
+[31m-                        {quizResult.passed ? "✓ Đạt" : "✗ Chưa đạt"}[m
+[32m+[m[32m                        {quizResult.passed ? "Đạt" : "Chưa đạt"}[m[41m[m
+                       </span>[m
+                     </div>[m
+[32m+[m[41m[m
+[32m+[m[32m                    {/* Info rows */}[m[41m[m
+                     <div className="cd-quiz__result-info">[m
+[31m-                      <p>[m
+[31m-                        Điểm cần đạt: <strong>{passScore}%</strong>[m
+[31m-                      </p>[m
+[31m-                      <p>[m
+[31m-                        Điểm bạn đạt được: <strong>{quizResult.score}%</strong>[m
+[31m-                      </p>[m
+[32m+[m[32m                      <div className="cd-quiz__result-info-row">[m[41m[m
+[32m+[m[32m                        <span>Điểm cần đạt</span>[m[41m[m
+[32m+[m[32m                        <span>{passScore}%</span>[m[41m[m
+[32m+[m[32m                      </div>[m[41m[m
+[32m+[m[32m                      <div className="cd-quiz__result-info-row">[m[41m[m
+[32m+[m[32m                        <span>Điểm của bạn</span>[m[41m[m
+[32m+[m[32m                        <span[m[41m[m
+[32m+[m[32m                          style={{[m[41m[m
+[32m+[m[32m                            color: quizResult.passed ? "#4caf82" : "#e05c5c",[m[41m[m
+[32m+[m[32m                          }}[m[41m[m
+[32m+[m[32m                        >[m[41m[m
+[32m+[m[32m                          {quizResult.score}%[m[41m[m
+[32m+[m[32m                        </span>[m[41m[m
+[32m+[m[32m                      </div>[m[41m[m
+[32m+[m[32m                      <div className="cd-quiz__result-info-row">[m[41m[m
+[32m+[m[32m                        <span>Số câu</span>[m[41m[m
+[32m+[m[32m                        <span>[m[41m[m
+[32m+[m[32m                          {quizResult.questions?.length ?? quizQuestions.length}{" "}[m[41m[m
+[32m+[m[32m                          câu[m[41m[m
+[32m+[m[32m                        </span>[m[41m[m
+[32m+[m[32m                      </div>[m[41m[m
+                     </div>[m
+[32m+[m[41m[m
+[32m+[m[32m                    {/* Review */}[m[41m[m
+                     <div className="cd-quiz__review">[m
+[31m-                      <h3 className="cd-quiz__review-title">Xem lại bài làm</h3>[m
+[32m+[m[32m                      <p className="cd-quiz__review-title">Xem lại bài làm</p>[m[41m[m
+                       {quizResult.questions?.map((q: any, idx: number) => {[m
+                         const myAnswers =[m
+                           quizResult.answers_snapshot?.[q.id] || [];[m
+                         return ([m
+                           <div key={q.id} className="cd-quiz__review-item">[m
+                             <div className="cd-quiz__review-q">[m
+[31m-                              <strong>[m
+[31m-                                Câu {idx + 1}: {q.content}[m
+[31m-                              </strong>[m
+[32m+[m[32m                              <strong>Câu {idx + 1}:</strong> {q.content}[m[41m[m
+                             </div>[m
+                             {q.answers.map((a: any) => {[m
+                               const isChosen = myAnswers.includes(a.id);[m
+[36m@@ -1151,13 +1163,17 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+                                 </div>[m
+                               );[m
+                             })}[m
+[31m-                            <p className="cd-quiz__review-explain">[m
+[31m-                              <strong>Giải thích:</strong> {q.explanation}[m
+[31m-                            </p>[m
+[32m+[m[32m                            {q.explanation && ([m[41m[m
+[32m+[m[32m                              <p className="cd-quiz__review-explain">[m[41m[m
+[32m+[m[32m                                <strong>Giải thích:</strong> {q.explanation}[m[41m[m
+[32m+[m[32m                              </p>[m[41m[m
+[32m+[m[32m                            )}[m[41m[m
+                           </div>[m
+                         );[m
+                       })}[m
+                     </div>[m
+[32m+[m[41m[m
+[32m+[m[32m                    {/* Actions */}[m[41m[m
+                     <div className="cd-quiz__result-actions">[m
+                       <button[m
+                         className="cd-btn-enroll"[m
+[36m@@ -1174,6 +1190,7 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+                     </div>[m
+                   </div>[m
+                 ) : !quizStarted ? ([m
+[32m+[m[32m                  /* ════ MÀN HÌNH GIỚI THIỆU ════ */[m[41m[m
+                   <div className="cd-quiz__intro">[m
+                     <h2 className="cd-quiz__intro-title">[m
+                       {apiQuiz.title || "Bài kiểm tra"}[m
+[36m@@ -1183,19 +1200,50 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+                         {apiQuiz.description}[m
+                       </p>[m
+                     )}[m
+[31m-                    <p className="cd-quiz__intro-sub">[m
+[31m-                      {quizQuestions.length} câu hỏi[m
+[31m-                      {apiQuiz.time_limit > 0[m
+[31m-                        ? ` · Thời gian: ${apiQuiz.time_limit} phút`[m
+[31m-                        : " · Không giới hạn thời gian"}[m
+[31m-                    </p>[m
+[32m+[m[41m[m
+[32m+[m[32m                    {/* Info list */}[m[41m[m
+                     <ul className="cd-quiz__intro-info">[m
+[31m-                      <li>Điểm cần đạt: {passScore}%</li>[m
+[32m+[m[32m                      <li>[m[41m[m
+[32m+[m[32m                        <div className="quiz__info">[m[41m[m
+[32m+[m[32m                          <span>Số câu hỏi: </span>[m[41m[m
+[32m+[m[32m                          <span>{quizQuestions.length} câu</span>[m[41m[m
+[32m+[m[32m                        </div>[m[41m[m
+[32m+[m[32m                      </li>[m[41m[m
+[32m+[m[32m                      <li>[m[41m[m
+[32m+[m[32m                        <div className="quiz__info">[m[41m[m
+[32m+[m[32m                          <span>Thời gian: </span>[m[41m[m
+[32m+[m[32m                          <span>[m[41m[m
+[32m+[m[32m                            {apiQuiz.time_limit > 0[m[41m[m
+[32m+[m[32m                              ? `${apiQuiz.time_limit} phút`[m[41m[m
+[32m+[m[32m                              : "Không giới hạn"}[m[41m[m
+[32m+[m[32m                          </span>[m[41m[m
+[32m+[m[32m                        </div>[m[41m[m
+[32m+[m[32m                      </li>[m[41m[m
+[32m+[m[32m                      <li>[m[41m[m
+[32m+[m[32m                        <div className="quiz__info">[m[41m[m
+[32m+[m[32m                          <span>Điểm đạt: </span>[m[41m[m
+[32m+[m[32m                          <span style={{ color: "#4caf82", fontWeight: 600 }}>[m[41m[m
+[32m+[m[32m                            {passScore}%[m[41m[m
+[32m+[m[32m                          </span>[m[41m[m
+[32m+[m[32m                        </div>[m[41m[m
+[32m+[m[32m                      </li>[m[41m[m
+                       {apiQuiz.max_attempts > 0 && ([m
+[31m-                        <li>Số lần làm tối đa: {apiQuiz.max_attempts}</li>[m
+[32m+[m[32m                        <li>[m[41m[m
+[32m+[m[32m                          <span[m[41m[m
+[32m+[m[32m                            style={{[m[41m[m
+[32m+[m[32m                              color: "rgba(224,225,221,0.4)",[m[41m[m
+[32m+[m[32m                              fontSize: "0.6875rem",[m[41m[m
+[32m+[m[32m                              textTransform: "uppercase",[m[41m[m
+[32m+[m[32m                              letterSpacing: "0.08em",[m[41m[m
+[32m+[m[32m                            }}[m[41m[m
+[32m+[m[32m                          >[m[41m[m
+[32m+[m[32m                            Số lần làm[m[41m[m
+[32m+[m[32m                          </span>[m[41m[m
+[32m+[m[32m                          <span>Tối đa {apiQuiz.max_attempts} lần</span>[m[41m[m
+[32m+[m[32m                        </li>[m[41m[m
+                       )}[m
+[31m-                      <li>Có thể xem lại bài làm sau khi nộp</li>[m
+                     </ul>[m
+[32m+[m[41m[m
+                     {quizBlocked ? ([m
+                       <button[m
+                         className="cd-btn-enroll cd-btn-enroll--disabled"[m
+[36m@@ -1206,14 +1254,40 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+                     ) : ([m
+                       <button[m
+                         className="cd-btn-enroll"[m
+[31m-                        onClick={() => setQuizStarted(true)}[m
+[32m+[m[32m                        onClick={async () => {[m[41m[m
+[32m+[m[32m                          if (!currentQuizId) return;[m[41m[m
+[32m+[m[32m                          try {[m[41m[m
+[32m+[m[32m                            const startRes = await refreshAndRetry([m[41m[m
+[32m+[m[32m                              `${API}/api/quizzes/${currentQuizId}/start/`,[m[41m[m
+[32m+[m[32m                              { method: "POST" },[m[41m[m
+[32m+[m[32m                            );[m[41m[m
+[32m+[m[32m                            if (startRes.ok) {[m[41m[m
+[32m+[m[32m                              const { attempt_id } = await startRes.json();[m[41m[m
+[32m+[m[32m                              setCurrentAttemptId(attempt_id);[m[41m[m
+[32m+[m[32m                              setQuizStarted(true);[m[41m[m
+[32m+[m[32m                            } else {[m[41m[m
+[32m+[m[32m                              const err = await startRes[m[41m[m
+[32m+[m[32m                                .json()[m[41m[m
+[32m+[m[32m                                .catch(() => ({}));[m[41m[m
+[32m+[m[32m                              const detail = Array.isArray(err)[m[41m[m
+[32m+[m[32m                                ? err[0][m[41m[m
+[32m+[m[32m                                : (err.detail ?? "Không thể bắt đầu làm bài.");[m[41m[m
+[32m+[m[32m                              setQuizBlocked(true);[m[41m[m
+[32m+[m[32m                              setQuizError(detail);[m[41m[m
+[32m+[m[32m                            }[m[41m[m
+[32m+[m[32m                          } catch (err: any) {[m[41m[m
+[32m+[m[32m                            setQuizError(`Lỗi kết nối: ${err.message}`);[m[41m[m
+[32m+[m[32m                          }[m[41m[m
+[32m+[m[32m                        }}[m[41m[m
+                       >[m
+                         Bắt đầu làm bài[m
+                       </button>[m
+                     )}[m
+                   </div>[m
+                 ) : ([m
+[32m+[m[32m                  /* ════ ĐANG LÀM BÀI ════ */[m[41m[m
+                   <div className="cd-quiz__question">[m
+[32m+[m[32m                    {/* Progress bar */}[m[41m[m
+                     <div className="cd-quiz__progress">[m
+                       <div className="cd-quiz__progress-bar">[m
+                         <div[m
+[36m@@ -1224,87 +1298,171 @@[m [mconst CourseDetail: React.FC<CourseDetailProps> = ({[m
+                         />[m
+                       </div>[m
+                       <span className="cd-quiz__progress-text">[m
+[31m-                        Câu {currentQ + 1} / {quizQuestions.length}[m
+[32m+[m[32m                        {currentQ + 1} / {quizQuestions.length}[m[41m[m
+                       </span>[m
+                       {apiQuiz?.time_limit > 0 && ([m
+                         <span[m
+                           className={`cd-quiz__timer${timeLeft <= 60 ? " cd-quiz__timer--warning" : ""}`}[m
+                         >[m
+[31m-                          ⏱ {formatTime(timeLeft)}[m
+[32m+[m[32m                          {formatTime(timeLeft)}[m[41m[m
+                         </span>[m
+                       )}[m
+                     </div>[m
+[32m+[m[41m[m
+                     {currentQuestion && ([m
+                       <>[m
+[32m+[m[32m                        {/* Question number label */}[m[41m[m
+[32m+[m[32m                        <div className="cd-quiz__q-num">[m[41m[m
+[32m+[m[32m                          Question {currentQ + 1}[m[41m[m
+[32m+[m[32m                        </div>[m[41m[m
+

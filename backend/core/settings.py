@@ -1,3 +1,4 @@
+
 """
 Django settings for core project.
 
@@ -96,7 +97,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'portal',
+        'NAME': 'online_learning',
         'USER': 'postgres',
         'PASSWORD': '123456',
         'HOST': 'localhost',

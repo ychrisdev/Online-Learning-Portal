@@ -8,9 +8,7 @@ from .models import Answer, Question, Quiz, QuizAttempt
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Answer
-        fields = ['id', 'content', 'order_index']
-        # Không trả về is_correct khi student xem đề — ẩn đáp án đúng
-
+        fields = ['id', 'content', 'is_correct', 'order_index']
 
 class AnswerWithCorrectSerializer(serializers.ModelSerializer):
     """Dùng sau khi nộp bài — trả về is_correct để hiển thị kết quả."""
@@ -32,7 +30,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Question
-        fields = ['id', 'content', 'question_type', 'points', 'order_index', 'answers']
+        fields = ['id', 'content', 'question_type', 'points', 'order_index', 'explanation', 'answers']
 
 
 class QuestionWithResultSerializer(serializers.ModelSerializer):

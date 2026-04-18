@@ -779,14 +779,6 @@
   justify-content: space-between;
 }
 
-.level-card__code {
-  font-size: var(--text-xl);
-  font-weight: var(--fw-extrabold);
-  color: var(--lv-color, #e0e1dd);
-  letter-spacing: -0.02em;
-  font-family: var(--font-display);
-}
-
 .level-card__step {
   font-size: var(--text-xs);
   color: rgba(224, 225, 221, 0.25);
@@ -794,9 +786,11 @@
 }
 
 .level-card__name {
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  color: #e0e1dd;
+  font-size: var(--text-xl);
+  font-weight: var(--fw-extrabold);
+  color: var(--lv-color, #e0e1dd);
+  letter-spacing: -0.02em;
+  font-family: var(--font-display);
 }
 
 .level-card__desc {

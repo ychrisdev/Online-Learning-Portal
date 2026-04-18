@@ -144,7 +144,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ── Lộ trình ──────────────────────────────────────────── */}
       {pinnedCategories.length > 0 && (
         <section id="levels" className="section section--sm levels-section">
           <div className="container">
@@ -171,9 +170,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   }
                 >
                   <div className="level-card__header">
-                    <span className="level-card__code">
-                      {cat.slug.toUpperCase()}
-                    </span>
                     <span className="level-card__step">
                       {i + 1} / {pinnedCategories.length}
                     </span>
