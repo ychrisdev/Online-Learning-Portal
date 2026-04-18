@@ -6,18 +6,71 @@ interface AuthPageProps {
   onNavigate: (page: string) => void;
 }
 
-const API = 'http://127.0.0.1:8000';
+const API = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
 
 type ForgotStep = 'email' | 'otp' | 'done';
 
+// ── Toast System ──────────────────────────────────────────────────────────────
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+interface ToastItem { id: number; message: string; type: ToastType; }
+let toastCounter = 0;
+
+const ToastContainer: React.FC<{ toasts: ToastItem[]; onRemove: (id: number) => void }> = ({ toasts, onRemove }) => {
+  const icons: Record<ToastType, string> = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+  return (
+    <div className="cd-toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`cd-toast-item cd-toast-item--${t.type}`}>
+          <span className="cd-toast-icon">{icons[t.type]}</span>
+          <span className="cd-toast-msg">{t.message}</span>
+          <button className="cd-toast-close" onClick={() => onRemove(t.id)}>✕</button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+function useToast() {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
+  const addToast = (message: string, type: ToastType = 'info') => {
+    const id = ++toastCounter;
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => removeToast(id), 4500);
+  };
+  return {
+    toasts,
+    removeToast,
+    showToast:   (msg: string) => addToast(msg, 'success'),
+    showError:   (msg: string) => addToast(msg, 'error'),
+    showWarning: (msg: string) => addToast(msg, 'warning'),
+    showInfo:    (msg: string) => addToast(msg, 'info'),
+  };
+}
+
+function parseApiError(data: any): string {
+  if (!data) return 'Đã xảy ra lỗi không xác định.';
+  if (typeof data === 'string') return data;
+  if (Array.isArray(data)) return data[0] ?? 'Lỗi không xác định.';
+  if (data.detail) return data.detail;
+  // Field errors — lấy lỗi đầu tiên
+  for (const key of Object.keys(data)) {
+    const val = data[key];
+    if (Array.isArray(val) && val.length > 0) return `${val[0]}`;
+    if (typeof val === 'string') return val;
+  }
+  return 'Đã xảy ra lỗi. Vui lòng thử lại.';
+}
+
+// ── ForgotModal ───────────────────────────────────────────────────────────────
 const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [step, setStep]       = useState<ForgotStep>('email');
-  const [email, setEmail]     = useState('');
-  const [otp, setOtp]         = useState(['', '', '', '', '', '']);
-  const [password, setPassword]  = useState('');
-  const [confirm, setConfirm]    = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [step, setStep]         = useState<ForgotStep>('email');
+  const [email, setEmail]       = useState('');
+  const [otp, setOtp]           = useState(['', '', '', '', '', '']);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm]   = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
   const [countdown, setCountdown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -42,13 +95,13 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data?.detail ?? data?.email?.[0] ?? 'Không tìm thấy tài khoản với email này');
+        setError(parseApiError(data));
         return;
       }
       setStep('otp');
       setCountdown(60);
     } catch {
-      setError('Lỗi kết nối server');
+      setError('Lỗi kết nối server. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -56,9 +109,9 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const confirmReset = async () => {
     const code = otp.join('');
-    if (code.length < 6) { setError('Vui lòng nhập đủ 6 chữ số OTP'); return; }
+    if (code.length < 6)         { setError('Vui lòng nhập đủ 6 chữ số OTP'); return; }
     if (!password || password.length < 6) { setError('Mật khẩu tối thiểu 6 ký tự'); return; }
-    if (password !== confirm) { setError('Mật khẩu xác nhận không khớp'); return; }
+    if (password !== confirm)    { setError('Mật khẩu xác nhận không khớp'); return; }
 
     setLoading(true);
     setError('');
@@ -70,12 +123,12 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data?.detail ?? data?.otp?.[0] ?? 'OTP không hợp lệ hoặc đã hết hạn');
+        setError(parseApiError(data));
         return;
       }
       setStep('done');
     } catch {
-      setError('Lỗi kết nối server');
+      setError('Lỗi kết nối server. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -103,7 +156,6 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   return (
     <div className="fp-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="fp-modal">
-
         <div className="fp-header">
           <div className="fp-header__left">
             <div>
@@ -122,10 +174,7 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <button className="fp-close" onClick={onClose}>✕</button>
         </div>
 
-
-
         <div className="fp-body">
-
           {step === 'email' && (
             <>
               <div className="fp-field">
@@ -182,7 +231,7 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <input
                   className="fp-input"
                   type="password"
-                  placeholder="Tối thiểu 8 ký tự"
+                  placeholder="Tối thiểu 6 ký tự"
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                 />
@@ -202,7 +251,10 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               {error && <span className="fp-error">{error}</span>}
 
               <div className="fp-btn-row">
-                <button className="fp-btn fp-btn--ghost" onClick={() => { setStep('email'); setError(''); setOtp(['','','','','','']); }}>
+                <button
+                  className="fp-btn fp-btn--ghost"
+                  onClick={() => { setStep('email'); setError(''); setOtp(['','','','','','']); }}
+                >
                   ← Quay lại
                 </button>
                 <button className="fp-btn" onClick={confirmReset} disabled={loading}>
@@ -223,19 +275,20 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               </button>
             </div>
           )}
-
         </div>
       </div>
     </div>
   );
 };
 
+// ── AuthPage ──────────────────────────────────────────────────────────────────
 const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, onNavigate }) => {
-  const [mode, setMode]           = useState<'login' | 'register'>(initialMode);
-  const [loading, setLoading]     = useState(false);
-  const [form, setForm]           = useState({ username: '', name: '', email: '', password: '', confirm: '',  role: '' });
-  const [errors, setErrors]       = useState<Record<string, string>>({});
+  const [mode, setMode]     = useState<'login' | 'register'>(initialMode);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm]     = useState({ username: '', name: '', email: '', password: '', confirm: '', role: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showForgot, setShowForgot] = useState(false);
+  const { toasts, removeToast, showToast, showError, showWarning } = useToast();
 
   const update = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -252,7 +305,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
       if (!form.username) e.username = 'Vui lòng nhập username';
     }
     if (!form.password) e.password = 'Vui lòng nhập mật khẩu';
-    else if (form.password.length < 6) e.password = 'Tối thiểu 8 ký tự';
+    else if (form.password.length < 6) e.password = 'Tối thiểu 6 ký tự';
     if (mode === 'register') {
       if (!form.name) e.name = 'Vui lòng nhập họ tên';
       if (!form.role) e.role = 'Vui lòng chọn vai trò';
@@ -269,14 +322,54 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
       const endpoint = mode === 'login'
         ? `${API}/api/auth/token/`
         : `${API}/api/auth/register/`;
+
       const body = mode === 'login'
         ? { username: form.username, password: form.password }
-        : { username: form.username, full_name: form.name, email: form.email, password: form.password, password2: form.confirm, role: form.role };
+        : {
+            username:   form.username,
+            full_name:  form.name,
+            email:      form.email,
+            password:   form.password,
+            password2:  form.confirm,
+            role:       form.role,
+          };
 
-      const res  = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const res  = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       const data = await res.json();
-      if (!res.ok) { console.error('Register error:', data); alert(JSON.stringify(data, null, 2)); return; }
 
+      if (!res.ok) {
+        // ── Xử lý lỗi field-level từ DRF (đặt vào inline errors) ──
+        const fieldErrors: Record<string, string> = {};
+        let hasFieldError = false;
+
+        if (typeof data === 'object' && !Array.isArray(data) && !data.detail) {
+          for (const key of Object.keys(data)) {
+            const val = data[key];
+            const msg = Array.isArray(val) ? val[0] : String(val);
+            // Map field name DRF → field name form
+            if (key === 'username')   { fieldErrors.username = msg; hasFieldError = true; }
+            else if (key === 'email') { fieldErrors.email    = msg; hasFieldError = true; }
+            else if (key === 'password' || key === 'password2') {
+              fieldErrors.password = msg; hasFieldError = true;
+            }
+          }
+        }
+
+        if (hasFieldError) {
+          setErrors(fieldErrors);
+        } else {
+          // Lỗi tổng (detail, non_field_errors, v.v.) → toast
+          const msg = parseApiError(data);
+          showError(msg);
+        }
+        return;
+      }
+
+      // ── Thành công ──
       if (mode === 'login') {
         localStorage.setItem('access', data.access);
         localStorage.setItem('refresh', data.refresh);
@@ -285,18 +378,24 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
         });
         const profile = await profileRes.json();
         localStorage.setItem('role', profile.role);
-        onSuccess();
+        showToast('Đăng nhập thành công!');
+        setTimeout(() => onSuccess(), 800);
       } else {
         setMode('login');
         setForm({ username: '', name: '', email: '', password: '', confirm: '', role: '' });
-        setErrors({ _success: 'Đăng ký thành công! Vui lòng đăng nhập.' });
-        setTimeout(() => setErrors({}), 2000);
+        setErrors({});
+        showToast('Đăng ký thành công! Vui lòng đăng nhập.');
       }
     } catch {
-      alert('Lỗi server');
+      showError('Lỗi kết nối server. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Submit bằng Enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSubmit();
   };
 
   return (
@@ -309,10 +408,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
         </button>
 
         <div className="auth-tabs">
-          <button className={`auth-tab${mode === 'login' ? ' auth-tab--active' : ''}`} onClick={() => setMode('login')}>
+          <button
+            className={`auth-tab${mode === 'login' ? ' auth-tab--active' : ''}`}
+            onClick={() => { setMode('login'); setErrors({}); }}
+          >
             Đăng nhập
           </button>
-          <button className={`auth-tab${mode === 'register' ? ' auth-tab--active' : ''}`} onClick={() => setMode('register')}>
+          <button
+            className={`auth-tab${mode === 'register' ? ' auth-tab--active' : ''}`}
+            onClick={() => { setMode('register'); setErrors({}); }}
+          >
             Đăng ký
           </button>
         </div>
@@ -325,12 +430,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
             {mode === 'login' ? 'Tiếp tục lộ trình học của bạn' : 'Bắt đầu học từ đúng cấp độ của bạn'}
           </p>
         </div>
-        {errors._success && (
-          <div className="auth-success">
-            {errors._success}
-          </div>
-        )}
+
         <div className="auth-fields">
+          {/* Username */}
           <div className="auth-field">
             <label className="auth-label">Username</label>
             <input
@@ -338,10 +440,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
               placeholder="username"
               value={form.username}
               onChange={e => update('username', e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="username"
             />
             {errors.username && <span className="auth-error">{errors.username}</span>}
           </div>
 
+          {/* Họ tên — chỉ register */}
           {mode === 'register' && (
             <div className="auth-field">
               <label className="auth-label">Họ và tên</label>
@@ -350,11 +455,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
                 placeholder="Nguyễn Văn A"
                 value={form.name}
                 onChange={e => update('name', e.target.value)}
+                onKeyDown={handleKeyDown}
               />
               {errors.name && <span className="auth-error">{errors.name}</span>}
             </div>
           )}
 
+          {/* Email — chỉ register */}
           {mode === 'register' && (
             <div className="auth-field">
               <label className="auth-label">Email</label>
@@ -364,12 +471,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
                 placeholder="email@example.com"
                 value={form.email}
                 onChange={e => update('email', e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="email"
               />
               {errors.email && <span className="auth-error">{errors.email}</span>}
             </div>
           )}
 
-           {mode === 'register' && (
+          {/* Vai trò — chỉ register */}
+          {mode === 'register' && (
             <div className="auth-field">
               <label className="auth-label">Vai trò</label>
               <div className="auth-tabs">
@@ -387,18 +497,23 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
               {errors.role && <span className="auth-error">{errors.role}</span>}
             </div>
           )}
+
+          {/* Mật khẩu */}
           <div className="auth-field">
             <label className="auth-label">Mật khẩu</label>
             <input
               className={`auth-input${errors.password ? ' auth-input--error' : ''}`}
               type="password"
-              placeholder={mode === 'login' ? 'Nhập mật khẩu' : 'Tối thiểu 8 ký tự'}
+              placeholder={mode === 'login' ? 'Nhập mật khẩu' : 'Tối thiểu 6 ký tự'}
               value={form.password}
               onChange={e => update('password', e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             />
             {errors.password && <span className="auth-error">{errors.password}</span>}
           </div>
 
+          {/* Xác nhận mật khẩu — chỉ register */}
           {mode === 'register' && (
             <div className="auth-field">
               <label className="auth-label">Xác nhận mật khẩu</label>
@@ -408,6 +523,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
                 placeholder="Nhập lại mật khẩu"
                 value={form.confirm}
                 onChange={e => update('confirm', e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="new-password"
               />
               {errors.confirm && <span className="auth-error">{errors.confirm}</span>}
             </div>
@@ -433,7 +550,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
           {' '}
           <button
             className="auth-switch__link"
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setErrors({}); }}
           >
             {mode === 'login' ? 'Đăng ký ngay' : 'Đăng nhập'}
           </button>
@@ -442,6 +559,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ initialMode = 'login', onSuccess, o
       </div>
 
       {showForgot && <ForgotModal onClose={() => setShowForgot(false)} />}
+
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 };

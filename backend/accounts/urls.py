@@ -3,7 +3,6 @@ accounts/urls.py
 """
 from django.urls import path
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView,
     TokenBlacklistView,
 )
@@ -16,12 +15,13 @@ from .views import (
     StudentProfileView,
     UserDetailAdminView,
     UserListView,
+    CustomTokenObtainPairView,
 )
 
 urlpatterns = [
     # ── Xác thực ──────────────────────────────────────────────────
     path('register/',        RegisterView.as_view(),         name='register'),
-    path('token/',           TokenObtainPairView.as_view(),  name='token'),
+    path('token/', CustomTokenObtainPairView.as_view(), name='token'),
     path('logout/',          TokenBlacklistView.as_view(),   name='logout'),
     path('token/refresh/',   TokenRefreshView.as_view(),     name='token-refresh'),
 

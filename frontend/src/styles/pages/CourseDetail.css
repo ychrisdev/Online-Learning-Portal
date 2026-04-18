@@ -1586,31 +1586,130 @@
   box-shadow: none;
 }
 
-.cd-toast {
+.cd-toast-container {
   position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #22c55e;
-  color: #fff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 500;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   z-index: 9999;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: fadeInUp 0.3s ease;
+  pointer-events: none;
+  max-width: 360px;
+  width: calc(100vw - 2rem);
+}
+ 
+.cd-toast-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  pointer-events: all;
+  backdrop-filter: blur(12px);
+  border: 1px solid;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: cd-toast-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes fadeInUp {
+@keyframes cd-toast-in {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(10px);
+    transform: translateY(12px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
+
+.cd-toast-item--success {
+  background: rgba(22, 48, 35, 0.92);
+  border-color: rgba(76, 175, 130, 0.4);
+  color: #6ee7b5;
+}
+.cd-toast-item--success .cd-toast-icon {
+  color: #4caf82;
+  background: rgba(76, 175, 130, 0.15);
+}
+ 
+.cd-toast-item--error {
+  background: rgba(48, 18, 18, 0.92);
+  border-color: rgba(224, 92, 92, 0.4);
+  color: #fca5a5;
+}
+.cd-toast-item--error .cd-toast-icon {
+  color: #e05c5c;
+  background: rgba(224, 92, 92, 0.15);
+}
+ 
+.cd-toast-item--warning {
+  background: rgba(46, 36, 10, 0.92);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fcd34d;
+}
+.cd-toast-item--warning .cd-toast-icon {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.cd-toast-item--info {
+  background: rgba(13, 27, 55, 0.92);
+  border-color: rgba(119, 141, 169, 0.4);
+  color: #a8c0d6;
+}
+.cd-toast-item--info .cd-toast-icon {
+  color: #778da9;
+  background: rgba(119, 141, 169, 0.15);
+}
+ 
+.cd-toast-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+ 
+.cd-toast-msg {
+  flex: 1;
+  line-height: 1.4;
+}
+ 
+.cd-toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.4;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: opacity 0.15s;
+  font-family: inherit;
+  line-height: 1;
+}
+.cd-toast-close:hover {
+  opacity: 0.9;
+}
+ 
+@media (max-width: 560px) {
+  .cd-toast-container {
+    bottom: 1rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    max-width: 100%;
+    width: auto;
+  }
+}
+
 .cd-price-card__enrolled-badge {
   font-size: 1.2rem;
   font-weight: 700;

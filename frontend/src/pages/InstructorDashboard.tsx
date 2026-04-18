@@ -372,6 +372,17 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [reportingReview, setReportingReview] = useState<Review | null>(null);
   const [submittingReport, setSubmittingReport] = useState(false);
 
+  const blockNegative = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
+      e.preventDefault();
+    }
+  };
+
+  const toPositiveInt = (val: string) => {
+    const n = parseInt(val, 10);
+    return isNaN(n) || n < 0 ? "" : String(n);
+  };
+
   const filteredReviews = useMemo(
     () =>
       reviews.filter((r) => {
@@ -2206,8 +2217,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       type="tel"
                       disabled={!profileEditing}
                       value={profileForm.phone}
+                      onKeyDown={blockNegative}
                       onChange={(e) =>
-                        setProfileForm((f) => ({ ...f, phone: e.target.value }))
+                        setProfileForm((f) => ({
+                          ...f,
+                          phone: toPositiveInt(e.target.value),
+                        }))
                       }
                     />
                   </div>
@@ -2221,10 +2236,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       min="0"
                       disabled={!profileEditing}
                       value={profileForm.years_experience}
+                      onKeyDown={blockNegative}
                       onChange={(e) =>
                         setProfileForm((f) => ({
                           ...f,
-                          years_experience: e.target.value,
+                          years_experience: toPositiveInt(e.target.value),
                         }))
                       }
                     />
@@ -3134,10 +3150,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           type="number"
                           min={0}
                           value={sectionForm.order_index}
+                          onKeyDown={blockNegative}
                           onChange={(e) =>
                             setSectionForm((f) => ({
                               ...f,
-                              order_index: e.target.value,
+                              order_index: toPositiveInt(e.target.value),
                             }))
                           }
                         />
@@ -3488,10 +3505,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 type="number"
                                 min={0}
                                 value={lessonForm.order_index}
+                                onKeyDown={blockNegative}
                                 onChange={(e) =>
                                   setLessonForm((f) => ({
                                     ...f,
-                                    order_index: e.target.value,
+                                    order_index: toPositiveInt(e.target.value),
                                   }))
                                 }
                               />
@@ -4135,10 +4153,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             <select
                               className="cm-select"
                               value={quizForm.lesson}
+                              onKeyDown={blockNegative}
                               onChange={(e) =>
                                 setQuizForm((f) => ({
                                   ...f,
-                                  lesson: e.target.value,
+                                  lesson: toPositiveInt(e.target.value),
                                 }))
                               }
                             >
@@ -4202,12 +4221,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 min={0}
                                 max={100}
                                 value={quizForm.pass_score}
-                                onChange={(e) =>
-                                  setQuizForm((f) => ({
-                                    ...f,
-                                    pass_score: e.target.value,
-                                  }))
-                                }
+                                onKeyDown={blockNegative}
+                                onChange={(e) => setQuizForm((f) => ({ ...f, pass_score: toPositiveInt(e.target.value) }))}
                               />
                             </div>
                             <div className="cm-field">
@@ -4222,10 +4237,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 type="number"
                                 min={0}
                                 value={quizForm.time_limit}
+                                onKeyDown={blockNegative}
                                 onChange={(e) =>
                                   setQuizForm((f) => ({
                                     ...f,
-                                    time_limit: e.target.value,
+                                    time_limit: toPositiveInt(e.target.value),
                                   }))
                                 }
                               />
@@ -4243,10 +4259,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               type="number"
                               min={0}
                               value={quizForm.max_attempts}
+                              onKeyDown={blockNegative}
                               onChange={(e) =>
                                 setQuizForm((f) => ({
                                   ...f,
-                                  max_attempts: e.target.value,
+                                  max_attempts: toPositiveInt(e.target.value),
                                 }))
                               }
                             />
@@ -4401,10 +4418,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 type="number"
                                 min={1}
                                 value={questionForm.order_index}
+                                onKeyDown={blockNegative}
                                 onChange={(e) =>
                                   setQuestionForm((f) => ({
                                     ...f,
-                                    order_index: e.target.value,
+                                    order_index: toPositiveInt(e.target.value),
                                   }))
                                 }
                               />
@@ -5557,10 +5575,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             type="number"
                             min={0}
                             value={editCourseForm.price}
+                            onKeyDown={blockNegative}
                             onChange={(e) =>
                               setEditCourseForm((f) => ({
                                 ...f,
-                                price: e.target.value,
+                                price: toPositiveInt(e.target.value),
                               }))
                             }
                           />
@@ -5573,10 +5592,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             min={0}
                             max={100}
                             value={editCourseForm.discount_percent}
+                            onKeyDown={blockNegative}
                             onChange={(e) =>
                               setEditCourseForm((f) => ({
                                 ...f,
-                                discount_percent: e.target.value,
+                                discount_percent: toPositiveInt(e.target.value),
                               }))
                             }
                           />
@@ -5593,6 +5613,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           <select
                             className="cm-select"
                             value={editCourseForm.level}
+                            onKeyDown={blockNegative}
                             onChange={(e) =>
                               setEditCourseForm((f) => ({
                                 ...f,

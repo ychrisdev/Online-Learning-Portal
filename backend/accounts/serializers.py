@@ -4,13 +4,13 @@ accounts/serializers.py
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
+
 
 from .models import StudentProfile, InstructorProfile
 
 User = get_user_model()
-
-
-# ── Đăng ký ───────────────────────────────────────────────────────────────────
 
 class RegisterSerializer(serializers.ModelSerializer):
     """Đăng ký tài khoản — 5.1.1"""
@@ -58,6 +58,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'full_name', 'avatar', 'bio', 'role', 'date_joined']
         read_only_fields = ['id', 'username', 'role', 'date_joined']
 
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except Exception:
+            raise AuthenticationFailed(
+                'Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.'
+            )
 
 # ── Hồ sơ mở rộng: Student ───────────────────────────────────────────────────
 

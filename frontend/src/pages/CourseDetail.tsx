@@ -3,7 +3,7 @@ import { formatPrice } from "../utils/format";
 import { getVideoEmbed } from "../utils/youtube";
 import PaymentModal from "./PaymentPage";
 
-const API = "http://127.0.0.1:8000";
+const API = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 const authHeader = (): Record<string, string> => {
   const token = localStorage.getItem("access");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -43,6 +43,17 @@ const refreshAndRetry = async (
   }
   return res;
 };
+
+// ── Toast System ─────────────────────────────────────────────────────────────
+type ToastType = "success" | "error" | "warning" | "info";
+interface ToastItem {
+  id: number;
+  message: string;
+  type: ToastType;
+}
+
+let toastCounter = 0;
+
 interface CourseDetailProps {
   courseId: string;
   onNavigate: (page: string, courseId?: string) => void;
@@ -133,6 +144,33 @@ const formatTime = (seconds: number) => {
 };
 const isMultipleType = (qt: string) =>
   qt === "multiple" || qt === "multiple_choice";
+
+// ── Toast Component ───────────────────────────────────────────────────────────
+const ToastContainer: React.FC<{
+  toasts: ToastItem[];
+  onRemove: (id: number) => void;
+}> = ({ toasts, onRemove }) => {
+  const icons: Record<ToastType, string> = {
+    success: "✓",
+    error: "✕",
+    warning: "⚠",
+    info: "ℹ",
+  };
+  return (
+    <div className="cd-toast-container">
+      {toasts.map((t) => (
+        <div key={t.id} className={`cd-toast-item cd-toast-item--${t.type}`}>
+          <span className="cd-toast-icon">{icons[t.type]}</span>
+          <span className="cd-toast-msg">{t.message}</span>
+          <button className="cd-toast-close" onClick={() => onRemove(t.id)}>
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const CourseDetail: React.FC<CourseDetailProps> = ({
   courseId,
   onNavigate,
@@ -172,6 +210,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const [currentAttemptId, setCurrentAttemptId] = useState<string | null>(null);
   const [quizBlocked, setQuizBlocked] = useState(false);
 
+  // ── KEY: mỗi lần chuyển bài học quiz sẽ được reset hoàn toàn bằng key này ──
+  const [quizFetchKey, setQuizFetchKey] = useState(0);
+
   const [myReviewIds, setMyReviewIds] = useState<Set<string>>(new Set());
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
@@ -195,11 +236,42 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const [progressMap, setProgressMap] = useState<Record<string, boolean>>({});
   const [progressPct, setProgressPct] = useState<number>(0);
 
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+  // ── Toast state ──────────────────────────────────────────────────────────────
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const addToast = (message: string, type: ToastType = "info") => {
+    const id = ++toastCounter;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => removeToast(id), 4000);
   };
+
+  const removeToast = (id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const showToast = (msg: string) => addToast(msg, "success");
+  const showError = (msg: string) => addToast(msg, "error");
+  const showWarning = (msg: string) => addToast(msg, "warning");
+  const showInfo = (msg: string) => addToast(msg, "info");
+
+  // ── Reset toàn bộ quiz state ─────────────────────────────────────────────────
+  const resetQuizState = () => {
+    setApiQuiz(null);
+    setCurrentQuizId(null);
+    setQuizError(null);
+    setQuizBlocked(false);
+    setQuizResult(null);
+    setQuizStarted(false);
+    setCurrentQ(0);
+    setSelected(new Set());
+    setAnswered(false);
+    setAllAnswers({});
+    setQuizExplanations({});
+    setCurrentAttemptId(null);
+    setTimeLeft(0);
+    clearInterval(timerRef.current!);
+  };
+
   useEffect(() => {
     allAnswersRef.current = allAnswers;
   }, [allAnswers]);
@@ -242,7 +314,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           const data = await res.json();
           const list: any[] = Array.isArray(data) ? data : [];
           setMyReviewIds(new Set(list.map((r) => r.id)));
-          // lấy attempt_number từ review mới nhất
           const latest = list[0];
           if (latest) {
             setMyReviewId(latest.id);
@@ -261,7 +332,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     }
     const role = localStorage.getItem("role");
     if (role !== "student") {
-      alert("Chỉ học viên mới có thể đăng ký khóa học.");
+      showError("Chỉ học viên mới có thể đăng ký khóa học.");
       return;
     }
     if (isEnrolled) {
@@ -282,10 +353,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           setIsEnrolled(true);
           showToast("🎉 Đăng ký thành công! Chúc bạn học tốt.");
         } else {
-          alert(data.detail ?? "Đăng ký thất bại.");
+          showError(data.detail ?? "Đăng ký thất bại.");
         }
       } catch {
-        alert("Lỗi kết nối. Vui lòng thử lại.");
+        showError("Lỗi kết nối. Vui lòng thử lại.");
       } finally {
         setEnrolling(false);
       }
@@ -295,8 +366,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   };
 
   const fetchLessonContent = async (lessonId: string, isPreview: boolean) => {
-    console.log("🔵 fetchLessonContent", lessonId, "isEnrolled:", isEnrolled);
-
     if (!isPreview && !isEnrolled) {
       if (!isLoggedIn) {
         onNavigate("auth");
@@ -324,7 +393,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           setActiveTab("lesson");
         }
         if (isEnrolled) {
-          console.log("✅ markLessonComplete");
           await markLessonComplete(lessonId);
         }
       } else if (res.status === 403) {
@@ -354,7 +422,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         const map: Record<string, boolean> = {};
         list.forEach((p: any) => {
           map[p.lesson] = p.is_completed;
-          // quiz_passed: true = đã pass, false = chưa pass, null = không có quiz
           if (p.quiz_passed === true) {
             map[`quiz_${p.lesson}`] = true;
           }
@@ -374,7 +441,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   };
 
   const markLessonComplete = async (lessonId: string) => {
-    console.log("🟡 markLessonComplete called", lessonId);
     try {
       const patchRes = await refreshAndRetry(
         `${API}/api/enrollments/progress/${lessonId}/`,
@@ -384,44 +450,45 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           body: JSON.stringify({ is_completed: true }),
         },
       );
-      console.log("🟡 PATCH status:", patchRes.status);
       const patchData = await patchRes.json();
-      console.log("🟡 PATCH response:", patchData);
       setProgressMap((prev) => ({ ...prev, [lessonId]: true }));
       const enrollRes = await refreshAndRetry(`${API}/api/enrollments/`);
-      console.log("🟡 enrollments fetch status:", enrollRes.status);
       const data = await enrollRes.json();
       const list = Array.isArray(data) ? data : (data.results ?? []);
-      console.log("🟡 enrollments list:", list);
-      console.log("🟡 course.id:", course?.id);
       const enrolled = list.find(
         (e: any) => e.course === course.id || e.course_id === course.id,
       );
-      console.log("🟡 found enrollment:", enrolled);
-      console.log("🟡 progress_pct:", enrolled?.progress_pct);
       if (enrolled && typeof enrolled.progress_pct === "number") {
         setProgressPct(enrolled.progress_pct);
-        console.log("✅ setProgressPct called with:", enrolled.progress_pct);
-      } else {
-        console.log("❌ progress_pct not found or not a number");
       }
     } catch (err) {
-      console.error("❌ markLessonComplete error:", err);
+      console.log(err);
     }
   };
 
-  // fetchQuizFromLesson — CHỈ fetch quiz data, KHÔNG start attempt
   const fetchQuizFromLesson = async (lessonId: string) => {
     if (!localStorage.getItem("access")) {
       setQuizError("Vui lòng đăng nhập để làm bài kiểm tra");
       setApiQuiz(null);
       return;
     }
-    setQuizLoading(true);
-    setQuizError(null);
+
     setApiQuiz(null);
     setCurrentQuizId(null);
+    setQuizError(null);
     setQuizBlocked(false);
+    setQuizResult(null);
+    setQuizStarted(false);
+    setCurrentQ(0);
+    setSelected(new Set());
+    setAnswered(false);
+    setAllAnswers({});
+    setQuizExplanations({});
+    setCurrentAttemptId(null);
+    setTimeLeft(0);
+    clearInterval(timerRef.current!);
+
+    setQuizLoading(true);
     try {
       const res = await refreshAndRetry(
         `${API}/api/quizzes/lesson/${lessonId}/take/`,
@@ -445,14 +512,14 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   };
 
   useEffect(() => {
-    if (
-      activeTab === "quiz" &&
-      activeLessonId &&
-      !apiQuiz &&
-      !quizError &&
-      !quizBlocked
-    ) {
+    if (activeTab === "quiz" && activeLessonId && quizFetchKey > 0) {
       fetchQuizFromLesson(activeLessonId);
+    }
+  }, [quizFetchKey]);
+
+  useEffect(() => {
+    if (activeTab === "quiz" && activeLessonId) {
+      setQuizFetchKey((k) => k + 1);
     }
   }, [activeTab, activeLessonId]);
 
@@ -482,10 +549,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         }
       } else {
         const err = await res.json();
-        alert(err.detail ?? "Gửi đánh giá thất bại.");
+        showError(err.detail ?? "Gửi đánh giá thất bại.");
       }
     } catch {
-      alert("Lỗi kết nối.");
+      showError("Lỗi kết nối.");
     }
   };
 
@@ -521,15 +588,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         );
         if (updated.ok) setCourse(await updated.json());
         handleCancelEdit();
+        showToast("Đã cập nhật đánh giá.");
       } else {
         const err = await res.json();
-        alert(err.detail ?? "Cập nhật đánh giá thất bại.");
+        showError(err.detail ?? "Cập nhật đánh giá thất bại.");
       }
     } catch {
-      alert("Lỗi kết nối.");
+      showError("Lỗi kết nối.");
     }
     setEditSaving(false);
   };
+
   // ── Quiz handlers ───────────────────────────────────────────────
   const handleSelectAnswer = (answerId: string, questionType: string) => {
     if (answered) return;
@@ -547,7 +616,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   };
   const handleAnswerQuestion = () => {
     if (selected.size === 0) {
-      alert("Vui lòng chọn một đáp án.");
+      showWarning("Vui lòng chọn một đáp án.");
       return;
     }
     setAnswered(true);
@@ -604,10 +673,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         }
       } else {
         const err = await res.json();
-        setQuizError(err.detail ?? "Nộp bài thất bại.");
+        showError(err.detail ?? "Nộp bài thất bại.");
       }
     } catch (err: any) {
-      setQuizError(`Lỗi: ${err.message}`);
+      showError(`Lỗi: ${err.message}`);
     }
     setQuizSubmitting(false);
   };
@@ -821,6 +890,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                               }`}
                               onClick={() => {
                                 setLessonTargetTab("lesson");
+                                setReturnTab("lesson");
                                 fetchLessonContent(lesson.id, lessonIsPreview);
                               }}
                             >
@@ -843,15 +913,13 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                   className="cd-lesson-row__quiz-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    // Reset toàn bộ quiz state, set lesson mới, tăng fetchKey
+                                    resetQuizState();
                                     setReturnTab("quiz");
                                     setActiveLessonId(lesson.id);
-                                    setApiQuiz(null);
-                                    setQuizError(null);
-                                    setQuizBlocked(false);
-                                    setQuizResult(null);
-                                    setQuizStarted(false);
-                                    fetchQuizFromLesson(lesson.id);
                                     setActiveTab("quiz");
+                                    // Tăng key để trigger useEffect fetch quiz
+                                    setQuizFetchKey((k) => k + 1);
                                   }}
                                   title="Làm bài kiểm tra"
                                   style={{ cursor: "pointer" }}
@@ -1007,7 +1075,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     {activeLesson.attachment && (
                       <div className="cd-lesson__attachments">
                         <h4 className="cd-lesson__attachments-title">
-                          File tài liệu
+                          File tài liệu
                         </h4>
                         <a
                           href={
@@ -1055,23 +1123,45 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     <p>Đang tải bài kiểm tra…</p>
                   </div>
                 ) : quizError ? (
-                  /* ── Error ── */
+                  /* ── Error / Không có quiz ── */
                   <div className="cd-quiz__intro">
                     <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
                     <div className="cd-quiz__blocked">
-                      {quizError === "No Quiz matches the given query."
-                        ? "Không tìm thấy bài kiểm tra"
+                      {quizError === "No Quiz matches the given query." ||
+                      quizError.includes("No Quiz")
+                        ? "Bài học này không có bài kiểm tra"
                         : quizError}
                     </div>
-                    <button
-                      className="cd-btn-secondary"
-                      onClick={() => setActiveTab("lesson")}
+                    <p
+                      className="cd-quiz__intro-sub"
+                      style={{ fontSize: "0.8rem", marginTop: 8 }}
                     >
-                      Quay lại bài học
-                    </button>
+                      Hãy chọn một bài học khác có bài kiểm tra
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        flexWrap: "wrap",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <button
+                        className="cd-btn-secondary"
+                        onClick={() => setActiveTab("lesson")}
+                      >
+                        Quay lại bài học
+                      </button>
+                      <button
+                        className="cd-btn-secondary"
+                        onClick={() => setActiveTab("curriculum")}
+                      >
+                        Xem chương trình học
+                      </button>
+                    </div>
                   </div>
                 ) : !apiQuiz ? (
-                  /* ── Không có quiz ── */
+                  /* ── Không có quiz (chưa load) ── */
                   <div className="cd-quiz__intro">
                     <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
                     <p className="cd-quiz__intro-sub">
@@ -1268,7 +1358,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                               setQuizError(detail);
                             }
                           } catch (err: any) {
-                            setQuizError(`Lỗi kết nối: ${err.message}`);
+                            showError(`Lỗi kết nối: ${err.message}`);
                           }
                         }}
                       >
@@ -1326,9 +1416,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                             (ans: any, ansIdx: number) => {
                               const label = String.fromCharCode(65 + ansIdx);
                               const isSelected = selected.has(ans.id);
-                              const isSingle =
-                                currentQuestion.question_type === "single" ||
-                                currentQuestion.question_type === "true_false";
                               const isMultiple = isMultipleType(
                                 currentQuestion.question_type,
                               );
@@ -1678,12 +1765,12 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           const role = localStorage.getItem("role");
 
                           if (role !== "student") {
-                            alert("Chỉ học viên mới được đánh giá.");
+                            showError("Chỉ học viên mới được đánh giá.");
                             return;
                           }
 
                           if (!isEnrolled) {
-                            alert(
+                            showError(
                               "Bạn cần đăng ký khóa học trước khi đánh giá.",
                             );
                             return;
@@ -1792,7 +1879,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           course={course}
           onClose={() => setShowPayment(false)}
           onSuccess={async () => {
-            console.log("course data:", course);
             setIsEnrolled(true);
             setShowPayment(false);
             setActiveTab("lesson");
@@ -1815,7 +1901,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           }}
         />
       )}
-      {toast && <div className="cd-toast">{toast}</div>}
+
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </>
   );
 };
