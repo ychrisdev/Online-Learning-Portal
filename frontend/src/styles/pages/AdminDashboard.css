@@ -372,6 +372,8 @@
 .ad-badge--banned    { background: rgba(224,92,92,0.12);   color: #e05c5c;  border: 0.5px solid rgba(224,92,92,0.22);   }
 .ad-badge--approved  { background: rgba(76,175,130,0.12);  color: #4caf82;  border: 0.5px solid rgba(76,175,130,0.22);  }
 .ad-badge--pending   { background: rgba(245,158,11,0.12);  color: #f59e0b;  border: 0.5px solid rgba(245,158,11,0.22);  }
+.ad-badge--danger   {background: rgba(220, 53, 69, 0.15);  color: #ff6b6b;  border-color: rgba(220, 53, 69, 0.3);
+}
 .ad-badge--draft     { background: rgba(119,141,169,0.1);  color: rgba(224,225,221,0.45); border: 0.5px solid rgba(119,141,169,0.15); }
 .ad-badge--review    { background: rgba(55,138,221,0.1);   color: #5ba4de;  border: 0.5px solid rgba(55,138,221,0.22);  }
 .ad-badge--published { background: rgba(76,175,130,0.1);   color: #4caf82;  border: 0.5px solid rgba(76,175,130,0.2);   }

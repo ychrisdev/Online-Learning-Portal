@@ -1,5 +1,29 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const refresh = localStorage.getItem('refresh');
+    if (!refresh) return null;
+    try {
+      const res = await fetch(`${BASE_URL}/auth/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('access', data.access);
+        return data.access as string;
+      }
+    } catch {}
+    return null;
+  })().finally(() => { refreshPromise = null; });
+  return refreshPromise;
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -15,27 +39,15 @@ async function request<T>(
     ...options,
     headers,
   });
+
   if (response.status === 401 && !isRetry) {
-    const refresh = localStorage.getItem('refresh');
-    if (refresh) {
-      try {
-        const res = await fetch(`${BASE_URL}/auth/token/refresh/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem('access', data.access);
-          return request<T>(endpoint, options, true);
-        }
-      } catch {}
+      const newToken = await refreshAccessToken();
+      if (newToken) return request<T>(endpoint, options, true);
+      localStorage.removeItem('access');
+      localStorage.removeItem('refresh');
+      window.location.href = '/login';
+      return undefined as T;
     }
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
-    window.location.href = '/login';
-    return undefined as T;
-  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || `HTTP ${response.status}`);

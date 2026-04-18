@@ -4102,7 +4102,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div>
                   <h2 className="ad-section-title">
                     Khóa học chờ duyệt ({pendingCourses.length})
-                  </h2>``
+                  </h2>
                   <div className="ad-pending-list">
                     {loadingCourses ? (
                       <p className="ad-empty">Đang tải…</p>
@@ -5899,7 +5899,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 Đã ẩn
                               </span>
                             ) : r.is_reported ? (
-                              <span className="ad-badge">Báo cáo</span>
+                              <span className="ad-badge ad-badge--danger">Báo cáo</span>
                             ) : (
                               <span className="ad-badge ad-review-badge--visible">
                                 Hiển thị

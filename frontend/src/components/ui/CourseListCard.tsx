@@ -58,14 +58,11 @@ const CourseListCard: React.FC<CardProps> = ({ course, onSelect }) => {
         )}
 
         <div className="course-card__stats">
-          {course.avg_rating > 0 && (
-            <>
-              <span className="course-card__rating">
-                ★ {Number(course.avg_rating).toFixed(1)}
-              </span>
-              <span className="course-card__dot">·</span>
-            </>
-          )}
+          <span className="course-card__rating">
+            ★ {Number(course.avg_rating ?? 0).toFixed(1)}
+          </span>
+          <span className="course-card__dot">·</span>
+
           <span>{(course.total_students ?? 0).toLocaleString()} học viên</span>
         </div>
 
