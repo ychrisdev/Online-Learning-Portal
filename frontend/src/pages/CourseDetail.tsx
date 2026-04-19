@@ -145,6 +145,19 @@ const formatTime = (seconds: number) => {
 const isMultipleType = (qt: string) =>
   qt === "multiple" || qt === "multiple_choice";
 
+// ── Empty State Component ─────────────────────────────────────────────────────
+const EmptyState: React.FC<{
+  title: string;
+  subtitle: string;
+  actions?: React.ReactNode;
+}> = ({ title, subtitle, actions }) => (
+  <div className="cd-empty-state">
+    <h3 className="cd-empty-state__title">{title}</h3>
+    <p className="cd-empty-state__sub">{subtitle}</p>
+    {actions && <div className="cd-empty-state__actions">{actions}</div>}
+  </div>
+);
+
 // ── Toast Component ───────────────────────────────────────────────────────────
 const ToastContainer: React.FC<{
   toasts: ToastItem[];
@@ -185,6 +198,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeLesson, setActiveLesson] = useState<any>(null);
+  const [activeLessonHasQuiz, setActiveLessonHasQuiz] = useState(false);
   const [lessonLoading, setLessonLoading] = useState(false);
   const [lessonError, setLessonError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -209,6 +223,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const [allAnswers, setAllAnswers] = useState<Record<string, Set<string>>>({});
   const [currentAttemptId, setCurrentAttemptId] = useState<string | null>(null);
   const [quizBlocked, setQuizBlocked] = useState(false);
+  const [quizAttemptCount, setQuizAttemptCount] = useState<number>(0);
+  const [quizMaxAttempts, setQuizMaxAttempts] = useState<number>(0);
 
   // ── KEY: mỗi lần chuyển bài học quiz sẽ được reset hoàn toàn bằng key này ──
   const [quizFetchKey, setQuizFetchKey] = useState(0);
@@ -269,6 +285,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     setQuizExplanations({});
     setCurrentAttemptId(null);
     setTimeLeft(0);
+    setQuizAttemptCount(0);
+    setQuizMaxAttempts(0);
     clearInterval(timerRef.current!);
   };
 
@@ -365,15 +383,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     setShowPayment(true);
   };
 
-  const fetchLessonContent = async (lessonId: string, isPreview: boolean) => {
+  const fetchLessonContent = async (lessonId: string, isPreview: boolean, lessonHasQuiz?: boolean) => {
     if (!isPreview && !isEnrolled) {
       if (!isLoggedIn) {
         onNavigate("auth");
         return;
       }
-      await handleEnroll();
+      // Show toast thay vì error trong lesson tab
+      showInfo("Vui lòng đăng ký khóa học để xem bài học này.");
       return;
     }
+    setActiveLessonHasQuiz(!!lessonHasQuiz);
     setLessonLoading(true);
     setLessonError(null);
     setActiveLesson(null);
@@ -396,9 +416,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           await markLessonComplete(lessonId);
         }
       } else if (res.status === 403) {
-        const err = await res.json();
-        setLessonError(err.detail ?? "Bạn chưa có quyền xem bài học này.");
-        setActiveTab(returnTab === "quiz" ? "quiz" : "lesson");
+        // Lesson locked — show toast and go to lesson tab cleanly
+        showInfo("Vui lòng đăng ký khóa học để xem bài học này.");
+        setActiveTab("lesson");
       } else {
         setLessonError("Không thể tải bài học. Vui lòng thử lại.");
         setActiveTab(returnTab === "quiz" ? "quiz" : "lesson");
@@ -486,6 +506,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     setQuizExplanations({});
     setCurrentAttemptId(null);
     setTimeLeft(0);
+    setQuizAttemptCount(0);
+    setQuizMaxAttempts(0);
     clearInterval(timerRef.current!);
 
     setQuizLoading(true);
@@ -504,6 +526,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       }
       setApiQuiz(data);
       setCurrentQuizId(data.id);
+      // Lưu số lần đã làm và tối đa
+      if (typeof data.attempt_count === "number") setQuizAttemptCount(data.attempt_count);
+      if (typeof data.max_attempts === "number") setQuizMaxAttempts(data.max_attempts);
     } catch (err: any) {
       setQuizError(`Lỗi kết nối: ${err.message}`);
     } finally {
@@ -651,6 +676,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         });
         setQuizExplanations(explanationsMap);
         setQuizResult(result);
+        setQuizAttemptCount((c) => c + 1);
         setQuizStarted(false);
         if (result.passed && isEnrolled) {
           setProgressMap((prev) => ({
@@ -786,14 +812,15 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const quizQuestions = apiQuiz?.questions ?? [];
   const currentQuestion = quizQuestions[currentQ];
   const passScore = apiQuiz?.pass_score ?? 70;
+
+  // Helper: số lần còn lại
+  const attemptsLeft = quizMaxAttempts > 0 ? quizMaxAttempts - quizAttemptCount : null;
+
   return (
     <>
       <div className="cd-page">
         <div className="container cd-layout">
-          <div className="cd-main">
-            <button className="cd-back" onClick={() => onNavigate("courses")}>
-              ← Quay lại
-            </button>
+          <div className="cd-main">            
             <h1 className="cd-hero__title">{course.title}</h1>
 
             <div className="cd-tabs">
@@ -836,138 +863,140 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
             {/* ── Curriculum ── */}
             {activeTab === "curriculum" && (
               <div className="cd-tab-content cd-curriculum">
-                <p className="cd-curriculum__summary">
-                  {sections.reduce((a, s) => a + (s.lessons?.length ?? 0), 0) >
-                  0
-                    ? `${sections.reduce((a, s) => a + (s.lessons?.length ?? 0), 0)} bài học · ${sections.length} chương`
-                    : "Hiện tại chưa có nội dung bài học"}
-                </p>
-                {sections.map((section) => (
-                  <div key={section.id} className="cd-chapter">
-                    <button
-                      className="cd-chapter__header"
-                      onClick={() =>
-                        setExpandedSection(
-                          expandedSection === section.id ? null : section.id,
-                        )
-                      }
-                    >
-                      <span className="cd-chapter__icon">
-                        {expandedSection === section.id ? "▾" : "▸"}
-                      </span>
-                      <span className="cd-chapter__title">{section.title}</span>
-                      {isEnrolled ? (
-                        <span className="cd-chapter__count">
-                          {section.lessons?.reduce((done: number, l: any) => {
-                            const lessonDone = progressMap[l.id] ?? false;
-                            const quizDone = l.quiz
-                              ? (progressMap[`quiz_${l.id}`] ?? false)
-                              : true;
-                            return done + (lessonDone && quizDone ? 1 : 0);
-                          }, 0) ?? 0}
-                          /{section.lessons?.length ?? 0}
-                        </span>
-                      ) : (
-                        <span className="cd-chapter__count">
-                          {section.lessons?.length ?? 0} bài
-                        </span>
-                      )}
-                    </button>
-                    {expandedSection === section.id && (
-                      <div className="cd-chapter__lessons">
-                        {section.lessons?.map((lesson: any, idx: number) => {
-                          const lessonIsPreview =
-                            lesson.is_preview_video ||
-                            lesson.is_preview_article ||
-                            lesson.is_preview_resource;
-                          return (
-                            <button
-                              key={lesson.id}
-                              className={`cd-lesson-row${
-                                activeLessonId === lesson.id
-                                  ? " cd-lesson-row--active"
-                                  : ""
-                              }`}
-                              onClick={() => {
-                                setLessonTargetTab("lesson");
-                                setReturnTab("lesson");
-                                fetchLessonContent(lesson.id, lessonIsPreview);
-                              }}
-                            >
-                              <span className="cd-lesson-row__num">
-                                {idx + 1}
-                              </span>
-                              <span className="cd-lesson-row__type-icon">
-                                {lesson.video_url || lesson.video_file
-                                  ? "▶"
-                                  : lesson.content
-                                    ? "📘"
-                                    : "📎"}
-                              </span>
-                              <span className="cd-lesson-row__title">
-                                {lesson.title}
-                              </span>
-                              {lesson.quiz && isEnrolled && (
-                                <span
-                                  role="button"
-                                  className="cd-lesson-row__quiz-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Reset toàn bộ quiz state, set lesson mới, tăng fetchKey
-                                    resetQuizState();
-                                    setReturnTab("quiz");
-                                    setActiveLessonId(lesson.id);
-                                    setActiveTab("quiz");
-                                    // Tăng key để trigger useEffect fetch quiz
-                                    setQuizFetchKey((k) => k + 1);
-                                  }}
-                                  title="Làm bài kiểm tra"
-                                  style={{ cursor: "pointer" }}
-                                >
-                                  📝
-                                </span>
-                              )}
-                              {lesson.quiz && !isEnrolled && (
-                                <span className="cd-lesson-row__quiz">📝</span>
-                              )}
-                              {isEnrolled ? (
-                                <span
-                                  className={`cd-lesson-row__done${
-                                    progressMap[lesson.id] &&
-                                    (!lesson.quiz ||
-                                      progressMap[`quiz_${lesson.id}`])
-                                      ? " cd-lesson-row__done--completed"
+                {sections.length === 0 ? (
+                  <EmptyState
+                    title="Chưa có chương trình học"
+                    subtitle="Nội dung khóa học đang được cập nhật. Vui lòng quay lại sau."
+                  />
+                ) : (
+                  <>
+                    
+                    {sections.map((section) => (
+                      <div key={section.id} className="cd-chapter">
+                        <button
+                          className="cd-chapter__header"
+                          onClick={() =>
+                            setExpandedSection(
+                              expandedSection === section.id ? null : section.id,
+                            )
+                          }
+                        >
+                          <span className="cd-chapter__icon">
+                            {expandedSection === section.id ? "▾" : "▸"}
+                          </span>
+                          <span className="cd-chapter__title">{section.title}</span>
+                          {isEnrolled ? (
+                            <span className="cd-chapter__count">
+                              {section.lessons?.reduce((done: number, l: any) => {
+                                const lessonDone = progressMap[l.id] ?? false;
+                                const quizDone = l.quiz
+                                  ? (progressMap[`quiz_${l.id}`] ?? false)
+                                  : true;
+                                return done + (lessonDone && quizDone ? 1 : 0);
+                              }, 0) ?? 0}
+                              /{section.lessons?.length ?? 0}
+                            </span>
+                          ) : (
+                            <span className="cd-chapter__count">
+                              {section.lessons?.length ?? 0} bài
+                            </span>
+                          )}
+                        </button>
+                        {expandedSection === section.id && (
+                          <div className="cd-chapter__lessons">
+                            {section.lessons?.map((lesson: any, idx: number) => {
+                              const lessonIsPreview =
+                                lesson.is_preview_video ||
+                                lesson.is_preview_article ||
+                                lesson.is_preview_resource;
+                              return (
+                                <button
+                                  key={lesson.id}
+                                  className={`cd-lesson-row${
+                                    activeLessonId === lesson.id
+                                      ? " cd-lesson-row--active"
                                       : ""
                                   }`}
+                                  onClick={() => {
+                                    setLessonTargetTab("lesson");
+                                    setReturnTab("lesson");
+                                    fetchLessonContent(lesson.id, lessonIsPreview, !!lesson.quiz);
+                                  }}
                                 >
-                                  {(progressMap[lesson.id] ? 1 : 0) +
-                                    (lesson.quiz &&
-                                    progressMap[`quiz_${lesson.id}`]
-                                      ? 1
-                                      : 0)}
-                                  /{lesson.quiz ? 2 : 1}
-                                </span>
-                              ) : (
-                                <>
-                                  {lessonIsPreview && (
-                                    <span className="cd-lesson-row__preview">
-                                      Xem thử
+                                  <span className="cd-lesson-row__num">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="cd-lesson-row__type-icon">
+                                    {lesson.video_url || lesson.video_file
+                                      ? "▶"
+                                      : lesson.content
+                                        ? "📘"
+                                        : "📎"}
+                                  </span>
+                                  <span className="cd-lesson-row__title">
+                                    {lesson.title}
+                                  </span>
+                                  {lesson.quiz && isEnrolled && (
+                                    <span
+                                      role="button"
+                                      className="cd-lesson-row__quiz-btn"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        resetQuizState();
+                                        setReturnTab("quiz");
+                                        setActiveLessonId(lesson.id);
+                                        setActiveTab("quiz");
+                                        setQuizFetchKey((k) => k + 1);
+                                      }}
+                                      title="Làm bài kiểm tra"
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      📝
                                     </span>
                                   )}
-                                  {!lessonIsPreview && (
-                                    <span className="cd-lesson-row__lock">
-                                      🔒
-                                    </span>
+                                  {lesson.quiz && !isEnrolled && (
+                                    <span className="cd-lesson-row__quiz">📝</span>
                                   )}
-                                </>
-                              )}
-                            </button>
-                          );
-                        })}
+                                  {isEnrolled ? (
+                                    <span
+                                      className={`cd-lesson-row__done${
+                                        progressMap[lesson.id] &&
+                                        (!lesson.quiz ||
+                                          progressMap[`quiz_${lesson.id}`])
+                                          ? " cd-lesson-row__done--completed"
+                                          : ""
+                                      }`}
+                                    >
+                                      {(progressMap[lesson.id] ? 1 : 0) +
+                                        (lesson.quiz &&
+                                        progressMap[`quiz_${lesson.id}`]
+                                          ? 1
+                                          : 0)}
+                                      /{lesson.quiz ? 2 : 1}
+                                    </span>
+                                  ) : (
+                                    <>
+                                      {lessonIsPreview && (
+                                        <span className="cd-lesson-row__preview">
+                                          Xem thử
+                                        </span>
+                                      )}
+                                      {!lessonIsPreview && (
+                                        <span className="cd-lesson-row__lock">
+                                          🔒
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    ))}
+                  </>
+                )}
               </div>
             )}
             {/* ── Lesson ── */}
@@ -980,38 +1009,39 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   </div>
                 ) : lessonError ? (
                   <div className="cd-lesson__error">
-                    <p> {lessonError}</p>
-                    {!isEnrolled && (
-                      <button
-                        className="cd-btn-enroll"
-                        onClick={handleEnroll}
-                        disabled={enrolling}
-                      >
-                        {enrolling
-                          ? "Đang đăng ký…"
-                          : !isLoggedIn
-                            ? "Đăng nhập để học"
-                            : localStorage.getItem("role") !== "student"
-                              ? "Chỉ học viên mới đăng ký được"
-                              : "Đăng ký học ngay"}
-                      </button>
-                    )}
+                    <p>{lessonError}</p>
                   </div>
                 ) : !activeLesson ? (
-                  <div className="cd-lesson__pick">
-                    <h3>Chọn bài học để bắt đầu</h3>
-                    <p>Chọn một bài từ danh sách chương trình.</p>
-                    <button
-                      className="cd-btn-secondary"
-                      onClick={() => setActiveTab("curriculum")}
-                    >
-                      Xem chương trình học
-                    </button>
-                  </div>
+                  <EmptyState
+                    title="Chọn bài học để bắt đầu"
+                    subtitle="Chọn một bài từ danh sách chương trình để xem nội dung."
+                    actions={
+                      <button
+                        className="cd-btn-secondary"
+                        onClick={() => setActiveTab("curriculum")}
+                      >
+                        Xem chương trình học
+                      </button>
+                    }
+                  />
                 ) : (
                   <div className="cd-lesson__content">
                     <div className="cd-lesson__header">
                       <h2 className="cd-lesson__title">{activeLesson.title}</h2>
+                      {/* Nút làm bài tập nếu bài có quiz */}
+                      {activeLessonHasQuiz && isEnrolled && (
+                        <button
+                          className="cd-lesson__quiz-cta"
+                          onClick={() => {
+                            resetQuizState();
+                            setReturnTab("quiz");
+                            setActiveTab("quiz");
+                            setQuizFetchKey((k) => k + 1);
+                          }}
+                        >
+                          Làm bài tập
+                        </button>
+                      )}
                     </div>
                     {(activeLesson.video_file || activeLesson.video_url) && (
                       <div className="cd-lesson__video-wrap">
@@ -1094,6 +1124,23 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         </a>
                       </div>
                     )}
+                    {/* Nút làm bài tập ở cuối bài nếu có quiz */}
+                    {activeLessonHasQuiz && isEnrolled && (
+                      <div className="cd-lesson__footer">
+                        <button
+                          className="cd-lesson__quiz-cta cd-lesson__quiz-cta--footer"
+                          onClick={() => {
+                            resetQuizState();
+                            setReturnTab("quiz");
+                            setActiveTab("quiz");
+                            setQuizFetchKey((k) => k + 1);
+                          }}
+                        >
+                          Làm bài tập ngay
+                          <span className="cd-lesson__quiz-cta-arrow">→</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1103,19 +1150,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
               <div className="cd-tab-content cd-quiz">
                 {!activeLessonId ? (
                   /* ── Chưa chọn bài học ── */
-                  <div className="cd-quiz__intro">
-                    <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
-                    <p className="cd-quiz__intro-sub">
-                      Chọn một bài học có bài kiểm tra từ chương trình học để
-                      bắt đầu.
-                    </p>
-                    <button
-                      className="cd-btn-secondary"
-                      onClick={() => setActiveTab("curriculum")}
-                    >
-                      Xem chương trình học
-                    </button>
-                  </div>
+                  <EmptyState
+                    title="Chọn bài học để luyện tập"
+                    subtitle="Chọn một bài học có bài kiểm tra từ chương trình học để bắt đầu."
+                    actions={
+                      <button
+                        className="cd-btn-secondary"
+                        onClick={() => setActiveTab("curriculum")}
+                      >
+                        Xem chương trình học
+                      </button>
+                    }
+                  />
                 ) : quizLoading ? (
                   /* ── Loading ── */
                   <div className="cd-lesson__loading">
@@ -1124,56 +1170,48 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   </div>
                 ) : quizError ? (
                   /* ── Error / Không có quiz ── */
-                  <div className="cd-quiz__intro">
-                    <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
-                    <div className="cd-quiz__blocked">
-                      {quizError === "No Quiz matches the given query." ||
-                      quizError.includes("No Quiz")
+                  <EmptyState
+                    title={
+                      quizError === "No Quiz matches the given query." || quizError.includes("No Quiz")
                         ? "Bài học này không có bài kiểm tra"
-                        : quizError}
-                    </div>
-                    <p
-                      className="cd-quiz__intro-sub"
-                      style={{ fontSize: "0.8rem", marginTop: 8 }}
-                    >
-                      Hãy chọn một bài học khác có bài kiểm tra
-                    </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        flexWrap: "wrap",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <button
-                        className="cd-btn-secondary"
-                        onClick={() => setActiveTab("lesson")}
-                      >
-                        Quay lại bài học
-                      </button>
+                        : "Không thể tải bài kiểm tra"
+                    }
+                    subtitle={
+                      quizError === "No Quiz matches the given query." || quizError.includes("No Quiz")
+                        ? "Hãy chọn một bài học khác có bài kiểm tra."
+                        : quizError
+                    }
+                    actions={
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                        <button
+                          className="cd-btn-secondary"
+                          onClick={() => setActiveTab("lesson")}
+                        >
+                          Quay lại bài học
+                        </button>
+                        <button
+                          className="cd-btn-secondary"
+                          onClick={() => setActiveTab("curriculum")}
+                        >
+                          Xem chương trình học
+                        </button>
+                      </div>
+                    }
+                  />
+                ) : !apiQuiz ? (
+                  /* ── Không có quiz (chưa load) ── */
+                  <EmptyState
+                    title="Bài học này chưa có bài kiểm tra"
+                    subtitle="Hãy chọn một bài học khác."
+                    actions={
                       <button
                         className="cd-btn-secondary"
                         onClick={() => setActiveTab("curriculum")}
                       >
-                        Xem chương trình học
+                        Chọn bài học khác
                       </button>
-                    </div>
-                  </div>
-                ) : !apiQuiz ? (
-                  /* ── Không có quiz (chưa load) ── */
-                  <div className="cd-quiz__intro">
-                    <h2 className="cd-quiz__intro-title">Bài kiểm tra</h2>
-                    <p className="cd-quiz__intro-sub">
-                      Bài học này chưa có bài kiểm tra.
-                    </p>
-                    <button
-                      className="cd-btn-secondary"
-                      onClick={() => setActiveTab("curriculum")}
-                    >
-                      Chọn bài học khác
-                    </button>
-                  </div>
+                    }
+                  />
                 ) : quizResult ? (
                   /* ════ KẾT QUẢ ════ */
                   <div className="cd-quiz__result">
@@ -1206,7 +1244,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                             color: quizResult.passed ? "#4caf82" : "#e05c5c",
                           }}
                         >
-                          {quizResult.score}%
+                          {quizResult.score/10}/10
                         </span>
                       </div>
                       <div className="cd-quiz__result-info-row">
@@ -1216,6 +1254,15 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           câu
                         </span>
                       </div>
+                      {quizAttemptCount > 0 && (
+                        <div className="cd-quiz__result-info-row">
+                          <span>Lần làm bài</span>
+                          <span>
+                            {quizAttemptCount}
+                            {quizMaxAttempts > 0 ? `/${quizMaxAttempts}` : ""}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Review */}
@@ -1257,12 +1304,14 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
                     {/* Actions */}
                     <div className="cd-quiz__result-actions">
-                      <button
-                        className="cd-btn-enroll"
-                        onClick={handleRestartQuiz}
-                      >
-                        Làm lại
-                      </button>
+                      {(!quizBlocked && (attemptsLeft === null || attemptsLeft > 0)) && (
+                        <button
+                          className="cd-btn-enroll"
+                          onClick={handleRestartQuiz}
+                        >
+                          Làm lại                          
+                        </button>
+                      )}
                       <button
                         className="cd-btn-secondary"
                         onClick={() => setActiveTab("lesson")}
@@ -1311,17 +1360,20 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                       </li>
                       {apiQuiz.max_attempts > 0 && (
                         <li>
-                          <span
-                            style={{
-                              color: "rgba(224,225,221,0.4)",
-                              fontSize: "0.6875rem",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.08em",
-                            }}
-                          >
-                            Số lần làm
-                          </span>
-                          <span>Tối đa {apiQuiz.max_attempts} lần</span>
+                          <div className="quiz__info">
+                            <span>Số lần làm: </span>
+                            <span>
+                              {quizAttemptCount}/{apiQuiz.max_attempts}                              
+                            </span>
+                          </div>
+                        </li>
+                      )}
+                      {quizAttemptCount > 0 && apiQuiz.max_attempts === 0 && (
+                        <li>
+                          <div className="quiz__info">
+                            <span>Đã làm: </span>
+                            <span>{quizAttemptCount} lần</span>
+                          </div>
                         </li>
                       )}
                     </ul>
@@ -1362,7 +1414,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           }
                         }}
                       >
-                        Bắt đầu làm bài
+                        {quizAttemptCount > 0 ? "Làm lại" : "Bắt đầu làm bài"}
                       </button>
                     )}
                   </div>
@@ -1406,7 +1458,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         {/* Hint for multiple choice */}
                         {isMultipleType(currentQuestion.question_type) && (
                           <p className="cd-quiz__hint">
-                            Chọn tất cả đáp án đúng
+                            Chọn nhiều đáp án
                           </p>
                         )}
 
@@ -1425,19 +1477,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
                               if (answered) {
                                 if (ans.is_correct === true) {
-                                  cls += " cd-quiz__option--correct";
-                                  feedbackLabel = (
-                                    <span className="cd-quiz__option-feedback cd-quiz__option-feedback--correct">
-                                      ✓ Đúng
-                                    </span>
-                                  );
+                                  cls += " cd-quiz__option--correct";                                  
                                 } else if (isSelected) {
-                                  cls += " cd-quiz__option--wrong";
-                                  feedbackLabel = (
-                                    <span className="cd-quiz__option-feedback cd-quiz__option-feedback--wrong">
-                                      ✗ Sai
-                                    </span>
-                                  );
+                                  cls += " cd-quiz__option--wrong";                                  
                                 }
                                 cls += " cd-quiz__option--disabled";
                               } else if (isSelected) {
@@ -1506,10 +1548,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                               return (
                                 <>
                                   <span className="cd-quiz__feedback-label">
-                                    {allCorrect ? "✓ Đúng" : "✗ Chưa đúng"}
+                                    {allCorrect ? "Đúng" : "Sai"}
                                   </span>
 
                                   <p className="cd-quiz__explanation">
+                                    Giải thích: 
                                     {quizExplanations[currentQuestion.id] ||
                                       currentQuestion.explanation ||
                                       "Không có giải thích."}
@@ -1807,48 +1850,44 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                 </span>
               </div>
 
-              {isEnrolled ? (
-                <div className="cd-price-card__enrolled-badge">Đã đăng ký</div>
-              ) : (
-                <div className="cd-price-card__price-row">
-                  <span className="cd-price-card__price">
-                    {(course.sale_price ?? course.price ?? 0) > 0
-                      ? formatPrice(
-                          course.sale_price ?? course.price ?? 0,
-                          "VND",
-                        )
-                      : "Miễn phí"}
-                  </span>
-                  {discount > 0 && course.price > 0 && (
-                    <>
-                      <span className="cd-price-card__original">
-                        {formatPrice(course.price, "VND")}
-                      </span>
-                      <span className="cd-price-card__discount">
-                        -{discount}%
-                      </span>
-                    </>
-                  )}
-                </div>
+              {!isEnrolled && (
+                <>
+                  <div className="cd-price-card__price-row">
+                    <span className="cd-price-card__price">
+                      {(course.sale_price ?? course.price ?? 0) > 0
+                        ? formatPrice(course.sale_price ?? course.price ?? 0, "VND")
+                        : "Miễn phí"}
+                    </span>
+                    {discount > 0 && course.price > 0 && (
+                      <>
+                        <span className="cd-price-card__original">
+                          {formatPrice(course.price, "VND")}
+                        </span>
+                        <span className="cd-price-card__discount">-{discount}%</span>
+                      </>
+                    )}
+                  </div>
+
+                  <button
+                    className="cd-btn-enroll"
+                    onClick={handleEnroll}
+                    disabled={enrolling}
+                  >
+                    {enrolling
+                      ? "Đang đăng ký…"
+                      : isLoggedIn
+                        ? "Đăng ký học ngay"
+                        : "Đăng nhập để học"}
+                  </button>
+                </>
               )}
-              {isEnrolled ? (
+
+              {isEnrolled && (
                 <button
                   className="cd-btn-enroll"
-                  onClick={() => setActiveTab("lesson")}
+                  onClick={() => setActiveTab("curriculum")}
                 >
-                  ▶ Tiếp tục học
-                </button>
-              ) : (
-                <button
-                  className="cd-btn-enroll"
-                  onClick={handleEnroll}
-                  disabled={enrolling}
-                >
-                  {enrolling
-                    ? "Đang đăng ký…"
-                    : isLoggedIn
-                      ? "Đăng ký học ngay"
-                      : "Đăng nhập để học"}
+                  Đã đăng ký
                 </button>
               )}
               {isEnrolled && (
