@@ -137,7 +137,6 @@ class QuizDetailByLessonView(generics.RetrieveAPIView):
         )
         # Check permissions
         _check_enrollment(self.request.user, quiz)
-        _check_max_attempts(self.request.user, quiz)
         return quiz
     
 class QuizSubmitView(APIView):

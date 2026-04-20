@@ -9,7 +9,6 @@
   min-height: calc(100vh - var(--navbar-height));
   padding: var(--space-8) 0 var(--space-16);
 }
-
 .db-layout {
   display: grid;
   grid-template-columns: 240px 1fr;
@@ -39,7 +38,6 @@
   text-align: center;
   margin-bottom: var(--space-2);
 }
-
 .db-profile__avatar-wrap {
   position: relative;
   display: inline-block;
@@ -49,7 +47,6 @@
   overflow: visible;
   flex-shrink: 0;
 }
-
 .db-profile__avatar {
   width: 72px;
   height: 72px;
@@ -59,7 +56,6 @@
   border: 2px solid rgba(119, 141, 169, 0.3);
   display: block;
 }
-
 .db-profile__avatar-svg {
   width: 72px;
   height: 72px;
@@ -67,8 +63,6 @@
   border: 2px solid rgba(119, 141, 169, 0.2);
   display: block;
 }
-
-/* Avatar edit button (pencil emoji label) */
 .db-profile__avatar-edit {
   position: absolute;
   bottom: -4px;
@@ -90,26 +84,21 @@
 .db-profile__avatar-edit:hover {
   background: #4f6d8f;
 }
-
 .db-profile__level {
   position: absolute;
-  bottom: -12px;        /* nằm ngay dưới avatar */
-  left: 50%;            /* căn giữa */
+  bottom: -12px;
+  left: 50%;
   transform: translateX(-50%);
-
   background: #415a77;
   color: #e0e1dd;
   font-size: 0.65rem;
   font-weight: var(--fw-bold);
-  padding: 0.3em 0.6em;  /* sửa dấu , -> . và tăng padding */
-  
+  padding: 0.3em 0.6em;
   border-radius: var(--radius-full);
   border: 1.5px solid #0d1b2a;
   letter-spacing: 0.03em;
-
-  white-space: nowrap;   /* 🔥 QUAN TRỌNG: không cho xuống dòng */
+  white-space: nowrap;
 }
-
 .db-profile__name {
   font-size: var(--text-sm);
   font-weight: var(--fw-semibold);
@@ -135,7 +124,6 @@
   flex-direction: column;
   gap: var(--space-1);
 }
-
 .db-nav__item {
   display: block;
   width: 100%;
@@ -176,7 +164,6 @@
 .db-main {
   min-width: 0;
 }
-
 .db-content {
   display: flex;
   flex-direction: column;
@@ -188,7 +175,6 @@
   padding-bottom: var(--space-4);
   border-bottom: 1px solid rgba(119, 141, 169, 0.1);
 }
-
 .db-page-title {
   font-size: clamp(1.25rem, 2.5vw, 1.625rem);
   font-weight: var(--fw-extrabold);
@@ -196,7 +182,6 @@
   letter-spacing: -0.02em;
   margin-bottom: var(--space-1);
 }
-
 .db-page-sub {
   font-size: var(--text-sm);
   color: rgba(224, 225, 221, 0.45);
@@ -216,7 +201,6 @@
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
 }
-
 .db-stat-card {
   background: #1b263b;
   border: 1px solid rgba(119, 141, 169, 0.15);
@@ -230,7 +214,6 @@
 .db-stat-card:hover {
   border-color: rgba(119, 141, 169, 0.28);
 }
-
 .db-stat-card__value {
   font-size: var(--text-2xl);
   font-weight: var(--fw-extrabold);
@@ -238,7 +221,6 @@
   letter-spacing: -0.03em;
   font-family: var(--font-display);
 }
-
 .db-stat-card__label {
   font-size: var(--text-xs);
   color: rgba(224, 225, 221, 0.4);
@@ -256,7 +238,6 @@
   flex-direction: column;
   gap: var(--space-4);
 }
-
 .db-card__header {
   display: flex;
   align-items: center;
@@ -264,7 +245,6 @@
   padding-bottom: var(--space-3);
   border-bottom: 1px solid rgba(119, 141, 169, 0.1);
 }
-
 .db-card__header h3 {
   font-size: var(--text-sm);
   font-weight: var(--fw-semibold);
@@ -291,7 +271,6 @@
   border-color: rgba(119, 141, 169, 0.3);
   background: rgba(65, 90, 119, 0.12);
 }
-
 .db-course-card__thumb {
   width: 80px;
   height: 56px;
@@ -300,7 +279,6 @@
   flex-shrink: 0;
   filter: brightness(0.85);
 }
-
 .db-course-card__body {
   flex: 1;
   min-width: 0;
@@ -308,7 +286,6 @@
   flex-direction: column;
   gap: var(--space-1);
 }
-
 .db-course-card__body strong {
   font-size: var(--text-sm);
   font-weight: var(--fw-semibold);
@@ -327,7 +304,6 @@
   overflow: hidden;
   margin-top: var(--space-1);
 }
-
 .db-progress-bar__fill {
   height: 100%;
   background: linear-gradient(90deg, #415a77 0%, #778da9 100%);
@@ -352,7 +328,6 @@
 .db-payment-row:hover {
   border-color: rgba(119, 141, 169, 0.25);
 }
-
 .db-payment-row > span:first-child {
   color: #e0e1dd;
   font-weight: var(--fw-medium);
@@ -360,13 +335,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .db-payment-row > span:nth-child(2) {
   font-size: var(--text-xs);
   color: rgba(224, 225, 221, 0.4);
   white-space: nowrap;
 }
-
 .db-payment-row > span:nth-child(3) {
   font-weight: var(--fw-semibold);
   color: #e0e1dd;
@@ -384,17 +357,14 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-
 .db-badge--success {
   background: rgba(76, 175, 130, 0.12);
   color: #4caf82;
 }
-
 .db-badge--warn {
   background: rgba(200, 160, 60, 0.12);
   color: #c8a03c;
 }
-
 .db-badge--err {
   background: rgba(224, 92, 92, 0.12);
   color: #e05c5c;
@@ -425,12 +395,10 @@
   background: rgba(13, 27, 42, 0.9);
   box-shadow: 0 0 0 3px rgba(65, 90, 119, 0.2);
 }
-
 select.db-input {
   cursor: pointer;
   appearance: auto;
 }
-
 .db-input--textarea {
   resize: vertical;
   min-height: 90px;
@@ -443,17 +411,14 @@ select.db-input {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4) var(--space-5);
 }
-
 .db-field {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
-
 .db-field--full {
   grid-column: 1 / -1;
 }
-
 .db-field__label {
   font-size: var(--text-xs);
   font-weight: var(--fw-medium);
@@ -461,18 +426,15 @@ select.db-input {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-
 .db-field__control {
   font-size: var(--text-sm);
   color: rgba(224, 225, 221, 0.75);
   line-height: 1.5;
 }
-
 .db-field__control span {
   display: block;
   padding: 0.35em 0;
 }
-
 .db-field__control a {
   color: #778da9;
   text-decoration: underline;
@@ -482,7 +444,6 @@ select.db-input {
 .db-field__control a:hover {
   color: #e0e1dd;
 }
-
 .db-field__error {
   font-size: var(--text-xs);
   color: #e05c5c;
@@ -495,7 +456,6 @@ select.db-input {
   flex-direction: column;
   gap: var(--space-2);
 }
-
 .db-checkbox-group label {
   display: flex;
   align-items: center;
@@ -505,7 +465,6 @@ select.db-input {
   cursor: pointer;
   user-select: none;
 }
-
 .db-checkbox-group input[type="checkbox"] {
   width: 15px;
   height: 15px;
@@ -534,7 +493,6 @@ select.db-input {
   border-radius: var(--radius-xl);
   text-align: center;
 }
-
 .db-empty p {
   font-size: var(--text-sm);
   color: rgba(224, 225, 221, 0.4);
@@ -562,19 +520,16 @@ select.db-input {
   animation: toastIn 0.22s ease forwards;
   max-width: 320px;
 }
-
 .db-toast--ok {
   background: #1b3a2d;
   border: 1px solid rgba(76, 175, 130, 0.3);
   color: #4caf82;
 }
-
 .db-toast--err {
   background: #3a1b1b;
   border: 1px solid rgba(224, 92, 92, 0.3);
   color: #e05c5c;
 }
-
 @keyframes toastIn {
   from {
     opacity: 0;
@@ -592,7 +547,6 @@ select.db-input {
   flex-direction: column;
   gap: var(--space-3);
 }
-
 .db-course-row {
   display: flex;
   align-items: center;
@@ -606,7 +560,6 @@ select.db-input {
 .db-course-row:hover {
   border-color: rgba(119, 141, 169, 0.3);
 }
-
 .db-course-row__thumb {
   width: 72px;
   height: 52px;
@@ -615,7 +568,6 @@ select.db-input {
   flex-shrink: 0;
   filter: brightness(0.85);
 }
-
 .db-course-row__info {
   flex: 1;
   min-width: 0;
@@ -623,7 +575,6 @@ select.db-input {
   flex-direction: column;
   gap: var(--space-1);
 }
-
 .db-course-row__title {
   font-size: var(--text-sm);
   font-weight: var(--fw-semibold);
@@ -632,19 +583,16 @@ select.db-input {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .db-course-row__meta {
   font-size: var(--text-xs);
   color: rgba(224, 225, 221, 0.4);
 }
-
 .db-progress {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-1);
 }
-
 .db-progress__bar {
   flex: 1;
   height: 4px;
@@ -652,14 +600,12 @@ select.db-input {
   border-radius: var(--radius-full);
   overflow: hidden;
 }
-
 .db-progress__fill {
   height: 100%;
   background: #415a77;
   border-radius: var(--radius-full);
   transition: width var(--transition-slow);
 }
-
 .db-progress__text {
   font-size: var(--text-xs);
   color: rgba(224, 225, 221, 0.5);
@@ -667,30 +613,25 @@ select.db-input {
   white-space: nowrap;
   font-weight: var(--fw-medium);
 }
-
 .db-progress__detail {
   font-size: var(--text-xs);
   color: rgba(224, 225, 221, 0.3);
   margin-top: var(--space-1);
 }
-
 .db-table-wrap {
   overflow-x: auto;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(119, 141, 169, 0.15);
 }
-
 .db-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);
 }
-
 .db-table thead tr {
   background: #1b263b;
   border-bottom: 1px solid rgba(119, 141, 169, 0.15);
 }
-
 .db-table th {
   padding: var(--space-3) var(--space-5);
   text-align: left;
@@ -701,14 +642,12 @@ select.db-input {
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
-
 .db-table tbody tr {
   border-bottom: 1px solid rgba(119, 141, 169, 0.08);
   transition: background var(--transition-fast);
 }
 .db-table tbody tr:last-child { border-bottom: none; }
 .db-table tbody tr:hover { background: rgba(65, 90, 119, 0.08); }
-
 .db-table td {
   padding: var(--space-4) var(--space-5);
   color: rgba(224, 225, 221, 0.7);
@@ -717,7 +656,6 @@ select.db-input {
 .db-table__course { color: #e0e1dd; font-weight: var(--fw-medium); }
 .db-table__date   { color: rgba(224, 225, 221, 0.45); font-size: var(--text-xs); white-space: nowrap; }
 .db-table__amount { font-weight: var(--fw-semibold); color: #e0e1dd; white-space: nowrap; }
-
 .db-status {
   display: inline-flex;
   align-items: center;
@@ -726,7 +664,7 @@ select.db-input {
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
 }
-.db-status--success { background: rgba(76, 175, 130, 0.12); color: #4caf82; }
+.db-status--success  { background: rgba(76, 175, 130, 0.12); color: #4caf82; }
 .db-status--refunded { background: rgba(119, 141, 169, 0.12); color: #778da9; }
 
 /* ── Form section (legacy) ──────────────────────────────────────── */
@@ -739,7 +677,6 @@ select.db-input {
   flex-direction: column;
   gap: var(--space-5);
 }
-
 .db-form-section__title {
   font-size: var(--text-sm);
   font-weight: var(--fw-semibold);
@@ -750,7 +687,6 @@ select.db-input {
   border-bottom: 1px solid rgba(119, 141, 169, 0.1);
   font-family: var(--font-body);
 }
-
 .db-field__input {
   padding: 0.65em 0.9em;
   background: rgba(13, 27, 42, 0.6);
@@ -770,13 +706,11 @@ select.db-input {
   background: rgba(13, 27, 42, 0.9);
   box-shadow: 0 0 0 3px rgba(65, 90, 119, 0.2);
 }
-
 .db-avatar-upload {
   display: flex;
   align-items: center;
   gap: var(--space-5);
 }
-
 .db-avatar-upload__preview {
   width: 80px;
   height: 80px;
@@ -793,7 +727,6 @@ select.db-input {
   display: block;
   object-fit: cover;
 }
-
 .db-avatar-upload__info {
   display: flex;
   flex-direction: column;
@@ -842,7 +775,6 @@ select.db-input {
   transition: color var(--transition-fast);
 }
 .db-avatar-upload__remove:hover { color: #e05c5c; }
-
 .db-form-actions {
   display: flex;
   align-items: center;
@@ -854,7 +786,6 @@ select.db-input {
   color: #4caf82;
   animation: fadeIn var(--transition-base) forwards;
 }
-
 .db-btn-save {
   padding: 0.7em 2em;
   background: #415a77;
@@ -871,7 +802,6 @@ select.db-input {
   background: #4f6d8f;
   box-shadow: 0 4px 14px rgba(65, 90, 119, 0.4);
 }
-
 .db-btn-continue {
   padding: 0.45em 1.1em;
   background: rgba(65, 90, 119, 0.3);
@@ -892,7 +822,6 @@ select.db-input {
   color: #4caf82;
 }
 .db-btn-continue--done:hover { background: rgba(76, 175, 130, 0.2); }
-
 .db-explore {
   display: flex;
   align-items: center;
@@ -904,7 +833,6 @@ select.db-input {
   gap: var(--space-4);
 }
 .db-explore p { font-size: var(--text-sm); color: rgba(224, 225, 221, 0.5); }
-
 .db-btn-explore {
   padding: 0.55em 1.25em;
   background: #415a77;
@@ -926,7 +854,6 @@ select.db-input {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-
 @media (max-width: 768px) {
   .db-layout {
     grid-template-columns: 1fr;
@@ -949,7 +876,6 @@ select.db-input {
     grid-column: 2;
   }
 }
-
 @media (max-width: 560px) {
   .db-stats-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -980,7 +906,6 @@ select.db-input {
   justify-content: center;
   padding: 1rem;
 }
-
 .qad-modal {
   background: #1b263b;
   border: 1px solid rgba(119, 141, 169, 0.2);
@@ -991,27 +916,23 @@ select.db-input {
   overflow-y: auto;
   padding: 1.5rem;
 }
-
 .qad-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.25rem;
 }
-
 .qad-title {
   color: #e0e1dd;
   font-size: 17px;
   font-weight: 600;
   margin: 0;
 }
-
 .qad-subtitle {
   color: rgba(224, 225, 221, 0.4);
   font-size: 13px;
   margin: 4px 0 0;
 }
-
 .qad-close {
   background: rgba(65, 90, 119, 0.18);
   border: 0.5px solid rgba(119, 141, 169, 0.2);
@@ -1026,19 +947,15 @@ select.db-input {
   justify-content: center;
   transition: background var(--transition-fast);
 }
-
 .qad-close:hover {
   background: rgba(65, 90, 119, 0.35);
   color: #e0e1dd;
 }
-
 .qad-loading {
   color: rgba(224, 225, 221, 0.4);
   text-align: center;
   padding: 2rem 0;
 }
-
-/* ── Câu hỏi ── */
 .qad-question {
   background: rgba(13, 27, 42, 0.5);
   border: 1px solid rgba(119, 141, 169, 0.1);
@@ -1046,26 +963,21 @@ select.db-input {
   padding: 1rem;
   margin-bottom: 0.75rem;
 }
-
 .qad-question__text {
   color: #e0e1dd;
   font-size: 14px;
   font-weight: 500;
   margin: 0 0 0.75rem;
 }
-
 .qad-question__index {
   color: rgba(224, 225, 221, 0.35);
   margin-right: 6px;
 }
-
 .qad-answers {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-
-/* ── Đáp án ── */
 .qad-answer {
   display: flex;
   align-items: center;
@@ -1073,12 +985,10 @@ select.db-input {
   padding: 7px 12px;
   border: 1px solid transparent;
 }
-
 .qad-answer__text {
   font-size: 13px;
   flex: 1;
 }
-
 .qad-answer--default {
   background: rgba(65, 90, 119, 0.1);
   border-color: rgba(119, 141, 169, 0.15);
@@ -1086,7 +996,6 @@ select.db-input {
 .qad-answer--default .qad-answer__text {
   color: rgba(224, 225, 221, 0.6);
 }
-
 .qad-answer--correct-chosen {
   background: rgba(76, 175, 130, 0.12);
   border-color: rgba(76, 175, 130, 0.35);
@@ -1094,7 +1003,6 @@ select.db-input {
 .qad-answer--correct-chosen .qad-answer__text {
   color: #4caf82;
 }
-
 .qad-answer--wrong-chosen {
   background: rgba(224, 122, 95, 0.1);
   border-color: rgba(224, 122, 95, 0.35);
@@ -1102,7 +1010,6 @@ select.db-input {
 .qad-answer--wrong-chosen .qad-answer__text {
   color: #e07a5f;
 }
-
 .qad-answer--correct-missed {
   background: rgba(76, 175, 130, 0.06);
   border-color: rgba(76, 175, 130, 0.2);
@@ -1110,8 +1017,6 @@ select.db-input {
 .qad-answer--correct-missed .qad-answer__text {
   color: rgba(76, 175, 130, 0.75);
 }
-
-/* ── Badge ── */
 .qad-badge {
   font-size: 11px;
   padding: 1px 7px;
@@ -1119,23 +1024,18 @@ select.db-input {
   margin-left: 8px;
   white-space: nowrap;
 }
-
 .qad-badge--correct {
   background: rgba(76, 175, 130, 0.15);
   color: #4caf82;
 }
-
 .qad-badge--wrong {
   background: rgba(224, 122, 95, 0.12);
   color: #e07a5f;
 }
-
 .qad-badge--missed {
   background: rgba(76, 175, 130, 0.1);
   color: rgba(76, 175, 130, 0.8);
 }
-
-/* ── Giải thích ── */
 .qad-explanation {
   margin-top: 0.6rem;
   font-size: 12px;
@@ -1148,23 +1048,19 @@ select.db-input {
 .db-courses__progress-cell {
   min-width: 160px;
 }
-
 .db-table__price {
   color: #4caf82;
   font-weight: 600;
 }
-
 .db-courses__progress-wrap {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-
 /* ── Quizzes tab ────────────────────────────────────────────────── */
 .db-quiz__score--passed { font-weight: 600; color: #4caf82; }
 .db-quiz__score--failed { font-weight: 600; color: #e07a5f; }
-
 .db-quiz__badge {
   font-size: 12px;
   padding: 2px 8px;
@@ -1187,12 +1083,10 @@ select.db-input {
   padding: 8px 0;
   border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
 }
-
 .cm-detail-row__label {
   font-size: 13px;
   color: var(--color-text-secondary);
 }
-
 .cm-detail-row__value {
   font-size: 13px;
   font-weight: 500;
@@ -1211,10 +1105,9 @@ select.db-input {
 }
 
 .ad-table__empty-cell {
-  text-align: center;      /* căn giữa ngang */
-  vertical-align: middle;  /* căn giữa dọc */
+  text-align: center;
+  vertical-align: middle;
 }
-
 .ad-table__empty-text {
   display: inline-block;
   padding: 0.5cm;

@@ -51,16 +51,6 @@ class RegisterView(generics.CreateAPIView):
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):
-    """
-    GET   /api/accounts/profile/  — xem hồ sơ User (kèm nested profile theo role)
-    PUT   /api/accounts/profile/  — cập nhật toàn bộ
-    PATCH /api/accounts/profile/  — cập nhật một phần
-
-    Trả về serializer khác nhau tuỳ role:
-      - student    → StudentProfileDetailSerializer  (User + StudentProfile)
-      - instructor → InstructorProfileDetailSerializer (User + InstructorProfile)
-      - admin      → UserProfileSerializer (chỉ User)
-    """
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -73,6 +63,42 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        user = request.user
+
+        # 1. Cập nhật các trường User (email, full_name, avatar, bio)
+        user_serializer = UserProfileSerializer(
+            user, data=request.data, partial=partial
+        )
+        user_serializer.is_valid(raise_exception=True)
+        user_serializer.save()
+
+        # 2. Cập nhật profile mở rộng theo role
+        profile_data = request.data.get('student_profile') or request.data.get('instructor_profile')
+
+        if profile_data:
+            if user.is_student:
+                profile, _ = StudentProfile.objects.get_or_create(user=user)
+                profile_serializer = StudentProfileSerializer(
+                    profile, data=profile_data, partial=partial
+                )
+            elif user.is_instructor:
+                profile, _ = InstructorProfile.objects.get_or_create(user=user)
+                profile_serializer = InstructorProfileSerializer(
+                    profile, data=profile_data, partial=partial
+                )
+            else:
+                profile_serializer = None
+
+            if profile_serializer:
+                profile_serializer.is_valid(raise_exception=True)
+                profile_serializer.save()
+
+        # 3. Trả về full detail theo role
+        detail_serializer = self.get_serializer(user)
+        return Response(detail_serializer.data)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):

@@ -517,18 +517,34 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       );
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 400) setQuizBlocked(true);
         const detail = Array.isArray(data)
           ? data[0]
           : data.detail || "Không thể tải bài kiểm tra";
         setQuizError(detail);
         return;
       }
+
       setApiQuiz(data);
       setCurrentQuizId(data.id);
-      // Lưu số lần đã làm và tối đa
-      if (typeof data.attempt_count === "number") setQuizAttemptCount(data.attempt_count);
-      if (typeof data.max_attempts === "number") setQuizMaxAttempts(data.max_attempts);
+      setQuizMaxAttempts(data.max_attempts ?? 0);
+
+      try {
+        const attemptRes = await refreshAndRetry(
+          `${API}/api/quizzes/${data.id}/attempts/`
+        );
+        if (attemptRes.ok) {
+          const attemptData = await attemptRes.json();
+          const list = Array.isArray(attemptData)
+            ? attemptData
+            : (attemptData.results ?? []);
+          const count = list.length;
+          setQuizAttemptCount(count);
+          // Tự kiểm tra hết lượt ở frontend
+          if (data.max_attempts > 0 && count >= data.max_attempts) {
+            setQuizBlocked(true);
+          }
+        }
+      } catch {}
     } catch (err: any) {
       setQuizError(`Lỗi kết nối: ${err.message}`);
     } finally {
@@ -813,9 +829,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const currentQuestion = quizQuestions[currentQ];
   const passScore = apiQuiz?.pass_score ?? 70;
 
-  // Helper: số lần còn lại
-  const attemptsLeft = quizMaxAttempts > 0 ? quizMaxAttempts - quizAttemptCount : null;
-
   return (
     <>
       <div className="cd-page">
@@ -925,14 +938,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                 >
                                   <span className="cd-lesson-row__num">
                                     {idx + 1}
-                                  </span>
-                                  <span className="cd-lesson-row__type-icon">
-                                    {lesson.video_url || lesson.video_file
-                                      ? "▶"
-                                      : lesson.content
-                                        ? "📘"
-                                        : "📎"}
-                                  </span>
+                                  </span>                                  
                                   <span className="cd-lesson-row__title">
                                     {lesson.title}
                                   </span>
@@ -951,7 +957,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                       title="Làm bài kiểm tra"
                                       style={{ cursor: "pointer" }}
                                     >
-                                      📝
                                     </span>
                                   )}
                                   {lesson.quiz && !isEnrolled && (
@@ -1137,7 +1142,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           }}
                         >
                           Làm bài tập ngay
-                          <span className="cd-lesson__quiz-cta-arrow">→</span>
                         </button>
                       </div>
                     )}
@@ -1304,12 +1308,13 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
                     {/* Actions */}
                     <div className="cd-quiz__result-actions">
-                      {(!quizBlocked && (attemptsLeft === null || attemptsLeft > 0)) && (
-                        <button
-                          className="cd-btn-enroll"
-                          onClick={handleRestartQuiz}
-                        >
-                          Làm lại                          
+                      {quizBlocked || (quizMaxAttempts > 0 && quizAttemptCount >= quizMaxAttempts) ? (
+                        <button className="cd-btn-enroll cd-btn-enroll--disabled" disabled>
+                          Hết lượt
+                        </button>
+                      ) : (
+                        <button className="cd-btn-enroll" onClick={handleRestartQuiz}>
+                          Làm lại
                         </button>
                       )}
                       <button
@@ -1378,13 +1383,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                       )}
                     </ul>
 
-                    {quizBlocked ? (
-                      <button
-                        className="cd-btn-enroll cd-btn-enroll--disabled"
-                        disabled
-                      >
-                        Đã hết lượt làm bài
-                      </button>
+                    {quizBlocked || (quizMaxAttempts > 0 && quizAttemptCount >= quizMaxAttempts) ? (
+                      <p className="cd-btn-enroll">
+                        Hết lượt làm bài
+                      </p>
                     ) : (
                       <button
                         className="cd-btn-enroll"
@@ -1400,9 +1402,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                               setCurrentAttemptId(attempt_id);
                               setQuizStarted(true);
                             } else {
-                              const err = await startRes
-                                .json()
-                                .catch(() => ({}));
+                              const err = await startRes.json().catch(() => ({}));
                               const detail = Array.isArray(err)
                                 ? err[0]
                                 : (err.detail ?? "Không thể bắt đầu làm bài.");
@@ -1739,7 +1739,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                     onClick={() => handleStartEdit(r)}
                                     title="Chỉnh sửa"
                                   >
-                                    ✏️
+                                    Chỉnh sửa
                                   </button>
                                 )}
                               </div>
@@ -1764,7 +1764,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   <h3 className="cd-rv-form-title">Viết đánh giá của bạn</h3>
                   {reviewSent ? (
                     <div className="cd-rv-success">
-                      ✓ Cảm ơn bạn đã đánh giá!
+                      Cảm ơn bạn đã đánh giá!
                     </div>
                   ) : myReviewId ? (
                     <p className="cd-rv-note">

@@ -84,6 +84,7 @@ class CourseListSerializer(serializers.ModelSerializer):
     sale_price      = serializers.IntegerField(read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
     completion_rate = serializers.SerializerMethodField()
+    avg_rating      = serializers.SerializerMethodField()
 
     class Meta:
         model  = Course
@@ -106,6 +107,13 @@ class CourseListSerializer(serializers.ModelSerializer):
         from enrollments.serializers import _calc_progress_pct
         total = sum(_calc_progress_pct(e) for e in enrollments)
         return round(total / enrollments.count())
+    
+    def get_avg_rating(self, obj):
+        reviews = obj.reviews.filter(is_hidden=False)
+        if not reviews.exists():
+            return 0.0
+        total = sum(r.rating for r in reviews)
+        return round(total / reviews.count(), 1)
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):

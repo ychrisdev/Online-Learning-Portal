@@ -1715,3 +1715,16 @@
     justify-content: center;
   }
 }
+
+.cd-rv-edit-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--color-primary, #6c63ff);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+

@@ -176,3 +176,20 @@ class UserAdminSerializer(serializers.ModelSerializer):
             'student_profile', 'instructor_profile',
         ]
         read_only_fields = ['id', 'username', 'email', 'avatar', 'bio', 'date_joined']
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Xem & cập nhật các trường trên model User — 5.1.1"""
+    role        = serializers.CharField(read_only=True)
+    date_joined = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model  = User
+        fields = ['id', 'username', 'email', 'full_name', 'avatar', 'bio', 'role', 'date_joined']
+        read_only_fields = ['id', 'username', 'role', 'date_joined']
+
+    def validate_email(self, value):
+        user = self.instance
+        # Cho phép giữ nguyên email hiện tại, chỉ check nếu đổi sang email khác
+        if User.objects.filter(email=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError('Email này đã được sử dụng.')
+        return value

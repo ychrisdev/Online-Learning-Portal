@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatPrice, formatDate } from '../utils/format';
+import '../styles/pages/StudentDashboard.css';
 
 interface StudentDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -40,7 +41,7 @@ interface Payment {
   course_id: string;
   created_at: string;
   amount: number;
-  status: 'pending' | 'success' | 'failed' | 'refunded' |'refund_requested';
+  status: 'pending' | 'success' | 'failed' | 'refunded' | 'refund_requested';
   method: string;
   ref_code: string;
   refund_requested_once: boolean;
@@ -99,34 +100,24 @@ const DefaultAvatar = () => (
 );
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  success:  'Thành công',
-  pending:  'Đang xử lý',
-  failed:   'Thất bại',
-  refunded: 'Đã hoàn tiền',
+  success:          'Thành công',
+  pending:          'Đang xử lý',
+  failed:           'Thất bại',
+  refunded:         'Đã hoàn tiền',
   refund_requested: 'Chờ hoàn tiền',
-};
-const PAYMENT_STATUS_CLASS: Record<string, string> = {
-  success:  'db-badge--success',
-  pending:  'db-badge--warn',
-  failed:   'db-badge--err',
-  refunded: 'db-badge--warn',
-  refund_requested: 'db-badge--warn',
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogout }) => {
   const [quizSortCourse, setQuizSortCourse] = useState<string>('all');
   const [quizSortResult, setQuizSortResult] = useState<'all' | 'passed' | 'failed'>('all');
-
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [user, setUser]           = useState<any>(null);
-
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [payments, setPayments]               = useState<Payment[]>([]);
   const [loadingCourses, setLoadingCourses]   = useState(true);
   const [loadingPayments, setLoadingPayments] = useState(true);
-
   const [userForm, setUserForm]       = useState<UserForm>({ full_name: '', email: '', bio: '' });
   const [studentForm, setStudentForm] = useState<StudentForm>({
     phone_number: '', date_of_birth: '', gender: '', country: 'Vietnam', city: '',
@@ -138,11 +129,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
   const [passwordForm, setPasswordForm] = useState<PasswordForm>({
     currentPassword: '', newPassword: '', confirmPassword: '',
   });
-
   const [saving, setSaving]   = useState(false);
   const [toast, setToast]     = useState<{ msg: string; ok: boolean } | null>(null);
   const [errors, setErrors]   = useState<Record<string, string>>({});
-
   const [refundTarget, setRefundTarget] = useState<Payment | null>(null);
   const [refundReason, setRefundReason] = useState('');
   const [refundLoading, setRefundLoading] = useState(false);
@@ -157,16 +146,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
   const [quizAttempts,        setQuizAttempts]        = useState<any[]>([]);
   const [loadingQuizAttempts, setLoadingQuizAttempts] = useState(false);
 
-  //profile state
   const [profileEditing, setProfileEditing] = useState(false);
   const [studentEditing, setStudentEditing] = useState(false);
 
-  //PAYMENT STATE
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentDetail, setPaymentDetail]       = useState<Payment | null>(null);
   const [attemptDetail, setAttemptDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-
 
   // ── Fetch profile ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -202,7 +188,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
     })();
   }, []);
 
-  // ── Fetch enrolled courses + payments (gộp để tránh race condition) ──────────
+  // ── Fetch enrolled courses + payments ────────────────────────────────────
   useEffect(() => {
     (async () => {
       setLoadingCourses(true);
@@ -212,21 +198,19 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
           fetch(`${API}/api/enrollments/`, { headers: authHeaders() }),
           fetch(`${API}/api/payments/history/`, { headers: authHeaders() }),
         ]);
-
         const payList = payRes.ok ? toList(await payRes.json()) : [];
         const mappedPayments: Payment[] = payList.map((item: any) => ({
-          id:           item.id,
-          course_id:    item.course ?? '',
-          course_title: item.course_title ?? '',
-          created_at:   item.created_at ?? '',
-          amount:       Number(item.amount) ?? 0,
-          status:       item.status ?? 'success',
-          method:       item.method ?? '',
-          ref_code:     item.ref_code ?? '',
+          id:                   item.id,
+          course_id:            item.course ?? '',
+          course_title:         item.course_title ?? '',
+          created_at:           item.created_at ?? '',
+          amount:               Number(item.amount) ?? 0,
+          status:               item.status ?? 'success',
+          method:               item.method ?? '',
+          ref_code:             item.ref_code ?? '',
           refund_requested_once: item.refund_requested_once ?? false,
         }));
         setPayments(mappedPayments);
-
         const enrollList = enrollRes.ok ? toList(await enrollRes.json()) : [];
         const mappedCourses: EnrolledCourse[] = enrollList.map((item: any) => {
           const courseId = item.course ?? item.course_id ?? item.id;
@@ -246,7 +230,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
           };
         });
         setEnrolledCourses(mappedCourses);
-
       } catch (_) {}
       setLoadingCourses(false);
       setLoadingPayments(false);
@@ -356,9 +339,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
     if (!refundTarget || !refundReason.trim()) return;
     setRefundLoading(true);
     const res = await fetch(`${API}/api/payments/${refundTarget.id}/request-refund/`, {
-      method: 'POST',
+      method:  'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ reason: refundReason }),
+      body:    JSON.stringify({ reason: refundReason }),
     });
     setRefundLoading(false);
     if (!res.ok) {
@@ -379,7 +362,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
 
   const openAttemptDetail = async (attemptId: string) => {
     setLoadingDetail(true);
-    setAttemptDetail(null); // reset để mở modal loading trước
+    setAttemptDetail(null);
     try {
       const res = await fetch(`${API}/api/quizzes/attempts/${attemptId}/`, { headers: authHeaders() });
       if (res.ok) setAttemptDetail(await res.json());
@@ -392,10 +375,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
     setPaymentDetail(p);
     setShowPaymentModal(true);
   };
+
   const closePaymentDetail = () => {
     setShowPaymentModal(false);
     setPaymentDetail(null);
   };
+
   // ── Derived stats ─────────────────────────────────────────────────────────
   const activeCourses     = enrolledCourses.filter(c => c.status === 'active' || c.status === 'completed');
   const inProgressCourses = activeCourses.filter(c => c.progress > 0 && c.progress < 100);
@@ -413,7 +398,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="db-page">
-
       {/* Toast */}
       {toast && (
         <div className={`db-toast ${toast.ok ? 'db-toast--ok' : 'db-toast--err'}`}>
@@ -422,10 +406,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
       )}
 
       <div className="container db-layout">
-
         {/* ══ Sidebar ══════════════════════════════════════════════ */}
         <aside className="db-sidebar">
-
           <div className="db-profile">
             <div className="db-profile__avatar-wrap">
               {avatarUrl
@@ -441,7 +423,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
               {user?.date_joined ? `Tham gia ${formatDate(user.date_joined)}` : ''}
             </span>
           </div>
-
           <nav className="db-nav">
             {TABS.map(tab => (
               <button
@@ -453,17 +434,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
               </button>
             ))}
           </nav>
-
           <button className="db-nav__item db-nav__item--danger" onClick={onLogout}>
             Đăng xuất
           </button>
-
         </aside>
 
         {/* ══ Main ═════════════════════════════════════════════════ */}
         <main className="db-main">
-
-          {/* ════ OVERVIEW ════════════════════════════════════════ */}
+          {/* ════ OVERVIEW ════ */}
           {activeTab === 'overview' && (
             <div className="db-content">
               <div className="db-page-header">
@@ -472,8 +450,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                 </h1>
                 <p className="db-page-sub">Tiếp tục hành trình học tiếng Anh của bạn.</p>
               </div>
-
-              {/* Stat cards */}
               <div className="db-stats-grid">
                 <div className="db-stat-card">
                   <span className="db-stat-card__value">
@@ -512,30 +488,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   {loadingCourses ? 'Đang tải…' : `${activeCourses.length} khóa học`}
                 </p>
               </div>
-
               {loadingCourses ? (
                 <div className="id-form-card">
                   <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>⏳ Đang tải…</p>
-                </div>
-              ) : activeCourses.length === 0 ? (
-                <div className="ad-table-wrap">
-                  <table className="ad-table">
-                    <thead>
-                      <tr>
-                        <th>Khóa học</th>
-                        <th>Học phí</th>
-                        <th>Tiến độ</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td colSpan={4} className="ad-table__empty-cell">                          
-                          <span className="ad-table__empty-text">🔍 Bạn chưa đăng ký khóa học nào.</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -549,11 +504,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                       </tr>
                     </thead>
                     <tbody>
-                      {activeCourses.map(c => (
+                      {activeCourses.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="ad-table__empty-cell">
+                            <span className="ad-table__empty-text">🔍 Bạn chưa đăng ký khóa học nào.</span>
+                          </td>
+                        </tr>
+                      ) : activeCourses.map(c => (
                         <tr key={c.id}>
                           <td>
                             <div className="ad-user-cell" style={{ display: 'flex', gap: 12 }}>
-                          
                               <div>
                                 <span className="ad-user-cell__name">{c.course_title}</span>
                                 {c.instructor_name && (
@@ -602,7 +562,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   {loadingPayments ? 'Đang tải…' : `${payments.length} giao dịch`}
                 </p>
               </div>
-
               <div className="ad-table-wrap">
                 <table className="ad-table">
                   <thead>
@@ -618,17 +577,17 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                     {loadingPayments ? (
                       <tr><td colSpan={5} style={{ textAlign: 'center' }}>Đang tải…</td></tr>
                     ) : payments.length === 0 ? (
-                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-                        🔍 Chưa có giao dịch nào.
-                      </td></tr>
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                          🔍 Chưa có giao dịch nào.
+                        </td>
+                      </tr>
                     ) : payments.map(p => {
                       const status = p.status ?? 'pending';
                       return (
                         <tr key={p.id}>
                           <td className="ad-table__title">{p.course_title || '—'}</td>
-                          <td className="db-table__price">
-                            {formatPrice(p.amount, 'VND')}
-                          </td>
+                          <td className="db-table__price">{formatPrice(p.amount, 'VND')}</td>
                           <td className="ad-table__muted">
                             {p.created_at ? new Date(p.created_at).toLocaleDateString('vi-VN') : '—'}
                           </td>
@@ -639,21 +598,24 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                              <button className="ad-btn-sm ad-btn-sm--view"
-                                onClick={() => openPaymentDetail(p.id)}>
+                              <button className="ad-btn-sm ad-btn-sm--view" onClick={() => openPaymentDetail(p.id)}>
                                 Xem
                               </button>
-                              {status === 'success' && (
-                                <button className="ad-btn-sm"
+                              {status === 'success' && !p.refund_requested_once && (
+                                <button
+                                  className="ad-btn-sm"
                                   style={{ color: '#e07a5f', border: '1px solid rgba(224,122,95,0.3)' }}
-                                  onClick={() => openRefundModal(p)}>
+                                  onClick={() => openRefundModal(p)}
+                                >
                                   Hoàn tiền
                                 </button>
                               )}
+                              {status === 'success' && p.refund_requested_once && (
+                                
+                                <span className="db-muted">Từ chối hoàn tiền</span>
+                              )}
                               {status === 'refund_requested' && (
-                               <span className="db-muted">
-                                  Đang chờ xử lý
-                                </span>
+                                <span className="db-muted">Đang chờ xử lý</span>
                               )}
                             </div>
                           </td>
@@ -678,29 +640,35 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                           {[
-                            { label: 'Khóa học',   value: paymentDetail.course_title ?? '—' },
-                            { label: 'Số tiền',    value: formatPrice(paymentDetail.amount, 'VND') },
-                            { label: 'Trạng thái', value: PAYMENT_STATUS_LABEL[paymentDetail.status] ?? paymentDetail.status ?? '—' },
-                            { label: 'Ngày',       value: paymentDetail.created_at ? new Date(paymentDetail.created_at).toLocaleString('vi-VN') : '—' },
+                            { label: 'Khóa học',    value: paymentDetail.course_title ?? '—' },
+                            { label: 'Số tiền',     value: formatPrice(paymentDetail.amount, 'VND') },
+                            { label: 'Trạng thái',  value: PAYMENT_STATUS_LABEL[paymentDetail.status] ?? paymentDetail.status ?? '—' },
+                            { label: 'Ngày',        value: paymentDetail.created_at ? new Date(paymentDetail.created_at).toLocaleString('vi-VN') : '—' },
                             { label: 'Phương thức', value: paymentDetail.method || '—' },
-                            { label: 'Mã GD',      value: paymentDetail.ref_code || paymentDetail.id || '—' },
+                            { label: 'Mã GD',       value: paymentDetail.ref_code || paymentDetail.id || '—' },
                           ].map(item => (
                             <div key={item.label} className="cm-detail-row">
                               <span className="cm-detail-row__label">{item.label}</span>
-                              <span className="cm-detail-row__value">
-                                {item.value}
-                              </span>
+                              <span className="cm-detail-row__value">{item.value}</span>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
                     <div className="cm-footer">
-                      {paymentDetail?.status === 'success' && (
-                        <button className="cm-btn" style={{ color: '#e07a5f', marginRight: 'auto' }}
-                          onClick={() => { closePaymentDetail(); openRefundModal(paymentDetail); }}>
+                      {paymentDetail?.status === 'success' && !paymentDetail?.refund_requested_once && (
+                        <button
+                          className="cm-btn"
+                          style={{ color: '#e07a5f', marginRight: 'auto' }}
+                          onClick={() => { closePaymentDetail(); openRefundModal(paymentDetail); }}
+                        >
                           Yêu cầu hoàn tiền
                         </button>
+                      )}
+                      {paymentDetail?.status === 'success' && paymentDetail?.refund_requested_once && (
+                        <span style={{ color: 'var(--color-text-secondary)', fontSize: 13, marginRight: 'auto' }}>
+                          Đã dùng quyền hoàn tiền
+                        </span>
                       )}
                       <button className="cm-btn cm-btn--cancel" onClick={closePaymentDetail}>Đóng</button>
                     </div>
@@ -750,7 +718,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                 </div>
               </div>
 
-              {/* Hồ sơ học viên (gộp thông tin cơ bản) */}
+              {/* Thông tin cơ bản */}
               <div className="id-form-card">
                 <div className="id-form-card__title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="id-form-card__title">Thông tin cơ bản</h3>
@@ -758,7 +726,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                     <button className="id-btn-sm" onClick={() => setStudentEditing(true)}>Chỉnh sửa</button>
                   ) : (
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="id-btn-primary" onClick={async () => { await saveUserForm(); await saveStudentForm(); setStudentEditing(false); }} disabled={saving}>
+                      <button
+                        className="id-btn-primary"
+                        onClick={async () => { await saveUserForm(); await saveStudentForm(); setStudentEditing(false); }}
+                        disabled={saving}
+                      >
                         {saving ? 'Đang lưu…' : 'Lưu'}
                       </button>
                       <button className="id-btn-secondary" onClick={() => setStudentEditing(false)}>Hủy</button>
@@ -774,7 +746,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">Email</label>
-                    <input className="id-field__input" type="email" disabled value={userForm.email} />
+                    <input
+                      className="id-field__input"
+                      type="email"
+                      disabled={!studentEditing}
+                      value={userForm.email}
+                      onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))}
+                    />
                   </div>
                   <div className="id-field">
                     <label className="id-field__label">Số điện thoại</label>
@@ -894,8 +872,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   {loadingQuizAttempts ? 'Đang tải…' : `${quizAttempts.length} lần kiểm tra`}
                 </p>
               </div>
-
-              {/* Bộ lọc */}
               {!loadingQuizAttempts && quizAttempts.length > 0 && (
                 <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
                   <select
@@ -911,7 +887,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                         <option key={title} value={title}>{title}</option>
                       ))}
                   </select>
-
                   <select
                     className="id-field__input"
                     style={{ width: 'auto', minWidth: 150 }}
@@ -924,32 +899,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   </select>
                 </div>
               )}
-
               {loadingQuizAttempts ? (
                 <p className="db-muted">Đang tải…</p>
-              ) : quizAttempts.length === 0 ? (
-                <div className="ad-table-wrap">
-                  <table className="ad-table">
-                    <thead>
-                      <tr>
-                        <th>Bài kiểm tra</th>
-                        <th>Khóa học</th>
-                        <th>Điểm</th>
-                        <th>Kết quả</th>
-                        <th>Thời gian làm</th>
-                        <th>Ngày nộp</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>                        
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-                          🔍 Chưa có lần kiểm tra nào.
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
               ) : (() => {
                 const filtered = quizAttempts.filter(a => {
                   if (quizSortCourse !== 'all' && a.course_title !== quizSortCourse) return false;
@@ -975,7 +926,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                         {filtered.length === 0 ? (
                           <tr>
                             <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
-                              Không có kết quả phù hợp.
+                              {quizAttempts.length === 0 ? '🔍 Chưa có lần kiểm tra nào.' : 'Không có kết quả phù hợp.'}
                             </td>
                           </tr>
                         ) : filtered.map(a => {
@@ -1007,13 +958,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                                 {submit ? submit.toLocaleString('vi-VN') : '—'}
                               </td>
                               <td>
-                              <button
-                                className="ad-btn-sm ad-btn-sm--view"
-                                onClick={() => openAttemptDetail(a.id)}
-                              >
-                                Xem lại
-                              </button>
-                            </td>
+                                <button className="ad-btn-sm ad-btn-sm--view" onClick={() => openAttemptDetail(a.id)}>
+                                  Xem lại
+                                </button>
+                              </td>
                             </tr>
                           );
                         })}
@@ -1022,77 +970,69 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   </div>
                 );
               })()}
-            {(attemptDetail || loadingDetail) && (
-              <div className="qad-overlay" onClick={() => { setAttemptDetail(null); setLoadingDetail(false); }}>
-                <div className="qad-modal" onClick={e => e.stopPropagation()}>
 
-                  <div className="qad-header">
-                    <div>
-                      <h2 className="qad-title">{attemptDetail?.quiz_title ?? 'Chi tiết bài làm'}</h2>
-                      <p className="qad-subtitle">
-                        {attemptDetail
-                          ? (() => {
-                              const score10 = Number(attemptDetail.score) / 10;
-                              return `Điểm: ${Number.isInteger(score10) ? score10 : score10.toFixed(1)}/10 · ${attemptDetail.passed ? 'Đạt' : 'Chưa đạt'}`;
-                            })()
-                          : 'Đang tải...'}
-                      </p>
-                    </div>
-                    <button className="qad-close" onClick={() => { setAttemptDetail(null); setLoadingDetail(false); }}>×</button>
-                  </div>
-
-                  {loadingDetail && !attemptDetail && (
-                    <p className="qad-loading">Đang tải…</p>
-                  )}
-
-                  {attemptDetail?.questions?.map((q: any, qi: number) => {
-                    const snapshot: Record<string, string[]> = attemptDetail.answers_snapshot ?? {};
-                    const chosenIds: string[] = snapshot[q.id] ?? [];
-
-                    return (
-                      <div key={q.id} className="qad-question">
-                        <p className="qad-question__text">
-                          <span className="qad-question__index">Question {qi + 1}:</span>
-                          {q.content}
-                        </p>
-
-                        <div className="qad-answers">
-                          {q.answers.map((ans: any) => {
-                            const isChosen  = chosenIds.includes(ans.id);
-                            const isCorrect = ans.is_correct;
-
-                            let ansClass  = 'qad-answer qad-answer--default';
-                            let badgeEl   = null;
-
-                            if (isCorrect && isChosen) {
-                              ansClass = 'qad-answer qad-answer--correct-chosen';
-                              badgeEl  = <span className="qad-badge qad-badge--correct">True</span>;
-                            } else if (isChosen && !isCorrect) {
-                              ansClass = 'qad-answer qad-answer--wrong-chosen';
-                              badgeEl  = <span className="qad-badge qad-badge--wrong">Bạn chọn · Sai</span>;
-                            } else if (!isChosen && isCorrect) {
-                              ansClass = 'qad-answer qad-answer--correct-missed';
-                              badgeEl  = <span className="qad-badge qad-badge--missed">Correct answer</span>;
-                            }
-
-                            return (
-                              <div key={ans.id} className={ansClass}>
-                                <span className="qad-answer__text">{ans.content}</span>
-                                {badgeEl}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <p className="qad-explanation">
-                          Explain: {q.explanation ? q.explanation : ''}
+              {(attemptDetail || loadingDetail) && (
+                <div className="qad-overlay" onClick={() => { setAttemptDetail(null); setLoadingDetail(false); }}>
+                  <div className="qad-modal" onClick={e => e.stopPropagation()}>
+                    <div className="qad-header">
+                      <div>
+                        <h2 className="qad-title">{attemptDetail?.quiz_title ?? 'Chi tiết bài làm'}</h2>
+                        <p className="qad-subtitle">
+                          {attemptDetail
+                            ? (() => {
+                                const score10 = Number(attemptDetail.score) / 10;
+                                return `Điểm: ${Number.isInteger(score10) ? score10 : score10.toFixed(1)}/10 · ${attemptDetail.passed ? 'Đạt' : 'Chưa đạt'}`;
+                              })()
+                            : 'Đang tải...'}
                         </p>
                       </div>
-                    );
-                  })}
+                      <button className="qad-close" onClick={() => { setAttemptDetail(null); setLoadingDetail(false); }}>×</button>
+                    </div>
+                    {loadingDetail && !attemptDetail && (
+                      <p className="qad-loading">Đang tải…</p>
+                    )}
+                    {attemptDetail?.questions?.map((q: any, qi: number) => {
+                      const snapshot: Record<string, string[]> = attemptDetail.answers_snapshot ?? {};
+                      const chosenIds: string[] = snapshot[q.id] ?? [];
+                      return (
+                        <div key={q.id} className="qad-question">
+                          <p className="qad-question__text">
+                            <span className="qad-question__index">Question {qi + 1}:</span>
+                            {q.content}
+                          </p>
+                          <div className="qad-answers">
+                            {q.answers.map((ans: any) => {
+                              const isChosen  = chosenIds.includes(ans.id);
+                              const isCorrect = ans.is_correct;
+                              let ansClass = 'qad-answer qad-answer--default';
+                              let badgeEl  = null;
+                              if (isCorrect && isChosen) {
+                                ansClass = 'qad-answer qad-answer--correct-chosen';
+                                badgeEl  = <span className="qad-badge qad-badge--correct">True</span>;
+                              } else if (isChosen && !isCorrect) {
+                                ansClass = 'qad-answer qad-answer--wrong-chosen';
+                                badgeEl  = <span className="qad-badge qad-badge--wrong">False</span>;
+                              } else if (!isChosen && isCorrect) {
+                                ansClass = 'qad-answer qad-answer--correct-missed';
+                                badgeEl  = <span className="qad-badge qad-badge--missed">Correct answer</span>;
+                              }
+                              return (
+                                <div key={ans.id} className={ansClass}>
+                                  <span className="qad-answer__text">{ans.content}</span>
+                                  {badgeEl}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <p className="qad-explanation">
+                            Explain: {q.explanation ? q.explanation : ''}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
           )}
 
@@ -1105,32 +1045,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                   {loadingCerts ? 'Đang tải…' : `${certificates.length} chứng chỉ`}
                 </p>
               </div>
-
               {loadingCerts ? (
                 <div className="id-form-card">
                   <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
                     ⏳ Đang tải…
                   </p>
-                </div>
-              ) : certificates.length === 0 ? (
-                <div className="ad-table-wrap">
-                  <table className="ad-table">
-                    <thead>
-                      <tr>
-                        <th>Khóa học</th>
-                        <th>Mã chứng chỉ</th>
-                        <th>Ngày cấp</th>
-                        <th>Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td colSpan={4} className="ad-table__empty-cell">      
-                          <span className="ad-table__empty-text">🔍 Bạn chưa có chứng chỉ nào. </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -1144,27 +1063,20 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                       </tr>
                     </thead>
                     <tbody>
-                      {certificates.map(cert => (
+                      {certificates.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="ad-table__empty-cell">
+                            <span className="ad-table__empty-text">🔍 Bạn chưa có chứng chỉ nào.</span>
+                          </td>
+                        </tr>
+                      ) : certificates.map(cert => (
                         <tr key={cert.id}>
+                          <td><span style={{ fontWeight: 600 }}>{cert.course_title}</span></td>
+                          <td><strong>{cert.cert_number}</strong></td>
                           <td>
-                            <span style={{ fontWeight: 600 }}>{cert.course_title}</span>
+                            {cert.issued_at ? new Date(cert.issued_at).toLocaleDateString('vi-VN') : '—'}
                           </td>
-
-                          <td>
-                            <strong>{cert.cert_number}</strong>
-                          </td>
-
-                          <td>
-                            {cert.issued_at
-                              ? new Date(cert.issued_at).toLocaleDateString('vi-VN')
-                              : '—'}
-                          </td>
-
-                          <td>
-                            <span className="db-cert__badge">
-                              ✓ Hoàn thành
-                            </span>
-                          </td>                      
+                          <td><span className="db-cert__badge">✓ Hoàn thành</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1175,6 +1087,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
           )}
         </main>
       </div>
+
+      {/* ── Refund Modal ── */}
       {refundTarget && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setRefundTarget(null); }}>
           <div className="modal modal--md">
@@ -1225,6 +1139,7 @@ interface FieldProps {
   fullWidth?: boolean;
   children: React.ReactNode;
 }
+
 const Field: React.FC<FieldProps> = ({ label, error, fullWidth, children }) => (
   <div className={`db-field${fullWidth ? ' db-field--full' : ''}`}>
     <label className="db-field__label">{label}</label>

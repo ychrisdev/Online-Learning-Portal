@@ -1650,7 +1650,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa khóa học:</p>
               <p className="cm-delete-name">"{selectedCourse?.title}"</p>
               <p className="cm-delete-warn">
-                ⚠ Hành động này không thể hoàn tác. Tất cả bài học và dữ liệu
+                 Hành động này không thể hoàn tác. Tất cả bài học và dữ liệu
                 liên quan sẽ bị xóa vĩnh viễn.
               </p>
               {formError && <p className="cm-error">{formError}</p>}
@@ -1661,7 +1661,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={handleDelete}
                 disabled={saving}
               >
-                {saving ? "⏳ Đang xóa…" : "Xóa khóa học"}
+                {saving ? " Đang xóa…" : "Xóa khóa học"}
               </button>
               <button
                 className="cm-btn cm-btn--cancel"
@@ -2003,7 +2003,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               disabled={saving || editLoading}
             >
               {saving
-                ? "⏳ Đang lưu…"
+                ? " Đang lưu…"
                 : isEdit
                   ? "Lưu thay đổi"
                   : "Tạo khóa học"}
@@ -2046,7 +2046,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa chương:</p>
               <p className="cm-delete-name">"{selectedSection?.title}"</p>
               <p className="cm-delete-warn">
-                ⚠ Tất cả bài học trong chương này cũng sẽ bị xóa.
+                 Tất cả bài học trong chương này cũng sẽ bị xóa.
               </p>
               {sectionError && <p className="cm-error">{sectionError}</p>}
             </div>
@@ -2056,7 +2056,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={handleDeleteSection}
                 disabled={savingSection}
               >
-                {savingSection ? "⏳ Đang xóa…" : "Xóa chương"}
+                {savingSection ? " Đang xóa…" : "Xóa chương"}
               </button>
               <button
                 className="cm-btn cm-btn--cancel"
@@ -2159,7 +2159,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               disabled={savingSection}
             >
               {savingSection
-                ? "⏳ Đang lưu…"
+                ? " Đang lưu…"
                 : isEdit
                   ? "Lưu thay đổi"
                   : "Tạo chương"}
@@ -2201,7 +2201,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa bài học:</p>
               <p className="cm-delete-name">"{selectedLesson?.title}"</p>
               <p className="cm-delete-warn">
-                ⚠ Hành động này không thể hoàn tác.
+                 Hành động này không thể hoàn tác.
               </p>
               {lessonError && <p className="cm-error">{lessonError}</p>}
             </div>
@@ -2211,7 +2211,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={handleDeleteLesson}
                 disabled={savingLesson}
               >
-                {savingLesson ? "⏳ Đang xóa…" : "Xóa bài học"}
+                {savingLesson ? " Đang xóa…" : "Xóa bài học"}
               </button>
               <button
                 className="cm-btn cm-btn--cancel"
@@ -2557,7 +2557,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               disabled={savingLesson}
             >
               {savingLesson
-                ? "⏳ Đang lưu…"
+                ? " Đang lưu…"
                 : isEdit
                   ? "Lưu thay đổi"
                   : "Tạo bài học"}
@@ -2609,7 +2609,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={handleDeleteQuiz}
                 disabled={savingQuiz}
               >
-                {savingQuiz ? "⏳ Đang xóa…" : "Xóa"}
+                {savingQuiz ? " Đang xóa…" : "Xóa"}
               </button>
               <button
                 className="cm-btn cm-btn--cancel"
@@ -2754,7 +2754,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               disabled={savingQuiz}
             >
               {savingQuiz
-                ? "⏳ Đang lưu…"
+                ? " Đang lưu…"
                 : isEdit
                   ? "Lưu thay đổi"
                   : "Tạo bài kiểm tra"}
@@ -2805,7 +2805,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={handleDeleteQuestion}
                 disabled={savingQ}
               >
-                {savingQ ? "⏳…" : "Xóa"}
+                {savingQ ? "…" : "Xóa"}
               </button>
               <button
                 className="cm-btn cm-btn--cancel"
@@ -3022,7 +3022,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               disabled={savingQ}
             >
               {savingQ
-                ? "⏳ Đang lưu…"
+                ? " Đang lưu…"
                 : isEdit
                   ? "Lưu thay đổi"
                   : "Thêm câu hỏi"}
@@ -3064,7 +3064,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa danh mục:</p>
               <p className="cm-delete-name">"{selectedCategory?.name}"</p>
               <p className="cm-delete-warn">
-                ⚠ Các khóa học thuộc danh mục này sẽ bị mất liên kết.
+                 Các khóa học thuộc danh mục này sẽ bị mất liên kết.
               </p>
               {categoryError && <p className="cm-error">{categoryError}</p>}
             </div>
@@ -3074,7 +3074,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={handleDeleteCategory}
                 disabled={savingCategory}
               >
-                {savingCategory ? "⏳ Đang xóa…" : "Xóa"}
+                {savingCategory ? " Đang xóa…" : "Xóa"}
               </button>
               <button
                 className="cm-btn cm-btn--cancel"
@@ -3207,7 +3207,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               disabled={savingCategory}
             >
               {savingCategory
-                ? "⏳ Đang lưu…"
+                ? " Đang lưu…"
                 : isEdit
                   ? "Lưu thay đổi"
                   : "Tạo danh mục"}
@@ -4246,7 +4246,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingUsers ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredUsers.length === 0 ? (
@@ -4422,7 +4422,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingCourses ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredCourses.length === 0 ? (
@@ -4573,7 +4573,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingSections ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                           Đang tải…
                         </td>
                       </tr>
                     ) : sections.filter(
@@ -4736,7 +4736,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingLessons ? (
                       <tr>
                         <td colSpan={7} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : lessons.length === 0 ? (
@@ -4857,7 +4857,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingQuizzes ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : quizzes.filter(
@@ -5172,7 +5172,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingEnrollments ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredEnrollments.length === 0 ? (
@@ -5323,7 +5323,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingCategories ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredCategories.length === 0 ? (
@@ -5450,7 +5450,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingPayments ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredPayments.length === 0 ? (
@@ -5668,7 +5668,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   letterSpacing: "0.5px",
                                 }}
                               >
-                                📩 Lý do hoàn tiền từ học viên
+                                Lý do hoàn tiền từ học viên
                               </span>
                               <p
                                 style={{
@@ -5723,7 +5723,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               closePaymentDetail();
                             }}
                           >
-                            ✔ Duyệt hoàn tiền
+                            Duyệt hoàn tiền
                           </button>
                           <button
                             className="cm-btn cm-btn--danger"
@@ -5847,7 +5847,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           colSpan={6}
                           style={{ textAlign: "center", padding: "2rem" }}
                         >
-                          ⏳ Đang tải…
+                           Đang tải…
                         </td>
                       </tr>
                     ) : filteredReviews.length === 0 ? (
@@ -6157,7 +6157,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       ?
                     </p>
                     <p className="ad-modal__warn" style={{ margin: "0 22px" }}>
-                      ⚠️ Hành động này không thể hoàn tác.
+                      Hành động này không thể hoàn tác.
                     </p>
                     <div className="ad-modal__footer">
                       <button
@@ -6198,7 +6198,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="ad-modal__body">
                   {loadingDetail ? (
-                    <p style={{ textAlign: "center" }}>⏳ Đang tải…</p>
+                    <p style={{ textAlign: "center" }}> Đang tải…</p>
                   ) : !paymentDetail ? (
                     <p style={{ textAlign: "center", color: "red" }}>
                       Không tải được dữ liệu.

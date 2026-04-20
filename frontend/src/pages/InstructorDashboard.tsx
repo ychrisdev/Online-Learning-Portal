@@ -869,6 +869,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         body: JSON.stringify({
           full_name: profileForm.name,
           bio: profileForm.bio,
+          email: profileForm.email,
         }),
       });
       await fetch(`${API}/api/auth/profile/instructor/`, {
@@ -2206,8 +2207,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     <input
                       className="id-field__input"
                       type="email"
-                      disabled
+                      disabled={!profileEditing}
                       value={profileForm.email}
+                      onChange={(e) =>
+                        setProfileForm((f) => ({ ...f, email: e.target.value }))
+                      }
                     />
                   </div>
                   <div className="id-field">

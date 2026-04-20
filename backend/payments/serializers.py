@@ -12,7 +12,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         model  = Transaction
         fields = [
             'id', 'course', 'course_title', 'amount', 'status',
-            'method', 'ref_code', 'gateway_ref', 'note', 'created_at', 'paid_at',
+            'method', 'ref_code', 'gateway_ref', 'note', 'created_at', 'paid_at','refund_requested_once',
         ]
         read_only_fields = [
             'id', 'status', 'ref_code', 'gateway_ref', 'created_at', 'paid_at',
