@@ -354,6 +354,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     msg: string;
     type: "success" | "error";
   } | null>(null);
+  const [courseEditAlerts, setCourseEditAlerts] = useState<any[]>([]);
+  const [editAlertDismissed, setEditAlertDismissed] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    type: "approve-refund" | "reject-refund";
+    paymentId: string;
+    studentName: string;
+    courseName: string;
+    amount: number;
+  } | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -1429,27 +1439,62 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSavingQ(false);
   };
 
-  const approveRefund = async (id: string) => {
-    if (!window.confirm("Duyệt hoàn tiền cho đơn này?")) return;
-    try {
-      await fetch(`${API}/api/payments/admin/${id}/approve-refund/`, {
-        method: "POST",
-        headers: authHeader(),
-      });
-      fetchPayments();
-      fetchStats();
-    } catch {}
+  // XÓA hai hàm cũ và thay bằng:
+
+  const openApproveRefund = (p: any) => {
+    setConfirmModal({
+      type: "approve-refund",
+      paymentId: p.id,
+      studentName: p.student_name ?? "—",
+      courseName: p.course_title ?? "—",
+      amount: p.amount ?? 0,
+    });
   };
 
-  const rejectRefund = async (id: string) => {
-    if (!window.confirm("Từ chối yêu cầu hoàn tiền?")) return;
+  const openRejectRefund = (p: any) => {
+    setConfirmModal({
+      type: "reject-refund",
+      paymentId: p.id,
+      studentName: p.student_name ?? "—",
+      courseName: p.course_title ?? "—",
+      amount: p.amount ?? 0,
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmModal) return;
+    setConfirmLoading(true);
     try {
-      await fetch(`${API}/api/payments/admin/${id}/reject-refund/`, {
+      const endpoint =
+        confirmModal.type === "approve-refund"
+          ? `${API}/api/payments/admin/${confirmModal.paymentId}/approve-refund/`
+          : `${API}/api/payments/admin/${confirmModal.paymentId}/reject-refund/`;
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: authHeader(),
       });
-      fetchPayments();
-    } catch {}
+      if (res.ok) {
+        showToast(
+          confirmModal.type === "approve-refund"
+            ? "✓ Đã duyệt hoàn tiền thành công"
+            : "✓ Đã từ chối yêu cầu hoàn tiền",
+          "success",
+        );
+        fetchPayments();
+        fetchStats();
+      } else {
+        showToast(
+          confirmModal.type === "approve-refund"
+            ? "Duyệt hoàn tiền thất bại"
+            : "Từ chối thất bại",
+          "error",
+        );
+      }
+    } catch {
+      showToast("Lỗi kết nối. Vui lòng thử lại.", "error");
+    }
+    setConfirmLoading(false);
+    setConfirmModal(null);
   };
 
   const handleDismissReport = async (review: any) => {
@@ -1610,7 +1655,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return () => URL.revokeObjectURL(url);
   }, [courseForm.thumbnail]);
 
-  // ✅ Code đúng
   useEffect(() => {
     if (!selectedUser || selectedUser.role !== "student") {
       setCertificates([]);
@@ -1620,7 +1664,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetch(
       `${API}/api/enrollments/admin/users/${selectedUser.id}/certificates/`,
       {
-        headers: authHeader(), // ← dùng authHeader() như toàn bộ code còn lại
+        headers: authHeader(),
       },
     )
       .then((r) => r.json())
@@ -1631,13 +1675,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       .finally(() => setLoadingCerts(false));
   }, [selectedUser]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // MODAL RENDER
-  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (courses.length === 0) return;
+    const edited = courses.filter((c) => {
+      if (c.status !== "published") return false;
+      if (!c.updated_at || !c.published_at) return false;
+      return new Date(c.updated_at) > new Date(c.published_at);
+    });
+    if (edited.length > 0) setEditAlertDismissed(false);
+    setCourseEditAlerts(edited);
+  }, [courses]);
+
   const renderModal = () => {
     if (!courseModal) return null;
 
-    // ── Xóa ────────────────────────────────────────────────────────────────
     if (courseModal === "delete") {
       return (
         <div
@@ -1686,7 +1737,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       );
     }
 
-    // ── Thêm / Sửa ──────────────────────────────────────────────────────────
     const isEdit = courseModal === "edit";
 
     return (
@@ -2178,6 +2228,116 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               Hủy
             </button>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderConfirmModal = () => {
+    if (!confirmModal) return null;
+    const isApprove = confirmModal.type === "approve-refund";
+    return (
+      <div
+        className="ad-confirm-overlay"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !confirmLoading)
+            setConfirmModal(null);
+        }}
+      >
+        <div className="ad-confirm-box">
+          <div className="ad-confirm-header">
+            <div
+              className={`ad-confirm-icon ${isApprove ? "ad-confirm-icon--approve" : "ad-confirm-icon--reject"}`}
+            >
+              {isApprove ? "✓" : "✕"}
+            </div>
+            <p className="ad-confirm-title">
+              {isApprove ? "Duyệt hoàn tiền" : "Từ chối hoàn tiền"}
+            </p>
+            <p className="ad-confirm-subtitle">
+              {isApprove
+                ? "Xác nhận duyệt yêu cầu hoàn tiền cho giao dịch này?"
+                : "Xác nhận từ chối yêu cầu hoàn tiền? Học viên sẽ không được hoàn tiền."}
+            </p>
+          </div>
+          <div className="ad-confirm-body">
+            <div className="ad-confirm-detail">
+              <strong>{confirmModal.studentName}</strong>
+              {confirmModal.courseName} ·{" "}
+              {formatPrice(confirmModal.amount, "VND")}
+            </div>
+          </div>
+          <div className="ad-confirm-footer">
+            <button
+              className={`ad-confirm-btn ${isApprove ? "ad-confirm-btn--approve" : "ad-confirm-btn--reject"}`}
+              onClick={handleConfirmAction}
+              disabled={confirmLoading}
+            >
+              {confirmLoading
+                ? "Đang xử lý…"
+                : isApprove
+                  ? "Duyệt hoàn tiền"
+                  : "Từ chối"}
+            </button>
+            <button
+              className="ad-confirm-btn ad-confirm-btn--cancel"
+              onClick={() => setConfirmModal(null)}
+              disabled={confirmLoading}
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEditAlert = () => {
+    if (courseEditAlerts.length === 0 || editAlertDismissed) return null;
+    return (
+      <div className="ad-edit-alert">
+        <div className="ad-edit-alert__header">
+          <span className="ad-edit-alert__icon">⚠</span>
+          <span className="ad-edit-alert__title">
+            Khóa học vừa được chỉnh sửa sau khi xuất bản
+          </span>
+          <span className="ad-edit-alert__count">
+            {courseEditAlerts.length} khóa
+          </span>
+        </div>
+        <div className="ad-edit-alert__list">
+          {courseEditAlerts.map((c) => (
+            <div key={c.id} className="ad-edit-alert__row">
+              <span className="ad-edit-alert__course-name">{c.title}</span>
+              <div className="ad-edit-alert__meta">
+                {c.instructor_name && (
+                  <span className="ad-edit-alert__instructor">
+                    {c.instructor_name}
+                  </span>
+                )}
+                <span className="ad-edit-alert__time">
+                  {new Date(c.updated_at).toLocaleString("vi-VN")}
+                </span>
+                <button
+                  className="ad-edit-alert__btn"
+                  onClick={() => {
+                    setActiveTab("courses");
+                    setSearchCourse(c.title);
+                  }}
+                >
+                  Xem
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="ad-edit-alert__dismiss">
+          <button
+            className="ad-edit-alert__dismiss-btn"
+            onClick={() => setEditAlertDismissed(true)}
+          >
+            Bỏ qua thông báo này
+          </button>
         </div>
       </div>
     );
@@ -3705,6 +3865,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {renderQuestionModal()}
       {renderAttemptModal()}
       {renderCategoryModal()}
+      {renderConfirmModal()}
       {userViewModal && selectedUser && (
         <div className="ad-modal-overlay" onClick={closeViewUser}>
           <div
@@ -4027,9 +4188,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </aside>
 
         <main className="ad-main">
-          {/* ══ Overview ══════════════════════════════════════════════════════ */}
           {activeTab === "overview" && (
             <div className="ad-content">
+              {renderEditAlert()}
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Tổng quan hệ thống</h1>
                 <p className="ad-page-sub">
@@ -4167,13 +4328,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             >
                               <button
                                 className="ad-btn-sm ad-btn-sm--approve"
-                                onClick={() => approveRefund(p.id)}
+                                onClick={() => openApproveRefund(p)}
                               >
                                 Duyệt
                               </button>
                               <button
                                 className="ad-btn-sm ad-btn-sm--ban"
-                                onClick={() => rejectRefund(p.id)}
+                                onClick={() => openRejectRefund(p)}
                               >
                                 Từ chối
                               </button>
@@ -5529,13 +5690,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   <>
                                     <button
                                       className="ad-btn-sm ad-btn-sm--approve"
-                                      onClick={() => approveRefund(p.id)}
+                                      onClick={() => openApproveRefund(p)}
+
                                     >
                                       Duyệt
                                     </button>
                                     <button
                                       className="ad-btn-sm ad-btn-sm--ban"
-                                      onClick={() => rejectRefund(p.id)}
+                                      onClick={() => openRejectRefund(p)}
+
                                     >
                                       Từ chối
                                     </button>
@@ -5737,8 +5900,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               marginRight: "auto",
                             }}
                             onClick={() => {
-                              approveRefund(paymentDetail.id);
                               closePaymentDetail();
+                              openApproveRefund(paymentDetail);
                             }}
                           >
                             Duyệt hoàn tiền
@@ -5746,8 +5909,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             className="cm-btn cm-btn--danger"
                             onClick={() => {
-                              rejectRefund(paymentDetail.id);
                               closePaymentDetail();
+                              openRejectRefund(paymentDetail);
                             }}
                           >
                             ✘ Từ chối
