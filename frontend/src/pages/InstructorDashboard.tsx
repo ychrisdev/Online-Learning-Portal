@@ -2132,7 +2132,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               <div className="id-page-header">
                 <h1 className="id-page-title">
                   Xin chào, {user?.full_name?.split(" ").pop() || "Instructor"}{" "}
-                  👋
                 </h1>
                 <p className="id-page-sub">
                   Quản lý khóa học và theo dõi học viên của bạn.
