@@ -4244,7 +4244,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {toast.msg}
             </div>
           )}
-          
+
           {/* ══ Users ═════════════════════════════════════════════════════════ */}
           {activeTab === "users" && (
             <div className="ad-content">
@@ -4262,7 +4262,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onChange={(e) => setSearchUser(e.target.value)}
               />
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--users">
                   <thead>
                     <tr>
                       <th>Người dùng</th>
@@ -4289,7 +4289,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không tìm thấy người dùng phù hợp.
+                          Không tìm thấy người dùng phù hợp.
                         </td>
                       </tr>
                     ) : (
@@ -4437,7 +4437,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--courses">
                   <thead>
                     <tr>
                       <th>Khóa học</th>
@@ -4465,7 +4465,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không tìm thấy khóa học phù hợp.
+                          Không tìm thấy khóa học phù hợp.
                         </td>
                       </tr>
                     ) : (
@@ -4589,7 +4589,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--sections">
                   <thead>
                     <tr>
                       <th>STT</th>
@@ -4621,7 +4621,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không có chương nào.
+                          Không có chương nào.
                         </td>
                       </tr>
                     ) : (
@@ -4752,7 +4752,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--lessons">
                   <thead>
                     <tr>
                       <th>STT</th>
@@ -4779,7 +4779,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không có bài học nào.
+                          Không có bài học nào.
                         </td>
                       </tr>
                     ) : (
@@ -4872,7 +4872,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--quizzes">
                   <thead>
                     <tr>
                       <th>Tên bài kiểm tra</th>
@@ -4896,16 +4896,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           String(q.lesson?.id ?? q.lesson) === filterQuizLesson,
                       ).length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={6}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
-                        >
-                          🔍 Không có bài kiểm tra nào.
-                        </td>
+                        <td>Không có bài kiểm tra nào.</td>
                       </tr>
                     ) : (
                       quizzes
@@ -4939,13 +4930,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </td>
                                 <td>
                                   <button
-                                    style={{
-                                      background: "none",
-                                      border: "none",
-                                      color: "#5ba4de",
-                                      cursor: "pointer",
-                                      fontSize: 13,
-                                    }}
+                                    className="viewhid-btn"
                                     onClick={() => {
                                       if (isExpanded) {
                                         setExpandedQuizId(null);
@@ -4955,7 +4940,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                       }
                                     }}
                                   >
-                                    {isExpanded ? "▾ Ẩn" : "▸ Xem câu hỏi"}
+                                    {isExpanded ? "Ẩn" : "Xem"}
                                   </button>
                                 </td>
                                 <td>
@@ -5188,7 +5173,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </div>
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--enrollments">
                   <thead>
                     <tr>
                       <th>Học viên</th>
@@ -5215,7 +5200,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không tìm thấy lượt đăng ký phù hợp.
+                          Không tìm thấy lượt đăng ký phù hợp.
                         </td>
                       </tr>
                     ) : (
@@ -5337,7 +5322,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--categories">
                   <thead>
                     <tr>
                       <th>#</th>
@@ -5366,7 +5351,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không tìm thấy danh mục phù hợp.
+                          Không tìm thấy danh mục phù hợp.
                         </td>
                       </tr>
                     ) : (
@@ -5465,13 +5450,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </div>
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--payments">
                   <thead>
                     <tr>
                       <th>Người dùng</th>
                       <th>Khóa học</th>
                       <th>Số tiền</th>
-                      <th>Ngày thanh toán</th>
+                      <th>Ngày trả</th>
                       <th>Trạng thái</th>
                       <th>thao tác</th>
                     </tr>
@@ -5493,7 +5478,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không tìm thấy giao dịch phù hợp.
+                          Không tìm thấy giao dịch phù hợp.
                         </td>
                       </tr>
                     ) : (
@@ -5532,28 +5517,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </td>
                             <td>
-                              <button
-                                className="ad-btn-sm ad-btn-sm--view"
-                                onClick={() => openPaymentDetail(p.id)}
-                              >
-                                Xem
-                              </button>
-                              {status === "refund_requested" && (
-                                <div className="ad-actions">
-                                  <button
-                                    className="ad-btn-sm ad-btn-sm--approve"
-                                    onClick={() => approveRefund(p.id)}
-                                  >
-                                    Duyệt
-                                  </button>
-                                  <button
-                                    className="ad-btn-sm ad-btn-sm--ban"
-                                    onClick={() => rejectRefund(p.id)}
-                                  >
-                                    Từ chối
-                                  </button>
-                                </div>
-                              )}
+                              <div className="ad-actions">
+                                <button
+                                  className="ad-btn-sm ad-btn-sm--view"
+                                  onClick={() => openPaymentDetail(p.id)}
+                                >
+                                  Xem
+                                </button>
+
+                                {status === "refund_requested" && (
+                                  <>
+                                    <button
+                                      className="ad-btn-sm ad-btn-sm--approve"
+                                      onClick={() => approveRefund(p.id)}
+                                    >
+                                      Duyệt
+                                    </button>
+                                    <button
+                                      className="ad-btn-sm ad-btn-sm--ban"
+                                      onClick={() => rejectRefund(p.id)}
+                                    >
+                                      Từ chối
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -5859,7 +5847,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* ── Table ── */}
               <div className="ad-table-wrap">
-                <table className="ad-table">
+                <table className="ad-table ad-table--reviews">
                   <thead>
                     <tr>
                       <th>Học viên</th>
@@ -5887,7 +5875,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           className="ad-empty"
                           style={{ textAlign: "center", padding: "2rem" }}
                         >
-                          🔍 Không tìm thấy đánh giá phù hợp.
+                          Không tìm thấy đánh giá phù hợp.
                         </td>
                       </tr>
                     ) : (
