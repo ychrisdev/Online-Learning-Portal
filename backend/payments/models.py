@@ -18,6 +18,7 @@ class Transaction(models.Model):
         SUCCESS           = 'success',           'Thành công'
         FAILED            = 'failed',            'Thất bại'
         REFUND_REQUESTED  = 'refund_requested',  'Yêu cầu hoàn tiền'
+        REFUND_APPROVED   = 'refund_approved',   'Admin đã duyệt'
         REFUNDED          = 'refunded',          'Đã hoàn tiền'
 
     class Method(models.TextChoices):
@@ -52,6 +53,8 @@ class Transaction(models.Model):
     refund_requested_once = models.BooleanField('Đã từng yêu cầu hoàn tiền', default=False)
     created_at  = models.DateTimeField('Tạo lúc', auto_now_add=True)
     paid_at     = models.DateTimeField('Thanh toán lúc', null=True, blank=True)
+    refund_approved_at = models.DateTimeField(null=True, blank=True)
+    refund_deadline    = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table            = 'transactions'

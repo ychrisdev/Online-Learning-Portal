@@ -7,7 +7,7 @@ interface StudentDashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'overview' | 'profile' | 'courses' | 'quizzes' | 'payments' | 'certificates';
+type Tab = 'overview' | 'profile' | 'courses' | 'quizzes' | 'payments' | 'certificates' | 'wallet';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview',      label: 'Tổng quan' },
@@ -16,6 +16,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'quizzes',       label: 'Lịch sử kiểm tra' },
   { id: 'payments',      label: 'Lịch sử thanh toán' },
   { id: 'certificates',  label: 'Chứng chỉ' },
+  { id: 'wallet', label: 'Ví tiền' },
 ];
 
 const API = 'http://127.0.0.1:8000';
@@ -154,6 +155,22 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
   const [attemptDetail, setAttemptDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  //state wallet
+  const [wallet, setWallet]             = useState<any>(null);
+  const [walletTxs, setWalletTxs]       = useState<any[]>([]);
+  const [loadingWallet, setLoadingWallet] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositing, setDepositing]     = useState(false);
+  const [withdrawForm, setWithdrawForm] = useState({
+    amount: '', bank_name: '', bank_account: '', account_name: ''
+  });
+  const [withdrawing, setWithdrawing]   = useState(false);
+  const [walletError, setWalletError]   = useState('');
+  const [walletSuccess, setWalletSuccess] = useState('');
+
+  const [withdrawError, setWithdrawError] = useState('');
+  const [withdrawSuccess, setWithdrawSuccess] = useState('');
+
   // ── Fetch profile ─────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
@@ -261,6 +278,22 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
         }
       } catch (_) {}
       setLoadingQuizAttempts(false);
+    })();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'wallet') return;
+    (async () => {
+      setLoadingWallet(true);
+      try {
+        const [walletRes, txRes] = await Promise.all([
+          fetch(`${API}/api/wallet/`,             { headers: authHeaders() }),
+          fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
+        ]);
+        if (walletRes.ok) setWallet(await walletRes.json());
+        if (txRes.ok)     setWalletTxs(toList(await txRes.json()));
+      } catch (_) {}
+      setLoadingWallet(false);
     })();
   }, [activeTab]);
 
@@ -379,6 +412,63 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
   const closePaymentDetail = () => {
     setShowPaymentModal(false);
     setPaymentDetail(null);
+  };
+
+  //nạp tiền
+  const handleDeposit = async () => {
+    const amount = parseInt(depositAmount);
+    if (!amount || amount < 10000) { setWalletError('Số tiền tối thiểu 10,000đ'); return; }
+    setDepositing(true); setWalletError(''); setWalletSuccess('');
+    try {
+      const res = await fetch(`${API}/api/wallet/deposit/`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ amount }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWallet((w: any) => ({ ...w, balance: data.balance }));
+        setDepositAmount('');
+        setWalletSuccess('Nạp tiền thành công!');
+        // Refresh transactions
+        const txRes = await fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() });
+        if (txRes.ok) setWalletTxs(toList(await txRes.json()));
+      } else {
+        const err = await res.json();
+        setWalletError(err.detail ?? 'Nạp tiền thất bại.');
+      }
+    } catch (_) { setWalletError('Lỗi kết nối.'); }
+    setDepositing(false);
+  };
+
+  const handleWithdraw = async () => {
+    const amount = parseInt(withdrawForm.amount);
+    if (!amount || amount < 50000)         { setWithdrawError('Tối thiểu 50,000đ'); return; }
+    if (!withdrawForm.bank_name.trim())    { setWithdrawError('Nhập tên ngân hàng'); return; }
+    if (!withdrawForm.bank_account.trim()) { setWithdrawError('Nhập số tài khoản'); return; }
+    if (!withdrawForm.account_name.trim()) { setWithdrawError('Nhập tên chủ tài khoản'); return; }
+    setWithdrawing(true); setWithdrawError(''); setWithdrawSuccess('');
+    try {
+      const res = await fetch(`${API}/api/wallet/withdraw/`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ ...withdrawForm, amount }),
+      });
+      if (res.ok) {
+        setWithdrawSuccess('Yêu cầu rút tiền đã được gửi!');
+        setWithdrawForm({ amount: '', bank_name: '', bank_account: '', account_name: '' });
+        const [walletRes, txRes] = await Promise.all([
+          fetch(`${API}/api/wallet/`,             { headers: authHeaders() }),
+          fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
+        ]);
+        if (walletRes.ok) setWallet(await walletRes.json());
+        if (txRes.ok)     setWalletTxs(toList(await txRes.json()));
+      } else {
+        const err = await res.json();
+        setWithdrawError(err.detail ?? 'Rút tiền thất bại.');
+      }
+    } catch (_) { setWithdrawError('Lỗi kết nối.'); }
+    setWithdrawing(false);
   };
 
   // ── Derived stats ─────────────────────────────────────────────────────────
@@ -1085,6 +1175,159 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
               )}
             </div>
           )}
+
+          {/* ════ WALLET ════ */}
+          {activeTab === 'wallet' && (
+            <div className="id-content">
+              <div className="id-page-header">
+                <h1 className="id-page-title">Ví tiền</h1>
+                <p className="id-page-sub">Quản lý số dư và lịch sử giao dịch</p>
+              </div>
+
+              {loadingWallet ? (
+                <p className="db-muted">Đang tải…</p>
+              ) : (
+                <>
+                  {/* Số dư */}
+                  <div className="id-form-card" style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                      <div>
+                        <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 4 }}>Số dư hiện tại</p>
+                        <p style={{ fontSize: 28, fontWeight: 700, color: '#4caf82' }}>
+                          {formatPrice(wallet?.balance ?? 0, 'VND')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nạp tiền */}
+                  <div className="id-form-card" style={{ marginBottom: 16 }}>
+                    <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                      <div className="id-field" style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
+                        <label className="id-field__label">Số tiền (VNĐ)</label>
+                        <input
+                          className="id-field__input"
+                          type="number"
+                          min={10000}
+                          placeholder="Tối thiểu 10,000đ"
+                          value={depositAmount}
+                          onChange={e => { setDepositAmount(e.target.value); setWalletError(''); setWalletSuccess(''); }}
+                        />
+                      </div>
+                      <button className="id-btn-primary" onClick={handleDeposit} disabled={depositing}>
+                        {depositing ? 'Đang nạp…' : 'Nạp tiền'}
+                      </button>
+                    </div>
+                    {/* Quick amounts */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      {[50000, 100000, 200000, 500000].map(v => (
+                        <button
+                          key={v}
+                          className="id-btn-sm"
+                          onClick={() => { setDepositAmount(String(v)); setWalletError(''); setWalletSuccess(''); }}
+                        >
+                          {formatPrice(v, 'VND')}
+                        </button>
+                      ))}
+                    </div>
+                    {walletError   && <p style={{ color: '#e05c5c', fontSize: 13, marginTop: 8 }}>⚠ {walletError}</p>}
+                    {walletSuccess && <p style={{ color: '#4caf82', fontSize: 13, marginTop: 8 }}>✓ {walletSuccess}</p>}
+                  </div>
+
+                  {/* Rút tiền */}
+                  <div className="id-form-card" style={{ marginBottom: 16 }}>
+                    <h3 className="id-form-card__title">Rút tiền</h3>
+                    <div className="id-form-grid">
+                      <div className="id-field">
+                        <label className="id-field__label">Số tiền (VNĐ)</label>
+                        <input className="id-field__input" type="number" min={50000}
+                          placeholder="Tối thiểu 50,000đ"
+                          value={withdrawForm.amount}
+                          onChange={e => { setWithdrawForm(f => ({ ...f, amount: e.target.value })); setWithdrawError(''); setWithdrawSuccess(''); }}
+                        />
+                      </div>
+                      <div className="id-field">
+                        <label className="id-field__label">Tên ngân hàng</label>
+                        <input className="id-field__input" placeholder="VD: Vietcombank"
+                          value={withdrawForm.bank_name}
+                          onChange={e => setWithdrawForm(f => ({ ...f, bank_name: e.target.value }))}
+                        />
+                      </div>
+                      <div className="id-field">
+                        <label className="id-field__label">Số tài khoản</label>
+                        <input className="id-field__input" placeholder="0123456789"
+                          value={withdrawForm.bank_account}
+                          onChange={e => setWithdrawForm(f => ({ ...f, bank_account: e.target.value }))}
+                        />
+                      </div>
+                      <div className="id-field">
+                        <label className="id-field__label">Tên chủ tài khoản</label>
+                        <input className="id-field__input" placeholder="NGUYEN VAN A"
+                          value={withdrawForm.account_name}
+                          onChange={e => setWithdrawForm(f => ({ ...f, account_name: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    {withdrawError   && <p style={{ color: '#e05c5c', fontSize: 13, marginTop: 8 }}>⚠ {withdrawError}</p>}
+                    {withdrawSuccess && <p style={{ color: '#4caf82', fontSize: 13, marginTop: 8 }}>✓ {withdrawSuccess}</p>}
+                    <div className="id-form-actions">
+                      <button className="id-btn-primary" onClick={handleWithdraw} disabled={withdrawing}>
+                        {withdrawing ? 'Đang gửi…' : 'Gửi yêu cầu rút tiền'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Lịch sử giao dịch */}
+                  <div className="id-form-card">
+                    <h3 className="id-form-card__title">Lịch sử giao dịch</h3>
+                    {walletTxs.length === 0 ? (
+                      <p className="db-muted">Chưa có giao dịch nào.</p>
+                    ) : (
+                      <div className="ad-table-wrap" style={{ border: 'none', marginTop: 12 }}>
+                        <table className="ad-table">
+                          <thead>
+                            <tr>
+                              <th>Loại</th>
+                              <th>Số tiền</th>
+                              <th>Số dư sau</th>
+                              <th>Ghi chú</th>
+                              <th>Ngày</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {walletTxs.map(tx => (
+                              <tr key={tx.id}>
+                                <td>
+                                  <span style={{
+                                    fontSize: 12, padding: '2px 8px', borderRadius: 5,
+                                    background: tx.amount > 0 ? 'rgba(76,175,130,0.15)' : 'rgba(224,92,92,0.15)',
+                                    color: tx.amount > 0 ? '#4caf82' : '#e05c5c',
+                                    border: `0.5px solid ${tx.amount > 0 ? 'rgba(76,175,130,0.3)' : 'rgba(224,92,92,0.3)'}`,
+                                  }}>
+                                    {tx.tx_type_display ?? tx.tx_type}
+                                  </span>
+                                </td>
+                                <td style={{ fontWeight: 600, color: tx.amount > 0 ? '#4caf82' : '#e05c5c' }}>
+                                  {tx.amount > 0 ? '+' : ''}{formatPrice(tx.amount, 'VND')}
+                                </td>
+                                <td>{formatPrice(tx.balance_after, 'VND')}</td>
+                                <td className="ad-table__muted">{tx.note || '—'}</td>
+                                <td className="ad-table__muted">
+                                  {tx.created_at ? new Date(tx.created_at).toLocaleDateString('vi-VN') : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
         </main>
       </div>
 
@@ -1101,7 +1344,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate, onLogou
                 Khóa học: <strong>{refundTarget.course_title}</strong>
               </p>
               <p style={{ marginBottom: '1rem' }}>
-                Số tiền: <strong>{formatPrice(refundTarget.amount)}</strong>
+                Giá: <strong>{formatPrice(refundTarget.amount)}</strong>
+              </p>
+               <p style={{ marginBottom: '1rem' }}>
+                Số tiền được hoàn: <strong>{formatPrice(Math.round((refundTarget.amount ?? 0) * 0.7))}</strong>
               </p>
               <label className="db-field__label">Lý do hoàn tiền *</label>
               <textarea

@@ -50,6 +50,7 @@ class Enrollment(models.Model):
         unique_together = ('student', 'course')   # 1 student chỉ đăng ký 1 lần
         verbose_name        = 'Đăng ký khoá học'
         verbose_name_plural = 'Đăng ký khoá học'
+        ordering = ['id']
         indexes = [
             models.Index(fields=['student', 'status']),
             models.Index(fields=['course', 'status']),

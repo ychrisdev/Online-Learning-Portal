@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'enrollments',
     'quizzes',
     'payments.apps.PaymentsConfig',  # ← thay vì chỉ 'payments'
+    'wallet'
 ]
 
 # Trỏ User model về accounts app

@@ -17,6 +17,7 @@ from .views import (
     AdminTransactionDetailView,
     InstructorTransactionListView,    # ← thêm
     InstructorTransactionDetailView,  # ← thêm
+    InstructorConfirmRefundView,
 )
 
 urlpatterns = [
@@ -43,4 +44,5 @@ urlpatterns = [
      # Instructor
     path('instructor/',           InstructorTransactionListView.as_view(),  name='instructor-transaction-list'),
     path('instructor/<uuid:id>/', InstructorTransactionDetailView.as_view(), name='instructor-transaction-detail'),
+    path('instructor/<uuid:id>/confirm-refund/', InstructorConfirmRefundView.as_view()),
 ]

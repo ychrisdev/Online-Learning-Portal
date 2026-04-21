@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Transaction
 from django.db.models.functions import TruncMonth
+from decimal import Decimal
 
 from accounts.permissions import IsAdminUser, IsInstructor
 from courses.models import Course
@@ -113,15 +114,34 @@ class PaymentCallbackView(APIView):
 
         return Response({'message': 'Callback nhận thành công.'})
 
-#signal thay hàm cũ
 def _activate_enrollment(transaction: Transaction):
-    """Signal payments/signals.py sẽ tự tạo Enrollment + cập nhật total_students.
-    Hàm này chỉ cần đảm bảo status=SUCCESS được lưu để trigger signal."""
     if transaction.status != Transaction.Status.SUCCESS:
         transaction.status  = Transaction.Status.SUCCESS
         transaction.paid_at = transaction.paid_at or timezone.now()
         transaction.save(update_fields=['status', 'paid_at'])
 
+    # Cộng doanh thu vào ví giảng viên nếu có phí
+    if transaction.amount > 0:
+        from wallet.services import pay_for_course
+        try:
+            # Chỉ cộng doanh thu giảng viên, không trừ ví sinh viên
+            # vì sinh viên đã trả qua gateway
+            from wallet.models import Wallet, WalletTransaction
+            from wallet.services import INSTRUCTOR_REVENUE_RATE
+            revenue = int(transaction.amount * INSTRUCTOR_REVENUE_RATE)
+            instructor_wallet = Wallet.objects.get_or_create(user=transaction.course.instructor)[0]
+            instructor_wallet.balance += revenue
+            instructor_wallet.save()
+            WalletTransaction.objects.create(
+                wallet        = instructor_wallet,
+                tx_type       = WalletTransaction.TxType.REVENUE,
+                amount        = revenue,
+                balance_after = instructor_wallet.balance,
+                note          = f'Doanh thu từ: {transaction.course.title}',
+                ref_id        = str(transaction.id),
+            )
+        except Exception:
+            pass  # Không để lỗi ví block enrollment
 
 class MyTransactionListView(generics.ListAPIView):
     """
@@ -240,20 +260,29 @@ class RequestRefundView(APIView):
 
 # THÊM VÀO CUỐI — admin duyệt hoàn tiền
 class AdminApproveRefundView(APIView):
-    """
-    POST /api/payments/admin/<id>/approve-refund/
-    Admin duyệt hoàn tiền
-    """
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def post(self, request, id):
         transaction = generics.get_object_or_404(
-            Transaction,
-            id=id,
-            status=Transaction.Status.REFUND_REQUESTED,
+            Transaction, id=id, status=Transaction.Status.REFUND_REQUESTED,
         )
-        transaction.status = Transaction.Status.REFUNDED
+        transaction.status = Transaction.Status.REFUND_APPROVED  # ← trạng thái mới
+        transaction.refund_approved_at = timezone.now()
         transaction.save()
+        return Response({'message': 'Đã duyệt, đang chờ giảng viên xác nhận.'})
+
+        # Hoàn tiền về ví sinh viên
+        from wallet.services import refund_to_student
+        try:
+            refund_to_student(
+                student      = transaction.student,
+                amount       = int(transaction.amount),
+                course_title = transaction.course.title,
+                ref_id       = str(transaction.id),
+            )
+        except Exception:
+            pass
+
         return Response({'message': 'Đã duyệt hoàn tiền.'})
 
 
@@ -384,3 +413,62 @@ class InstructorTransactionDetailView(generics.RetrieveAPIView):
         return Transaction.objects.filter(
             course__instructor=self.request.user
         ).select_related('student', 'course')
+    
+class InstructorConfirmRefundView(APIView):
+    """
+    POST /api/payments/instructor/<id>/confirm-refund/
+    Instructor xác nhận hoàn tiền → trừ ví instructor, cộng ví student
+    Nếu không đủ tiền → trả 400 kèm số tiền thiếu
+    """
+    permission_classes = [IsAuthenticated, IsInstructor]
+
+    def post(self, request, id):
+        from django.db import transaction as db_tx
+        from wallet.models import Wallet, WalletTransaction
+        from wallet.services import refund_to_student
+
+        transaction = generics.get_object_or_404(
+            Transaction,
+            id=id,
+            status=Transaction.Status.REFUND_APPROVED,
+            course__instructor=request.user,
+        )
+
+        amount = int(transaction.amount * Decimal('0.7'))  # 70% instructor đã nhận
+
+        with db_tx.atomic():
+            instructor_wallet = Wallet.objects.select_for_update().get_or_create(
+                user=request.user
+            )[0]
+
+            if instructor_wallet.balance < amount:
+                shortage = amount - int(instructor_wallet.balance)
+                return Response({
+                    'detail': f'Số dư không đủ. Cần nạp thêm {shortage:,}đ trong vòng 2 ngày.',
+                    'shortage': shortage,
+                    'deadline': (timezone.now() + timezone.timedelta(days=2)).isoformat(),
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            instructor_wallet.balance -= amount
+            instructor_wallet.save()
+
+            WalletTransaction.objects.create(
+                wallet        = instructor_wallet,
+                tx_type       = WalletTransaction.TxType.REFUND,
+                amount        = -amount,
+                balance_after = instructor_wallet.balance,
+                note          = f'Hoàn tiền khóa học: {transaction.course.title}',
+                ref_id        = str(transaction.id),
+            )
+
+            refund_to_student(
+                student      = transaction.student,
+                amount       = int(transaction.amount),
+                course_title = transaction.course.title,
+                ref_id       = str(transaction.id),
+            )
+
+            transaction.status = Transaction.Status.REFUNDED
+            transaction.save()
+
+        return Response({'message': 'Hoàn tiền thành công.'})
