@@ -6,7 +6,10 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
-
+import random, string
+from django.core.cache import cache
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
 
 from .models import StudentProfile, InstructorProfile
 
@@ -189,7 +192,52 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         user = self.instance
-        # Cho phép giữ nguyên email hiện tại, chỉ check nếu đổi sang email khác
         if User.objects.filter(email=value).exclude(pk=user.pk).exists():
             raise serializers.ValidationError('Email này đã được sử dụng.')
         return value
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value, is_active=True).exists():
+            raise serializers.ValidationError('Email không tồn tại trong hệ thống.')
+        return value
+
+    def save(self):
+        email = self.validated_data['email']
+        otp = ''.join(random.choices(string.digits, k=6))
+        cache.set(f'pwd_reset_otp:{email}', otp, timeout=600)
+        send_mail(
+            subject='[EnglishHub] Mã OTP đặt lại mật khẩu',
+            message=f'Mã OTP của bạn là: {otp}\nMã có hiệu lực trong 10 phút. Không chia sẻ mã này với ai.',
+            from_email=django_settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+        )
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email        = serializers.EmailField()
+    otp          = serializers.CharField(min_length=6, max_length=6)
+    new_password = serializers.CharField(validators=[validate_password])
+
+    def validate(self, attrs):
+        email  = attrs['email']
+        otp    = attrs['otp']
+        cached = cache.get(f'pwd_reset_otp:{email}')
+
+        if not cached or cached != otp:
+            raise serializers.ValidationError({'otp': 'Mã OTP không hợp lệ hoặc đã hết hạn.'})
+
+        try:
+            attrs['user'] = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({'email': 'Email không hợp lệ.'})
+
+        return attrs
+
+    def save(self):
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        cache.delete(f'pwd_reset_otp:{self.validated_data["email"]}')

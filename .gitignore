@@ -18,6 +18,9 @@ venv/
 .venv/
 
 db.sqlite3
+*.log
+media/
+staticfiles/
 
 .DS_Store
 Thumbs.db

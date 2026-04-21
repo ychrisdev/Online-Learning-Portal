@@ -1,6 +1,3 @@
-"""
-accounts/urls.py
-"""
 from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
@@ -16,26 +13,26 @@ from .views import (
     UserDetailAdminView,
     UserListView,
     CustomTokenObtainPairView,
+    PasswordResetRequestView,
+    PasswordResetConfirmView,
 )
 
 urlpatterns = [
-    # ── Xác thực ──────────────────────────────────────────────────
     path('register/',        RegisterView.as_view(),         name='register'),
     path('token/', CustomTokenObtainPairView.as_view(), name='token'),
     path('logout/',          TokenBlacklistView.as_view(),   name='logout'),
     path('token/refresh/',   TokenRefreshView.as_view(),     name='token-refresh'),
 
-    # ── Hồ sơ ─────────────────────────────────────────────────────
-    # Trả về User + nested profile theo role (student/instructor/admin)
     path('me/', ProfileView.as_view(), name='me'),  # ✅ chuẩn
     path('profile/',             ProfileView.as_view(),          name='profile'),
     path('change-password/',     ChangePasswordView.as_view(),   name='change-password'),
-
-    # Hồ sơ mở rộng — chỉ role tương ứng mới truy cập được
+    
+    path('password-reset/',         PasswordResetRequestView.as_view(), name='password-reset'),
+    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    
     path('profile/student/',     StudentProfileView.as_view(),    name='profile-student'),
     path('profile/instructor/',  InstructorProfileView.as_view(), name='profile-instructor'),
 
-    # ── Admin ──────────────────────────────────────────────────────
     path('users/',           UserListView.as_view(),         name='user-list'),
     path('users/<uuid:id>/', UserDetailAdminView.as_view(),  name='user-detail'),
 ]

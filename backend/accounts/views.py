@@ -20,6 +20,8 @@ from .serializers import (
     InstructorProfileSerializer,
     UserAdminSerializer,
     UserProfileSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
 )
 
 User = get_user_model()
@@ -116,8 +118,27 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'message': 'Đổi mật khẩu thành công.'})
+class PasswordResetRequestView(APIView):
+    """POST /api/auth/password-reset/"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'message': 'Mã OTP đã được gửi tới email của bạn.'})
 
 
+class PasswordResetConfirmView(APIView):
+    """POST /api/auth/password-reset/confirm/"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'message': 'Đặt lại mật khẩu thành công.'})
+    
 # ── 5.1.1 Hồ sơ mở rộng: Student ─────────────────────────────────────────────
 
 class StudentProfileView(generics.RetrieveUpdateAPIView):
