@@ -350,6 +350,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // ── User view modal state
   const [userViewModal, setUserViewModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const openViewUser = (u: any) => {
     setSelectedUser(u);
@@ -721,20 +730,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const changeUserRole = async (user: any, newRole: string) => {
     if (user.role === newRole) return;
-    if (
-      !window.confirm(
-        `Đổi vai trò của "${user.full_name ?? user.username}" thành "${ROLE_LABEL[newRole]}"?`,
-      )
-    )
-      return;
     try {
       await fetch(`${API}/api/auth/users/${user.id}/`, {
         method: "PATCH",
         headers: jsonH(),
         body: JSON.stringify({ role: newRole }),
       });
-      fetchUsers();
-    } catch {}
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)),
+      );
+      showToast(
+        `Đã đổi vai trò "${user.full_name ?? user.username}" thành "${ROLE_LABEL[newRole]}"`,
+      );
+    } catch {
+      showToast("Đổi vai trò thất bại", "error");
+    }
   };
 
   // ── Course status actions ─────────────────────────────────────────────────
@@ -1650,8 +1660,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa khóa học:</p>
               <p className="cm-delete-name">"{selectedCourse?.title}"</p>
               <p className="cm-delete-warn">
-                 Hành động này không thể hoàn tác. Tất cả bài học và dữ liệu
-                liên quan sẽ bị xóa vĩnh viễn.
+                Hành động này không thể hoàn tác. Tất cả bài học và dữ liệu liên
+                quan sẽ bị xóa vĩnh viễn.
               </p>
               {formError && <p className="cm-error">{formError}</p>}
             </div>
@@ -2002,11 +2012,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onClick={handleSave}
               disabled={saving || editLoading}
             >
-              {saving
-                ? " Đang lưu…"
-                : isEdit
-                  ? "Lưu thay đổi"
-                  : "Tạo khóa học"}
+              {saving ? " Đang lưu…" : isEdit ? "Lưu thay đổi" : "Tạo khóa học"}
             </button>
             <button
               className="cm-btn cm-btn--cancel"
@@ -2046,7 +2052,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa chương:</p>
               <p className="cm-delete-name">"{selectedSection?.title}"</p>
               <p className="cm-delete-warn">
-                 Tất cả bài học trong chương này cũng sẽ bị xóa.
+                Tất cả bài học trong chương này cũng sẽ bị xóa.
               </p>
               {sectionError && <p className="cm-error">{sectionError}</p>}
             </div>
@@ -2201,7 +2207,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa bài học:</p>
               <p className="cm-delete-name">"{selectedLesson?.title}"</p>
               <p className="cm-delete-warn">
-                 Hành động này không thể hoàn tác.
+                Hành động này không thể hoàn tác.
               </p>
               {lessonError && <p className="cm-error">{lessonError}</p>}
             </div>
@@ -3064,7 +3070,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="cm-delete-desc">Bạn có chắc muốn xóa danh mục:</p>
               <p className="cm-delete-name">"{selectedCategory?.name}"</p>
               <p className="cm-delete-warn">
-                 Các khóa học thuộc danh mục này sẽ bị mất liên kết.
+                Các khóa học thuộc danh mục này sẽ bị mất liên kết.
               </p>
               {categoryError && <p className="cm-error">{categoryError}</p>}
             </div>
@@ -4215,6 +4221,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
+          {toast && (
+            <div
+              style={{
+                position: "fixed",
+                bottom: 24,
+                right: 24,
+                zIndex: 9999,
+                padding: "12px 20px",
+                borderRadius: 10,
+                background:
+                  toast.type === "success"
+                    ? "rgba(76,175,130,0.95)"
+                    : "rgba(224,92,92,0.95)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                animation: "cm-slide-up 0.2s ease",
+              }}
+            >
+              {toast.msg}
+            </div>
+          )}
+          
           {/* ══ Users ═════════════════════════════════════════════════════════ */}
           {activeTab === "users" && (
             <div className="ad-content">
@@ -4573,7 +4603,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {loadingSections ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                           Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : sections.filter(
@@ -5847,7 +5877,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           colSpan={6}
                           style={{ textAlign: "center", padding: "2rem" }}
                         >
-                           Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredReviews.length === 0 ? (
@@ -5899,7 +5929,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 Đã ẩn
                               </span>
                             ) : r.is_reported ? (
-                              <span className="ad-badge ad-badge--danger">Báo cáo</span>
+                              <span className="ad-badge ad-badge--danger">
+                                Báo cáo
+                              </span>
                             ) : (
                               <span className="ad-badge ad-review-badge--visible">
                                 Hiển thị
