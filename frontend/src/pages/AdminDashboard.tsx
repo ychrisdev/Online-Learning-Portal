@@ -355,7 +355,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     type: "success" | "error";
   } | null>(null);
   const [courseEditAlerts, setCourseEditAlerts] = useState<any[]>([]);
-  const [editAlertDismissed, setEditAlertDismissed] = useState(false);
+  const DISMISS_KEY = "admin_edit_alert_dismissed";
   const [confirmModal, setConfirmModal] = useState<{
     type: "approve-refund" | "reject-refund";
     paymentId: string;
@@ -368,6 +368,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const getDismissedMap = (): Record<string, string> => {
+    try {
+      return JSON.parse(localStorage.getItem(DISMISS_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const dismissCourse = (courseId: string, updatedAt: string) => {
+    const map = getDismissedMap();
+    map[courseId] = updatedAt;
+    localStorage.setItem(DISMISS_KEY, JSON.stringify(map));
+    setCourseEditAlerts((prev) => prev.filter((c) => c.id !== courseId));
+  };
+
+  const dismissAll = () => {
+    const map = getDismissedMap();
+    courseEditAlerts.forEach((c) => {
+      map[c.id] = c.updated_at;
+    });
+    localStorage.setItem(DISMISS_KEY, JSON.stringify(map));
+    setCourseEditAlerts([]);
   };
 
   const openViewUser = (u: any) => {
@@ -1677,12 +1701,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     if (courses.length === 0) return;
+    const dismissed = getDismissedMap();
     const edited = courses.filter((c) => {
       if (c.status !== "published") return false;
       if (!c.updated_at || !c.published_at) return false;
-      return new Date(c.updated_at) > new Date(c.published_at);
+      const diff =
+        new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
+      if (diff <= 5000) return false;
+      if (dismissed[c.id] === c.updated_at) return false;
+      return true;
     });
-    if (edited.length > 0) setEditAlertDismissed(false);
     setCourseEditAlerts(edited);
   }, [courses]);
 
@@ -2293,7 +2321,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const renderEditAlert = () => {
-    if (courseEditAlerts.length === 0 || editAlertDismissed) return null;
+    if (courseEditAlerts.length === 0) return null;
     return (
       <div className="ad-edit-alert">
         <div className="ad-edit-alert__header">
@@ -2327,22 +2355,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   Xem
                 </button>
+                <button
+                  className="ad-edit-alert__dismiss-single"
+                  onClick={() => dismissCourse(c.id, c.updated_at)}
+                  title="Bỏ qua thông báo này"
+                >
+                  ✕
+                </button>
               </div>
             </div>
           ))}
         </div>
         <div className="ad-edit-alert__dismiss">
-          <button
-            className="ad-edit-alert__dismiss-btn"
-            onClick={() => setEditAlertDismissed(true)}
-          >
-            Bỏ qua thông báo này
+          <button className="ad-edit-alert__dismiss-btn" onClick={dismissAll}>
+            Bỏ qua tất cả
           </button>
         </div>
       </div>
     );
   };
-
   const renderLessonModal = () => {
     if (!lessonModal) return null;
     if (lessonModal === "delete") {
@@ -4188,9 +4219,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </aside>
 
         <main className="ad-main">
+          {renderEditAlert()}
           {activeTab === "overview" && (
             <div className="ad-content">
-              {renderEditAlert()}
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Tổng quan hệ thống</h1>
                 <p className="ad-page-sub">
@@ -5691,14 +5722,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <button
                                       className="ad-btn-sm ad-btn-sm--approve"
                                       onClick={() => openApproveRefund(p)}
-
                                     >
                                       Duyệt
                                     </button>
                                     <button
                                       className="ad-btn-sm ad-btn-sm--ban"
                                       onClick={() => openRejectRefund(p)}
-
                                     >
                                       Từ chối
                                     </button>

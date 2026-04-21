@@ -215,7 +215,7 @@ class CourseAdminSerializer(serializers.ModelSerializer):
             'instructor', 'instructor_name',
             'avg_rating', 'total_students',
             'refunded_count', 'revenue',
-            'published_at', 'created_at',
+            'published_at', 'created_at', 'updated_at',
         ]
         read_only_fields = [
             'id', 'slug',
@@ -223,7 +223,7 @@ class CourseAdminSerializer(serializers.ModelSerializer):
             'category_name', 'instructor_name',
             'avg_rating', 'total_students',
             'refunded_count', 'revenue',
-            'created_at',
+            'created_at', 'updated_at',
         ]
 
 class AdminReviewSerializer(serializers.ModelSerializer):

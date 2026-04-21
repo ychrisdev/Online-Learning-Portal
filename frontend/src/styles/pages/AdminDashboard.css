@@ -2297,6 +2297,22 @@
   transition: color 0.15s;
 }
 
+.ad-edit-alert__dismiss-single {
+  background: none;
+  border: none;
+  color: rgba(224, 225, 221, 0.35);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.ad-edit-alert__dismiss-single:hover {
+  color: #e07a5f;
+  background: rgba(224, 122, 95, 0.1);
+}
+
 .ad-edit-alert__dismiss-btn:hover {
   color: rgba(224, 225, 221, 0.6);
 }
