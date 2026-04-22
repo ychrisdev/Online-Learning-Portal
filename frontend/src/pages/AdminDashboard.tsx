@@ -350,13 +350,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // ── User view modal state
   const [userViewModal, setUserViewModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({
+    full_name: "",
+    email: "",
+    username: "",
+    password: "",
+    role: "student",
+  });
+  const [addUserError, setAddUserError] = useState("");
+  const [savingUser, setSavingUser] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [toast, setToast] = useState<{
     msg: string;
     type: "success" | "error";
   } | null>(null);
   const [courseEditAlerts, setCourseEditAlerts] = useState<any[]>([]);
-  const DISMISS_KEY = "admin_edit_alert_dismissed";
+  const getUserId = () => localStorage.getItem("user_id") ?? "unknown";
+  const DISMISS_KEY = `admin_edit_alert_dismissed_${getUserId()}`;
+  const [sessionDismissed, setSessionDismissed] = useState<Set<string>>(
+    new Set(),
+  );
   const [confirmModal, setConfirmModal] = useState<{
     type: "approve-refund" | "reject-refund";
     paymentId: string;
@@ -381,19 +395,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const dismissCourse = (courseId: string, updatedAt: string) => {
-    const map = getDismissedMap();
-    map[courseId] = updatedAt;
-    localStorage.setItem(DISMISS_KEY, JSON.stringify(map));
+  const dismissCourse = (courseId: string) => {
+    setSessionDismissed((prev) => new Set([...prev, courseId]));
     setCourseEditAlerts((prev) => prev.filter((c) => c.id !== courseId));
   };
 
   const dismissAll = () => {
-    const map = getDismissedMap();
-    courseEditAlerts.forEach((c) => {
-      map[c.id] = c.updated_at;
-    });
-    localStorage.setItem(DISMISS_KEY, JSON.stringify(map));
+    const ids = new Set(courseEditAlerts.map((c) => c.id));
+    setSessionDismissed((prev) => new Set([...prev, ...ids]));
     setCourseEditAlerts([]);
   };
 
@@ -782,6 +791,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } catch {
       showToast("Đổi vai trò thất bại", "error");
     }
+  };
+
+  const handleAddUser = async () => {
+    if (
+      !addUserForm.email.trim() ||
+      !addUserForm.username.trim() ||
+      !addUserForm.password.trim()
+    ) {
+      setAddUserError("Vui lòng điền đầy đủ thông tin bắt buộc.");
+      return;
+    }
+    setSavingUser(true);
+    setAddUserError("");
+    try {
+      const res = await fetch(`${API}/api/auth/users/`, {
+        method: "POST",
+        headers: jsonH(),
+        body: JSON.stringify({
+          full_name: addUserForm.full_name.trim(),
+          email: addUserForm.email.trim(),
+          username: addUserForm.username.trim(),
+          password: addUserForm.password,
+          role: addUserForm.role,
+        }),
+      });
+      if (res.ok) {
+        fetchUsers();
+        setShowAddUserModal(false);
+        setAddUserForm({
+          full_name: "",
+          email: "",
+          username: "",
+          password: "",
+          role: "student",
+        });
+        showToast("Tạo người dùng thành công");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setAddUserError(
+          err?.detail ??
+            err?.email?.[0] ??
+            err?.username?.[0] ??
+            `Lỗi HTTP ${res.status}`,
+        );
+      }
+    } catch {
+      setAddUserError("Lỗi kết nối.");
+    }
+    setSavingUser(false);
   };
 
   // ── Course status actions ─────────────────────────────────────────────────
@@ -1704,18 +1762,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     if (courses.length === 0) return;
-    const dismissed = getDismissedMap();
+
+    // Lấy thời điểm login của session TRƯỚC (lưu trước khi ghi đè)
+    const prevLoginAt = localStorage.getItem("prev_login_at");
+
     const edited = courses.filter((c) => {
       if (c.status !== "published") return false;
       if (!c.updated_at || !c.published_at) return false;
+
+      // Chỉ tính là "đã sửa" nếu updated_at > published_at + 5 giây
       const diff =
         new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
       if (diff <= 5000) return false;
-      if (dismissed[c.id] === c.updated_at) return false;
+
+      // Đã dismiss trong session này rồi → không hiện
+      if (sessionDismissed.has(c.id)) return false;
+
+      // Nếu có prev_login_at: chỉ hiện nếu updated_at xảy ra SAU lần login trước
+      // (tức là người kia sửa trong lúc mình không đăng nhập)
+      if (prevLoginAt) {
+        const prevTime = new Date(prevLoginAt).getTime();
+        const updatedTime = new Date(c.updated_at).getTime();
+        if (updatedTime <= prevTime) return false;
+      }
+
       return true;
     });
+
     setCourseEditAlerts(edited);
-  }, [courses]);
+  }, [courses, sessionDismissed]);
+
+  // Khi login thành công, trước khi ghi login_at mới:
+  const currentLoginAt = localStorage.getItem("login_at");
+  if (currentLoginAt) {
+    localStorage.setItem("prev_login_at", currentLoginAt);
+  }
+  localStorage.setItem("login_at", new Date().toISOString());
 
   const renderModal = () => {
     if (!courseModal) return null;
@@ -2107,7 +2189,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
     );
   };
-
   // ── Section modals ────────────────────────────────────────────────────────────
   const renderSectionModal = () => {
     if (!sectionModal) return null;
@@ -2322,7 +2403,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
     );
   };
-
   const renderEditAlert = () => {
     if (courseEditAlerts.length === 0) return null;
 
@@ -2331,7 +2411,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       isCollapsible && !alertExpanded
         ? courseEditAlerts.slice(0, PREVIEW_COUNT)
         : courseEditAlerts;
-        //adminEditAlerts
+    //adminEditAlerts
     return (
       <div className="ad-edit-alert">
         <div className="ad-edit-alert__header">
@@ -2407,7 +2487,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
     );
   };
-  
+
   const renderLessonModal = () => {
     if (!lessonModal) return null;
     if (lessonModal === "delete") {
@@ -4217,6 +4297,111 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+      {showAddUserModal && (
+        <div
+          className="cm-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddUserModal(false);
+          }}
+        >
+          <div className="cm-box cm-box--sm">
+            <div className="cm-header">
+              <h2 className="cm-title">＋ Thêm người dùng</h2>
+              <button
+                className="cm-close"
+                onClick={() => setShowAddUserModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="cm-body">
+              <div className="cm-field">
+                <label className="cm-label">Họ và tên</label>
+                <input
+                  className="cm-input"
+                  placeholder="Nguyễn Văn A"
+                  value={addUserForm.full_name}
+                  onChange={(e) =>
+                    setAddUserForm((f) => ({ ...f, full_name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="cm-field">
+                <label className="cm-label">
+                  Email <span className="cm-required">*</span>
+                </label>
+                <input
+                  className="cm-input"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={addUserForm.email}
+                  onChange={(e) =>
+                    setAddUserForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="cm-field">
+                <label className="cm-label">
+                  Tên đăng nhập <span className="cm-required">*</span>
+                </label>
+                <input
+                  className="cm-input"
+                  placeholder="username"
+                  value={addUserForm.username}
+                  onChange={(e) =>
+                    setAddUserForm((f) => ({ ...f, username: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="cm-field">
+                <label className="cm-label">
+                  Mật khẩu <span className="cm-required">*</span>
+                </label>
+                <input
+                  className="cm-input"
+                  type="password"
+                  placeholder="Tối thiểu 6 ký tự"
+                  value={addUserForm.password}
+                  onChange={(e) =>
+                    setAddUserForm((f) => ({ ...f, password: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="cm-field">
+                <label className="cm-label">Vai trò</label>
+                <select
+                  className="cm-select"
+                  value={addUserForm.role}
+                  onChange={(e) =>
+                    setAddUserForm((f) => ({ ...f, role: e.target.value }))
+                  }
+                >
+                  <option value="student">Học viên</option>
+                  <option value="instructor">Giảng viên</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              {addUserError && <p className="cm-error">{addUserError}</p>}
+            </div>
+            <div className="cm-footer">
+              <button
+                className="cm-btn cm-btn--save"
+                onClick={handleAddUser}
+                disabled={savingUser}
+              >
+                {savingUser ? "Đang tạo…" : "Tạo người dùng"}
+              </button>
+              <button
+                className="cm-btn cm-btn--cancel"
+                onClick={() => setShowAddUserModal(false)}
+                disabled={savingUser}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="container ad-layout">
         {/* ── Sidebar ── */}
         <aside className="ad-sidebar">
@@ -4480,13 +4665,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   {loadingUsers ? "Đang tải…" : `${users.length} người dùng`}
                 </p>
               </div>
-              <input
-                className="ad-search"
-                type="search"
-                placeholder="Tìm theo tên hoặc email..."
-                value={searchUser}
-                onChange={(e) => setSearchUser(e.target.value)}
-              />
+              <div className="ad-toolbar">
+                <div className="ad-filters">
+                  <input
+                    className="ad-search"
+                    type="search"
+                    placeholder="Tìm theo tên hoặc email..."
+                    value={searchUser}
+                    onChange={(e) => setSearchUser(e.target.value)}
+                  />
+                </div>
+                <button
+                  className="ad-btn-add-course"
+                  onClick={() => {
+                    setAddUserForm({
+                      full_name: "",
+                      email: "",
+                      username: "",
+                      password: "",
+                      role: "student",
+                    });
+                    setAddUserError("");
+                    setShowAddUserModal(true);
+                  }}
+                >
+                  ＋ Thêm người dùng
+                </button>
+              </div>
               <div className="ad-table-wrap">
                 <table className="ad-table ad-table--users">
                   <thead>

@@ -687,6 +687,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   Tiếp tục hành trình học tiếng Anh của bạn.
                 </p>
               </div>
+
+              {/* Stats */}
               <div className="db-stats-grid">
                 <div className="db-stat-card">
                   <span className="db-stat-card__value">
@@ -717,6 +719,204 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* Khóa học đang học */}
+              {!loadingCourses && inProgressCourses.length > 0 && (
+                <div className="id-form-card" style={{ marginTop: 20 }}>
+                  <h3 className="id-form-card__title">
+                    Đang học ({inProgressCourses.length})
+                  </h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
+                      marginTop: 12,
+                    }}
+                  >
+                    {inProgressCourses.slice(0, 3).map((c) => (
+                      <div
+                        key={c.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "10px 0",
+                          borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 600,
+                              color: "var(--color-text-primary)",
+                              marginBottom: 4,
+                            }}
+                          >
+                            {c.course_title}
+                          </div>
+                          {c.instructor_name && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "var(--color-text-secondary)",
+                              }}
+                            >
+                              {c.instructor_name}
+                            </div>
+                          )}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              marginTop: 6,
+                            }}
+                          >
+                            <div
+                              style={{
+                                flex: 1,
+                                height: 4,
+                                borderRadius: 2,
+                                background: "rgba(255,255,255,0.1)",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: `${c.progress}%`,
+                                  height: "100%",
+                                  borderRadius: 2,
+                                  background: "#4caf82",
+                                }}
+                              />
+                            </div>
+                            <span
+                              style={{
+                                fontSize: 12,
+                                color: "#4caf82",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {c.progress}%
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          className="ad-btn-sm ad-btn-sm--view"
+                          onClick={() =>
+                            onNavigate("course-detail", c.course_slug)
+                          }
+                        >
+                          Tiếp tục
+                        </button>
+                      </div>
+                    ))}
+                    {inProgressCourses.length > 3 && (
+                      <button
+                        className="id-btn-secondary"
+                        style={{ alignSelf: "flex-start", fontSize: 13 }}
+                        onClick={() => setActiveTab("courses")}
+                      >
+                        Xem tất cả {inProgressCourses.length} khóa →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Thanh toán gần đây */}
+              {!loadingPayments &&
+                payments.filter((p) => p.status === "success").length > 0 && (
+                  <div className="id-form-card" style={{ marginTop: 16 }}>
+                    <h3 className="id-form-card__title">Giao dịch gần đây</h3>
+                    <div style={{ marginTop: 12 }}>
+                      {payments
+                        .filter((p) => p.status === "success")
+                        .slice(0, 3)
+                        .map((p) => (
+                          <div
+                            key={p.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "8px 0",
+                              borderBottom:
+                                "0.5px solid rgba(255,255,255,0.06)",
+                            }}
+                          >
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  color: "var(--color-text-primary)",
+                                }}
+                              >
+                                {p.course_title}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: "var(--color-text-secondary)",
+                                }}
+                              >
+                                {p.created_at
+                                  ? new Date(p.created_at).toLocaleDateString(
+                                      "vi-VN",
+                                    )
+                                  : "—"}
+                              </div>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: "#4caf82",
+                              }}
+                            >
+                              {formatPrice(p.amount, "VND")}
+                            </span>
+                          </div>
+                        ))}
+                      <button
+                        className="id-btn-secondary"
+                        style={{ marginTop: 10, fontSize: 13 }}
+                        onClick={() => setActiveTab("payments")}
+                      >
+                        Xem tất cả →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {/* Không có khóa học */}
+              {!loadingCourses && activeCourses.length === 0 && (
+                <div
+                  className="id-form-card"
+                  style={{
+                    marginTop: 20,
+                    textAlign: "center",
+                    padding: "2rem",
+                  }}
+                >
+                  <p
+                    style={{
+                      color: "var(--color-text-secondary)",
+                      marginBottom: 12,
+                    }}
+                  >
+                    Bạn chưa đăng ký khóa học nào.
+                  </p>
+                  <button
+                    className="id-btn-primary"
+                    onClick={() => onNavigate("courses")}
+                  >
+                    Khám phá khóa học
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

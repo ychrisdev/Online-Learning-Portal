@@ -23,9 +23,6 @@ from .serializers import (
     AdminTransactionDetailSerializer
 )
 
-
-# ── Student ───────────────────────────────────────────────────────────────────
-
 class InitiatePaymentView(APIView):
     """
     POST /api/payments/initiate/
@@ -39,48 +36,55 @@ class InitiatePaymentView(APIView):
         serializer = InitiatePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        course = generics.get_object_or_404(Course, id=serializer.validated_data['course_id'])
+        course = generics.get_object_or_404(
+            Course, id=serializer.validated_data['course_id']
+        )
 
-        # Chỉ chặn nếu đang active hoặc completed, cho phép đăng ký lại nếu refunded/cancelled
-        if request.user.enrollments.filter(course=course, status__in=['active', 'completed']).exists():
+        # ✅ Dùng Enrollment.objects trực tiếp, tránh AttributeError
+        if Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+            status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
+        ).exists():
             return Response(
                 {'detail': 'Bạn đã đăng ký khoá học này rồi.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        method   = serializer.validated_data['method']
-        ref_code = f'TXN-{str(uuid.uuid4())[:12].upper()}'
+        method = serializer.validated_data['method']
+
+        # ✅ Xử lý sale_price an toàn khi None
+        sale_price = course.sale_price
+        if sale_price is None:
+            sale_price = course.price or 0
+        sale_price = int(sale_price)
 
         transaction = Transaction.objects.create(
-            student  = request.user,
-            course   = course,
-            amount   = course.sale_price,
-            method   = method,
-            ref_code = ref_code,
+            student=request.user,
+            course=course,
+            amount=sale_price,
+            method=method,
         )
 
-        # Khoá học miễn phí → kích hoạt ngay
-        if course.sale_price == 0:
+        if sale_price == 0:
             _activate_enrollment(transaction)
             return Response(
                 {
-                    'message'     : 'Đăng ký khoá học miễn phí thành công.',
-                    'transaction' : TransactionSerializer(transaction).data,
+                    'message': 'Đăng ký khoá học miễn phí thành công.',
+                    'transaction': TransactionSerializer(transaction).data,
                 },
                 status=status.HTTP_201_CREATED,
             )
 
-        # Trả về ref_code để frontend redirect sang gateway
         return Response(
             {
-                'ref_code'   : ref_code,
-                'amount'     : course.price,
-                'course'     : course.title,
+                'ref_code': transaction.ref_code,
+                'amount': sale_price,
+                'course': course.title,
                 'transaction': TransactionSerializer(transaction).data,
             },
             status=status.HTTP_201_CREATED,
         )
-
 
 class PaymentCallbackView(APIView):
     """
@@ -114,35 +118,52 @@ class PaymentCallbackView(APIView):
 
         return Response({'message': 'Callback nhận thành công.'})
 
-def _activate_enrollment(transaction: Transaction):
+def _activate_enrollment(transaction):
+    from django.utils import timezone as tz
+
     if transaction.status != Transaction.Status.SUCCESS:
-        transaction.status  = Transaction.Status.SUCCESS
-        transaction.paid_at = transaction.paid_at or timezone.now()
+        transaction.status = Transaction.Status.SUCCESS
+        transaction.paid_at = transaction.paid_at or tz.now()
         transaction.save(update_fields=['status', 'paid_at'])
 
-    # Cộng doanh thu vào ví giảng viên nếu có phí
-    if transaction.amount > 0:
-        from wallet.services import pay_for_course
+    enrollment, created = Enrollment.objects.get_or_create(
+        student=transaction.student,
+        course=transaction.course,
+        defaults={
+            'status': Enrollment.Status.ACTIVE,
+            'paid_amount': transaction.amount,
+        },
+    )
+    if not created and enrollment.status not in [
+        Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED
+    ]:
+        enrollment.status = Enrollment.Status.ACTIVE
+        enrollment.paid_amount = transaction.amount
+        enrollment.save(update_fields=['status', 'paid_amount'])
+
+    if transaction.amount and int(transaction.amount) > 0:
         try:
-            # Chỉ cộng doanh thu giảng viên, không trừ ví sinh viên
-            # vì sinh viên đã trả qua gateway
             from wallet.models import Wallet, WalletTransaction
             from wallet.services import INSTRUCTOR_REVENUE_RATE
-            revenue = int(transaction.amount * INSTRUCTOR_REVENUE_RATE)
-            instructor_wallet = Wallet.objects.get_or_create(user=transaction.course.instructor)[0]
-            instructor_wallet.balance += revenue
-            instructor_wallet.save()
-            WalletTransaction.objects.create(
-                wallet        = instructor_wallet,
-                tx_type       = WalletTransaction.TxType.REVENUE,
-                amount        = revenue,
-                balance_after = instructor_wallet.balance,
-                note          = f'Doanh thu từ: {transaction.course.title}',
-                ref_id        = str(transaction.id),
+            revenue = int(int(transaction.amount) * INSTRUCTOR_REVENUE_RATE)
+            instructor = transaction.course.instructor
+            if instructor:
+                instructor_wallet, _ = Wallet.objects.get_or_create(user=instructor)
+                instructor_wallet.balance += revenue
+                instructor_wallet.save(update_fields=['balance'])
+                WalletTransaction.objects.create(
+                    wallet=instructor_wallet,
+                    tx_type=WalletTransaction.TxType.REVENUE,
+                    amount=revenue,
+                    balance_after=instructor_wallet.balance,
+                    note=f'Doanh thu từ: {transaction.course.title}',
+                    ref_id=str(transaction.id),
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Wallet update failed for transaction {transaction.id}: {e}"
             )
-        except Exception:
-            pass  # Không để lỗi ví block enrollment
-
 class MyTransactionListView(generics.ListAPIView):
     """
     GET /api/payments/history/
