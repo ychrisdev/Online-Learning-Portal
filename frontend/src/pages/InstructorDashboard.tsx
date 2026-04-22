@@ -84,7 +84,6 @@ const toList = (data: any): any[] =>
 const thumbSrc = (t: string | null) =>
   !t ? null : t.startsWith("http") ? t : `${API}${t}`;
 
-
 // ── Chart tooltip ─────────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -115,10 +114,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [chartRange, setChartRange] = useState<ChartRange>("6m");
 
-    
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    msg: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
@@ -201,6 +202,34 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [courseStatusFilter, setCourseStatusFilter] = useState<
     "all" | "draft" | "review" | "published" | "archived"
   >("all");
+
+  // ── Admin-edit alert state ─────────────────────────────────────────────────
+  const [adminEditAlerts, setAdminEditAlerts] = useState<any[]>([]);
+  const INSTRUCTOR_DISMISS_KEY = "instructor_admin_edit_dismissed";
+
+  const getInstructorDismissedMap = (): Record<string, string> => {
+    try {
+      return JSON.parse(localStorage.getItem(INSTRUCTOR_DISMISS_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const dismissAdminEditCourse = (courseId: string, updatedAt: string) => {
+    const map = getInstructorDismissedMap();
+    map[courseId] = updatedAt;
+    localStorage.setItem(INSTRUCTOR_DISMISS_KEY, JSON.stringify(map));
+    setAdminEditAlerts((prev) => prev.filter((c) => c.id !== courseId));
+  };
+
+  const dismissAllAdminEdits = () => {
+    const map = getInstructorDismissedMap();
+    adminEditAlerts.forEach((c) => {
+      map[c.id] = c.updated_at;
+    });
+    localStorage.setItem(INSTRUCTOR_DISMISS_KEY, JSON.stringify(map));
+    setAdminEditAlerts([]);
+  };
 
   // ── Section states ────────────────────────────────────────────────────
   const [sections, setSections] = useState<any[]>([]);
@@ -344,6 +373,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       return matchSearch && matchStatus;
     });
   }, [enrollments, searchEnrollment, filterEnrollStatus]);
+  const [alertExpanded, setAlertExpanded] = useState(false);
+  const PREVIEW_COUNT = 3;
 
   // ── Payment states ────────────────────────────────────────────────────────
   const [payments, setPayments] = useState<any[]>([]);
@@ -418,25 +449,30 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   );
 
   // ── State wallet ─────────────────────────────────────────────────────
-  const [wallet, setWallet]               = useState<any>(null);
-  const [walletTxs, setWalletTxs]         = useState<any[]>([]);
-  const [withdrawals, setWithdrawals]     = useState<any[]>([]);
+  const [wallet, setWallet] = useState<any>(null);
+  const [walletTxs, setWalletTxs] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [loadingWallet, setLoadingWallet] = useState(false);
-  const [withdrawForm, setWithdrawForm]   = useState({
-    amount: '', bank_name: '', bank_account: '', account_name: ''
+  const [withdrawForm, setWithdrawForm] = useState({
+    amount: "",
+    bank_name: "",
+    bank_account: "",
+    account_name: "",
   });
-  const [withdrawing, setWithdrawing]     = useState(false);
-  const [walletError, setWalletError]     = useState('');
-  const [walletSuccess, setWalletSuccess] = useState('');
-  const [depositAmount, setDepositAmount] = useState('');
-  const [depositing, setDepositing]       = useState(false);
-  const [depositError, setDepositError]   = useState('');
-  const [depositSuccess, setDepositSuccess] = useState('');
-  const [refundRequests, setRefundRequests]     = useState<any[]>([]);
-  const [loadingRefunds, setLoadingRefunds]     = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [walletError, setWalletError] = useState("");
+  const [walletSuccess, setWalletSuccess] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositing, setDepositing] = useState(false);
+  const [depositError, setDepositError] = useState("");
+  const [depositSuccess, setDepositSuccess] = useState("");
+  const [refundRequests, setRefundRequests] = useState<any[]>([]);
+  const [loadingRefunds, setLoadingRefunds] = useState(false);
   const [confirmingRefund, setConfirmingRefund] = useState<string | null>(null);
-  const [refundShortage, setRefundShortage]     = useState<any>(null);
-  const [walletPanel, setWalletPanel] = useState<'deposit' | 'withdraw' | null>(null);
+  const [refundShortage, setRefundShortage] = useState<any>(null);
+  const [walletPanel, setWalletPanel] = useState<"deposit" | "withdraw" | null>(
+    null,
+  );
 
   // ── Fetch profile ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -490,6 +526,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   }, []);
 
   useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/courses/mine/`, {
+          headers: authHeaders(),
+        });
+        if (res.ok) setCourses(toList(await res.json()));
+      } catch (_) {}
+    }, 60_000); // 60 giây
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`${API}/api/courses/categories/`, {
@@ -499,6 +548,30 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       } catch (_) {}
     })();
   }, []);
+
+  useEffect(() => {
+    if (courses.length === 0) return;
+    const dismissed = getInstructorDismissedMap();
+    const selfEdited: Record<string, string> = JSON.parse(
+      localStorage.getItem("instructor_self_edited") || "{}",
+    );
+    const edited = courses.filter((c) => {
+      if (c.status !== "published") return false;
+      if (!c.updated_at || !c.published_at) return false;
+      const diff =
+        new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
+      if (diff <= 5000) return false;
+      if (dismissed[c.id] === c.updated_at) return false;
+      // Instructor vừa tự sửa → không hiện alert
+      if (selfEdited[c.id]) {
+        const selfTime = new Date(selfEdited[c.id]).getTime();
+        const courseTime = new Date(c.updated_at).getTime();
+        if (Math.abs(selfTime - courseTime) < 10_000) return false;
+      }
+      return true;
+    });
+    setAdminEditAlerts(edited);
+  }, [courses]);
 
   useEffect(() => {
     if (courses.length === 0) return;
@@ -629,27 +702,31 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       setLoadingWallet(true);
       try {
         const [walletRes, txRes, wdRes] = await Promise.all([
-          fetch(`${API}/api/wallet/`,              { headers: authHeaders() }),
+          fetch(`${API}/api/wallet/`, { headers: authHeaders() }),
           fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
-          fetch(`${API}/api/wallet/withdrawals/`,  { headers: authHeaders() }),
+          fetch(`${API}/api/wallet/withdrawals/`, { headers: authHeaders() }),
         ]);
         if (walletRes.ok) setWallet(await walletRes.json());
-        if (txRes.ok)     setWalletTxs(toList(await txRes.json()));
-        if (wdRes.ok)     setWithdrawals(toList(await wdRes.json()));
+        if (txRes.ok) setWalletTxs(toList(await txRes.json()));
+        if (wdRes.ok) setWithdrawals(toList(await wdRes.json()));
       } catch (_) {}
       setLoadingWallet(false);
     })();
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== "refunds") return;  // ← đổi thành "refunds"
+    if (activeTab !== "refunds") return; // ← đổi thành "refunds"
     (async () => {
       setLoadingRefunds(true);
       try {
-        const res = await fetch(`${API}/api/payments/instructor/`, { headers: authHeaders() });
+        const res = await fetch(`${API}/api/payments/instructor/`, {
+          headers: authHeaders(),
+        });
         if (res.ok) {
           const list = toList(await res.json());
-          setRefundRequests(list.filter((p: any) => p.status === 'refund_approved'));
+          setRefundRequests(
+            list.filter((p: any) => p.status === "refund_approved"),
+          );
         }
       } catch (_) {}
       setLoadingRefunds(false);
@@ -659,34 +736,55 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   //=======
   const handleWithdraw = async () => {
     const amount = parseInt(withdrawForm.amount);
-    if (!amount || amount < 50000)         { setWalletError('Số tiền rút tối thiểu 50,000đ'); return; }
-    if (!withdrawForm.bank_name.trim())    { setWalletError('Vui lòng nhập tên ngân hàng'); return; }
-    if (!withdrawForm.bank_account.trim()) { setWalletError('Vui lòng nhập số tài khoản'); return; }
-    if (!withdrawForm.account_name.trim()) { setWalletError('Vui lòng nhập tên chủ tài khoản'); return; }
-    setWithdrawing(true); setWalletError(''); setWalletSuccess('');
+    if (!amount || amount < 50000) {
+      setWalletError("Số tiền rút tối thiểu 50,000đ");
+      return;
+    }
+    if (!withdrawForm.bank_name.trim()) {
+      setWalletError("Vui lòng nhập tên ngân hàng");
+      return;
+    }
+    if (!withdrawForm.bank_account.trim()) {
+      setWalletError("Vui lòng nhập số tài khoản");
+      return;
+    }
+    if (!withdrawForm.account_name.trim()) {
+      setWalletError("Vui lòng nhập tên chủ tài khoản");
+      return;
+    }
+    setWithdrawing(true);
+    setWalletError("");
+    setWalletSuccess("");
     try {
       const res = await fetch(`${API}/api/wallet/withdraw/`, {
-        method: 'POST',
+        method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ ...withdrawForm, amount }),
       });
       if (res.ok) {
-        setWalletSuccess('Yêu cầu rút tiền đã được gửi!');
-        setWithdrawForm({ amount: '', bank_name: '', bank_account: '', account_name: '' });
+        setWalletSuccess("Yêu cầu rút tiền đã được gửi!");
+        setWithdrawForm({
+          amount: "",
+          bank_name: "",
+          bank_account: "",
+          account_name: "",
+        });
         // Refresh
         const [walletRes, txRes, wdRes] = await Promise.all([
-          fetch(`${API}/api/wallet/`,              { headers: authHeaders() }),
+          fetch(`${API}/api/wallet/`, { headers: authHeaders() }),
           fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
-          fetch(`${API}/api/wallet/withdrawals/`,  { headers: authHeaders() }),
+          fetch(`${API}/api/wallet/withdrawals/`, { headers: authHeaders() }),
         ]);
         if (walletRes.ok) setWallet(await walletRes.json());
-        if (txRes.ok)     setWalletTxs(toList(await txRes.json()));
-        if (wdRes.ok)     setWithdrawals(toList(await wdRes.json()));
+        if (txRes.ok) setWalletTxs(toList(await txRes.json()));
+        if (wdRes.ok) setWithdrawals(toList(await wdRes.json()));
       } else {
         const err = await res.json();
-        setWalletError(err.detail ?? 'Rút tiền thất bại.');
+        setWalletError(err.detail ?? "Rút tiền thất bại.");
       }
-    } catch (_) { setWalletError('Lỗi kết nối.'); }
+    } catch (_) {
+      setWalletError("Lỗi kết nối.");
+    }
     setWithdrawing(false);
   };
 
@@ -737,6 +835,88 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     } finally {
       setSubmittingReport(false);
     }
+  };
+
+  const renderAdminEditAlert = () => {
+    if (adminEditAlerts.length === 0) return null;
+
+    const isCollapsible = adminEditAlerts.length > PREVIEW_COUNT;
+    const visibleAlerts =
+      isCollapsible && !alertExpanded
+        ? adminEditAlerts.slice(0, PREVIEW_COUNT)
+        : adminEditAlerts;
+
+    return (
+      <div className="ad-edit-alert" style={{ marginBottom: 0 }}>
+        <div className="ad-edit-alert__header">
+          <span className="ad-edit-alert__icon">⚠</span>
+          <span className="ad-edit-alert__title">
+            Admin vừa chỉnh sửa khóa học của bạn
+          </span>
+          <span className="ad-edit-alert__count">
+            {adminEditAlerts.length} khóa
+          </span>
+          {isCollapsible && (
+            <button
+              className="ad-edit-alert__toggle"
+              onClick={() => setAlertExpanded((v) => !v)}
+            >
+              {alertExpanded ? "Thu gọn ▲" : "Xem tất cả ▼"}
+            </button>
+          )}
+        </div>
+
+        <div className="ad-edit-alert__list">
+          {visibleAlerts.map((c) => (
+            <div key={c.id} className="ad-edit-alert__row">
+              <span className="ad-edit-alert__course-name">{c.title}</span>
+              <div className="ad-edit-alert__meta">
+                <span className="ad-edit-alert__time">
+                  {new Date(c.updated_at).toLocaleString("vi-VN")}
+                </span>
+                <button
+                  className="ad-edit-alert__btn"
+                  onClick={() => {
+                    setActiveTab("courses" as Tab);
+                    setCourseSearch(c.title);
+                  }}
+                >
+                  Xem
+                </button>
+                <button
+                  className="ad-edit-alert__dismiss-single"
+                  onClick={() => dismissAdminEditCourse(c.id, c.updated_at)}
+                  title="Bỏ qua"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {isCollapsible && !alertExpanded && (
+            <div className="ad-edit-alert__more-hint">
+              +{adminEditAlerts.length - PREVIEW_COUNT} khóa khác —{" "}
+              <button
+                className="ad-edit-alert__more-btn"
+                onClick={() => setAlertExpanded(true)}
+              >
+                Xem tất cả
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="ad-edit-alert__dismiss">
+          <button
+            className="ad-edit-alert__dismiss-btn"
+            onClick={dismissAllAdminEdits}
+          >
+            Bỏ qua tất cả ({adminEditAlerts.length})
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const handleToggleHide = async (review: any) => {
@@ -934,9 +1114,21 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         const refreshed = await fetch(`${API}/api/courses/mine/`, {
           headers: authHeaders(),
         });
+        // MỚI
         if (refreshed.ok) {
           const data = await refreshed.json();
           setCourses(data.results ?? data);
+        }
+        // Lưu lại thời điểm instructor tự sửa
+        if (editingCourseId) {
+          const selfEdited: Record<string, string> = JSON.parse(
+            localStorage.getItem("instructor_self_edited") || "{}",
+          );
+          selfEdited[editingCourseId] = new Date().toISOString();
+          localStorage.setItem(
+            "instructor_self_edited",
+            JSON.stringify(selfEdited),
+          );
         }
         setEditingCourseId(null);
         setShowCourseModal(false);
@@ -1557,48 +1749,66 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
   const handleDeposit = async () => {
     const amount = parseInt(depositAmount);
-    if (!amount || amount < 10000) { setDepositError('Tối thiểu 10,000đ'); return; }
-    setDepositing(true); setDepositError(''); setDepositSuccess('');
+    if (!amount || amount < 10000) {
+      setDepositError("Tối thiểu 10,000đ");
+      return;
+    }
+    setDepositing(true);
+    setDepositError("");
+    setDepositSuccess("");
     try {
       const res = await fetch(`${API}/api/wallet/deposit/`, {
-        method: 'POST',
+        method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ amount }),
       });
       if (res.ok) {
         const data = await res.json();
         setWallet((w: any) => ({ ...w, balance: data.balance }));
-        setDepositAmount('');
-        setDepositSuccess('Nạp tiền thành công!');
-        const txRes = await fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() });
+        setDepositAmount("");
+        setDepositSuccess("Nạp tiền thành công!");
+        const txRes = await fetch(`${API}/api/wallet/transactions/`, {
+          headers: authHeaders(),
+        });
         if (txRes.ok) setWalletTxs(toList(await txRes.json()));
       } else {
         const err = await res.json();
-        setDepositError(err.detail ?? 'Nạp tiền thất bại.');
+        setDepositError(err.detail ?? "Nạp tiền thất bại.");
       }
-    } catch (_) { setDepositError('Lỗi kết nối.'); }
+    } catch (_) {
+      setDepositError("Lỗi kết nối.");
+    }
     setDepositing(false);
   };
 
   const handleConfirmRefund = async (id: string) => {
-    setConfirmingRefund(id); setRefundShortage(null);
+    setConfirmingRefund(id);
+    setRefundShortage(null);
     try {
-      const res = await fetch(`${API}/api/payments/instructor/${id}/confirm-refund/`, {
-        method: 'POST', headers: authHeaders(),
-      });
+      const res = await fetch(
+        `${API}/api/payments/instructor/${id}/confirm-refund/`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+        },
+      );
       if (res.ok) {
-        setRefundRequests(prev => prev.filter(r => r.id !== id));
-        setPayments(prev => prev.map(p => p.id === id ? { ...p, status: 'refunded' } : p));
-        const walletRes = await fetch(`${API}/api/wallet/`, { headers: authHeaders() });
+        setRefundRequests((prev) => prev.filter((r) => r.id !== id));
+        setPayments((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, status: "refunded" } : p)),
+        );
+        const walletRes = await fetch(`${API}/api/wallet/`, {
+          headers: authHeaders(),
+        });
         if (walletRes.ok) setWallet(await walletRes.json());
-        showToast('✓ Hoàn tiền thành công!', 'success');  // ← thêm
+        showToast("✓ Hoàn tiền thành công!", "success"); // ← thêm
       } else {
         const err = await res.json();
         setRefundShortage({ id, ...err });
-        showToast('⚠ ' + (err.detail ?? 'Hoàn tiền thất bại.'), 'error');  // ← thêm
+        showToast("⚠ " + (err.detail ?? "Hoàn tiền thất bại."), "error"); // ← thêm
       }
     } catch (_) {
-      showToast('⚠ Lỗi kết nối, thử lại sau.', 'error');  // ← thêm
+      showToast("⚠ Lỗi kết nối, thử lại sau.", "error"); // ← thêm
     }
     setConfirmingRefund(null);
   };
@@ -2126,12 +2336,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
         {/* ── Main ── */}
         <main className="id-main">
+          {renderAdminEditAlert()}
           {/* ════ OVERVIEW ════ */}
           {activeTab === "overview" && (
             <div className="id-content">
               <div className="id-page-header">
                 <h1 className="id-page-title">
-                  Xin chào, {user?.full_name?.split(" ").pop() || "Instructor"}{" "}
+                  Xin chào,{" "}
+                  {user?.full_name?.split(" ").pop() || "Instructor"}{" "}
                 </h1>
                 <p className="id-page-sub">
                   Quản lý khóa học và theo dõi học viên của bạn.
@@ -2831,6 +3043,22 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   }}
                 >
                   + Tạo khóa học
+                </button>
+                <button
+                  className="id-btn-secondary"
+                  onClick={async () => {
+                    setLoadingCourses(true);
+                    try {
+                      const res = await fetch(`${API}/api/courses/mine/`, {
+                        headers: authHeaders(),
+                      });
+                      if (res.ok) setCourses(toList(await res.json()));
+                    } catch (_) {}
+                    setLoadingCourses(false);
+                  }}
+                  title="Tải lại danh sách"
+                >
+                  ↻ Làm mới
                 </button>
               </div>
 
@@ -4374,7 +4602,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 max={100}
                                 value={quizForm.pass_score}
                                 onKeyDown={blockNegative}
-                                onChange={(e) => setQuizForm((f) => ({ ...f, pass_score: toPositiveInt(e.target.value) }))}
+                                onChange={(e) =>
+                                  setQuizForm((f) => ({
+                                    ...f,
+                                    pass_score: toPositiveInt(e.target.value),
+                                  }))
+                                }
                               />
                             </div>
                             <div className="cm-field">
@@ -5148,8 +5381,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           ))}
                           {/* LÝ DO HOÀN TIỀN — thêm sau phần .map(item => ...) */}
                           {(paymentDetail.status === "refund_requested" ||
-                          paymentDetail.status === "refund_approved" ||
-                          paymentDetail.status === "refunded") && (
+                            paymentDetail.status === "refund_approved" ||
+                            paymentDetail.status === "refunded") && (
                             <div
                               style={{
                                 marginTop: 4,
@@ -5203,36 +5436,55 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               {/* Yêu cầu hoàn tiền cần xác nhận */}
               {refundRequests.length > 0 && (
                 <div className="id-form-card" style={{ marginTop: 20 }}>
-                  <h3 className="id-form-card__title" style={{ color: '#f5a623' }}>
+                  <h3
+                    className="id-form-card__title"
+                    style={{ color: "#f5a623" }}
+                  >
                     Yêu cầu hoàn tiền cần xác nhận ({refundRequests.length})
                   </h3>
-                  <div className="ad-table-wrap" style={{ border: 'none', marginTop: 12 }}>
+                  <div
+                    className="ad-table-wrap"
+                    style={{ border: "none", marginTop: 12 }}
+                  >
                     <table className="ad-table">
                       <thead>
                         <tr>
-                          <th>Học viên</th><th>Khóa học</th><th>Số tiền hoàn</th><th>Thao tác</th>
+                          <th>Học viên</th>
+                          <th>Khóa học</th>
+                          <th>Số tiền hoàn</th>
+                          <th>Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {refundRequests.map(r => (
+                        {refundRequests.map((r) => (
                           <React.Fragment key={r.id}>
                             <tr>
-                              <td><div className="ad-user-cell">
-                                <span className="ad-user-cell__name">{r.student_name ?? '—'}</span>
-                                <span className="ad-user-cell__email">{r.student_email ?? ''}</span>
-                              </div></td>
-                              <td className="ad-table__title">{r.course_title ?? '—'}</td>
-                              <td style={{ color: '#e05c5c', fontWeight: 600 }}>
-                                {formatPrice(r.amount ?? 0, 'VND')}
+                              <td>
+                                <div className="ad-user-cell">
+                                  <span className="ad-user-cell__name">
+                                    {r.student_name ?? "—"}
+                                  </span>
+                                  <span className="ad-user-cell__email">
+                                    {r.student_email ?? ""}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="ad-table__title">
+                                {r.course_title ?? "—"}
+                              </td>
+                              <td style={{ color: "#e05c5c", fontWeight: 600 }}>
+                                {formatPrice(r.amount ?? 0, "VND")}
                               </td>
                               <td>
                                 <button
                                   className="id-btn-primary"
-                                  style={{ fontSize: 12, padding: '4px 12px' }}
+                                  style={{ fontSize: 12, padding: "4px 12px" }}
                                   onClick={() => handleConfirmRefund(r.id)}
                                   disabled={confirmingRefund === r.id}
                                 >
-                                  {confirmingRefund === r.id ? 'Đang xử lý…' : 'Xác nhận hoàn tiền'}
+                                  {confirmingRefund === r.id
+                                    ? "Đang xử lý…"
+                                    : "Xác nhận hoàn tiền"}
                                 </button>
                               </td>
                             </tr>
@@ -5240,22 +5492,44 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             {refundShortage?.id === r.id && (
                               <tr>
                                 <td colSpan={4}>
-                                  <div style={{
-                                    padding: '10px 14px', borderRadius: 8, margin: '4px 0',
-                                    background: 'rgba(224,92,92,0.1)', border: '1px solid rgba(224,92,92,0.3)',
-                                  }}>
-                                    <p style={{ color: '#e05c5c', fontSize: 13, margin: 0 }}>
+                                  <div
+                                    style={{
+                                      padding: "10px 14px",
+                                      borderRadius: 8,
+                                      margin: "4px 0",
+                                      background: "rgba(224,92,92,0.1)",
+                                      border: "1px solid rgba(224,92,92,0.3)",
+                                    }}
+                                  >
+                                    <p
+                                      style={{
+                                        color: "#e05c5c",
+                                        fontSize: 13,
+                                        margin: 0,
+                                      }}
+                                    >
                                       ⚠ {refundShortage.detail}
                                     </p>
-                                    <p style={{ color: 'var(--color-text-secondary)', fontSize: 12, margin: '4px 0 0' }}>
-                                      Hạn chót: {refundShortage.deadline
-                                        ? new Date(refundShortage.deadline).toLocaleString('vi-VN')
-                                        : '2 ngày kể từ hôm nay'}
+                                    <p
+                                      style={{
+                                        color: "var(--color-text-secondary)",
+                                        fontSize: 12,
+                                        margin: "4px 0 0",
+                                      }}
+                                    >
+                                      Hạn chót:{" "}
+                                      {refundShortage.deadline
+                                        ? new Date(
+                                            refundShortage.deadline,
+                                          ).toLocaleString("vi-VN")
+                                        : "2 ngày kể từ hôm nay"}
                                     </p>
                                     <button
                                       className="id-btn-sm"
                                       style={{ marginTop: 8 }}
-                                      onClick={() => setActiveTab("wallet" as Tab)}
+                                      onClick={() =>
+                                        setActiveTab("wallet" as Tab)
+                                      }
                                     >
                                       Nạp tiền ngay →
                                     </button>
@@ -5272,8 +5546,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               )}
             </div>
           )}
-
-          
 
           {/* ════ REVIEWS ════ */}
           {activeTab === "reviews" && (
@@ -5676,7 +5948,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               <div className="cm-box">
                 {/* Header */}
                 <div className="cm-header">
-                  <h2 className="cm-title">                    
+                  <h2 className="cm-title">
                     {editingCourseId
                       ? "Chỉnh sửa khóa học"
                       : "Tạo khóa học mới"}
@@ -5967,20 +6239,51 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <>
                   {/* Số dư + nút toggle */}
                   <div className="id-form-card" style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 4 }}>Số dư hiện tại</p>
-                    <p style={{ fontSize: 28, fontWeight: 700, color: '#4caf82', marginBottom: 12 }}>
-                      {formatPrice(wallet?.balance ?? 0, 'VND')}
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color: "var(--color-text-secondary)",
+                        marginBottom: 4,
+                      }}
+                    >
+                      Số dư hiện tại
                     </p>
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <p
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        color: "#4caf82",
+                        marginBottom: 12,
+                      }}
+                    >
+                      {formatPrice(wallet?.balance ?? 0, "VND")}
+                    </p>
+                    <div style={{ display: "flex", gap: 10 }}>
                       <button
-                        className={walletPanel === 'deposit' ? 'id-btn-primary' : 'id-btn-secondary'}
-                        onClick={() => setWalletPanel(p => p === 'deposit' ? null : 'deposit')}
+                        className={
+                          walletPanel === "deposit"
+                            ? "id-btn-primary"
+                            : "id-btn-secondary"
+                        }
+                        onClick={() =>
+                          setWalletPanel((p) =>
+                            p === "deposit" ? null : "deposit",
+                          )
+                        }
                       >
                         💳 Nạp tiền
                       </button>
                       <button
-                        className={walletPanel === 'withdraw' ? 'id-btn-primary' : 'id-btn-secondary'}
-                        onClick={() => setWalletPanel(p => p === 'withdraw' ? null : 'withdraw')}
+                        className={
+                          walletPanel === "withdraw"
+                            ? "id-btn-primary"
+                            : "id-btn-secondary"
+                        }
+                        onClick={() =>
+                          setWalletPanel((p) =>
+                            p === "withdraw" ? null : "withdraw",
+                          )
+                        }
                       >
                         🏦 Rút tiền
                       </button>
@@ -5988,75 +6291,195 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   </div>
 
                   {/* Panel Nạp tiền */}
-                  {walletPanel === 'deposit' && (
+                  {walletPanel === "deposit" && (
                     <div className="id-form-card" style={{ marginBottom: 16 }}>
                       <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                        <div className="id-field" style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
-                          <label className="id-field__label">Số tiền (VNĐ)</label>
-                          <input className="id-field__input" type="number" min={10000}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "flex-end",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div
+                          className="id-field"
+                          style={{ flex: 1, minWidth: 200, marginBottom: 0 }}
+                        >
+                          <label className="id-field__label">
+                            Số tiền (VNĐ)
+                          </label>
+                          <input
+                            className="id-field__input"
+                            type="number"
+                            min={10000}
                             placeholder="Tối thiểu 10,000đ"
                             value={depositAmount}
-                            onChange={e => { setDepositAmount(e.target.value); setDepositError(''); setDepositSuccess(''); }}
+                            onChange={(e) => {
+                              setDepositAmount(e.target.value);
+                              setDepositError("");
+                              setDepositSuccess("");
+                            }}
                           />
                         </div>
-                        <button className="id-btn-primary" onClick={handleDeposit} disabled={depositing}>
-                          {depositing ? 'Đang nạp…' : 'Nạp tiền'}
+                        <button
+                          className="id-btn-primary"
+                          onClick={handleDeposit}
+                          disabled={depositing}
+                        >
+                          {depositing ? "Đang nạp…" : "Nạp tiền"}
                         </button>
                       </div>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                        {[50000, 100000, 200000, 500000].map(v => (
-                          <button key={v} className="id-btn-sm"
-                            onClick={() => { setDepositAmount(String(v)); setDepositError(''); setDepositSuccess(''); }}>
-                            {formatPrice(v, 'VND')}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          marginTop: 10,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {[50000, 100000, 200000, 500000].map((v) => (
+                          <button
+                            key={v}
+                            className="id-btn-sm"
+                            onClick={() => {
+                              setDepositAmount(String(v));
+                              setDepositError("");
+                              setDepositSuccess("");
+                            }}
+                          >
+                            {formatPrice(v, "VND")}
                           </button>
                         ))}
                       </div>
-                      {depositError   && <p style={{ color: '#e05c5c', fontSize: 13, marginTop: 8 }}>⚠ {depositError}</p>}
-                      {depositSuccess && <p style={{ color: '#4caf82', fontSize: 13, marginTop: 8 }}>✓ {depositSuccess}</p>}
+                      {depositError && (
+                        <p
+                          style={{
+                            color: "#e05c5c",
+                            fontSize: 13,
+                            marginTop: 8,
+                          }}
+                        >
+                          ⚠ {depositError}
+                        </p>
+                      )}
+                      {depositSuccess && (
+                        <p
+                          style={{
+                            color: "#4caf82",
+                            fontSize: 13,
+                            marginTop: 8,
+                          }}
+                        >
+                          ✓ {depositSuccess}
+                        </p>
+                      )}
                     </div>
                   )}
 
                   {/* Panel Rút tiền */}
-                  {walletPanel === 'withdraw' && (
+                  {walletPanel === "withdraw" && (
                     <div className="id-form-card" style={{ marginBottom: 16 }}>
                       <h3 className="id-form-card__title">Yêu cầu rút tiền</h3>
                       <div className="id-form-grid">
                         <div className="id-field">
-                          <label className="id-field__label">Số tiền rút (VNĐ)</label>
-                          <input className="id-field__input" type="number" min={50000}
+                          <label className="id-field__label">
+                            Số tiền rút (VNĐ)
+                          </label>
+                          <input
+                            className="id-field__input"
+                            type="number"
+                            min={50000}
                             placeholder="Tối thiểu 50,000đ"
                             value={withdrawForm.amount}
-                            onChange={e => { setWithdrawForm(f => ({ ...f, amount: e.target.value })); setWalletError(''); setWalletSuccess(''); }}
+                            onChange={(e) => {
+                              setWithdrawForm((f) => ({
+                                ...f,
+                                amount: e.target.value,
+                              }));
+                              setWalletError("");
+                              setWalletSuccess("");
+                            }}
                           />
                         </div>
                         <div className="id-field">
-                          <label className="id-field__label">Tên ngân hàng</label>
-                          <input className="id-field__input" placeholder="VD: Vietcombank"
+                          <label className="id-field__label">
+                            Tên ngân hàng
+                          </label>
+                          <input
+                            className="id-field__input"
+                            placeholder="VD: Vietcombank"
                             value={withdrawForm.bank_name}
-                            onChange={e => setWithdrawForm(f => ({ ...f, bank_name: e.target.value }))}
+                            onChange={(e) =>
+                              setWithdrawForm((f) => ({
+                                ...f,
+                                bank_name: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="id-field">
-                          <label className="id-field__label">Số tài khoản</label>
-                          <input className="id-field__input" placeholder="0123456789"
+                          <label className="id-field__label">
+                            Số tài khoản
+                          </label>
+                          <input
+                            className="id-field__input"
+                            placeholder="0123456789"
                             value={withdrawForm.bank_account}
-                            onChange={e => setWithdrawForm(f => ({ ...f, bank_account: e.target.value }))}
+                            onChange={(e) =>
+                              setWithdrawForm((f) => ({
+                                ...f,
+                                bank_account: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="id-field">
-                          <label className="id-field__label">Tên chủ tài khoản</label>
-                          <input className="id-field__input" placeholder="NGUYEN VAN A"
+                          <label className="id-field__label">
+                            Tên chủ tài khoản
+                          </label>
+                          <input
+                            className="id-field__input"
+                            placeholder="NGUYEN VAN A"
                             value={withdrawForm.account_name}
-                            onChange={e => setWithdrawForm(f => ({ ...f, account_name: e.target.value }))}
+                            onChange={(e) =>
+                              setWithdrawForm((f) => ({
+                                ...f,
+                                account_name: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                       </div>
-                      {walletError   && <p style={{ color: '#e05c5c', fontSize: 13, marginTop: 8 }}>⚠ {walletError}</p>}
-                      {walletSuccess && <p style={{ color: '#4caf82', fontSize: 13, marginTop: 8 }}>✓ {walletSuccess}</p>}
+                      {walletError && (
+                        <p
+                          style={{
+                            color: "#e05c5c",
+                            fontSize: 13,
+                            marginTop: 8,
+                          }}
+                        >
+                          ⚠ {walletError}
+                        </p>
+                      )}
+                      {walletSuccess && (
+                        <p
+                          style={{
+                            color: "#4caf82",
+                            fontSize: 13,
+                            marginTop: 8,
+                          }}
+                        >
+                          ✓ {walletSuccess}
+                        </p>
+                      )}
                       <div className="id-form-actions">
-                        <button className="id-btn-primary" onClick={handleWithdraw} disabled={withdrawing}>
-                          {withdrawing ? 'Đang gửi…' : 'Gửi yêu cầu rút tiền'}
+                        <button
+                          className="id-btn-primary"
+                          onClick={handleWithdraw}
+                          disabled={withdrawing}
+                        >
+                          {withdrawing ? "Đang gửi…" : "Gửi yêu cầu rút tiền"}
                         </button>
                       </div>
                     </div>
@@ -6068,55 +6491,96 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     {walletTxs.length === 0 ? (
                       <p className="id-muted">Chưa có giao dịch nào.</p>
                     ) : (
-                      <div className="id-table-wrap" style={{ border: 'none', marginTop: 12 }}>
+                      <div
+                        className="id-table-wrap"
+                        style={{ border: "none", marginTop: 12 }}
+                      >
                         <table className="id-table">
                           <thead>
                             <tr>
-                              <th>Loại</th><th>Khóa học / Ghi chú</th><th>Số tiền</th><th>Số dư sau</th><th>Ngày</th>
+                              <th>Loại</th>
+                              <th>Khóa học / Ghi chú</th>
+                              <th>Số tiền</th>
+                              <th>Số dư sau</th>
+                              <th>Ngày</th>
                             </tr>
                           </thead>
                           <tbody>
                             {/* Giao dịch ví */}
-                            {walletTxs.map(tx => (
+                            {walletTxs.map((tx) => (
                               <tr key={`tx-${tx.id}`}>
                                 <td>
-                                  <span style={{
-                                    fontSize: 12, padding: '2px 8px', borderRadius: 5,
-                                    background: tx.amount > 0 ? 'rgba(76,175,130,0.15)' : 'rgba(224,92,92,0.15)',
-                                    color: tx.amount > 0 ? '#4caf82' : '#e05c5c',
-                                  }}>
+                                  <span
+                                    style={{
+                                      fontSize: 12,
+                                      padding: "2px 8px",
+                                      borderRadius: 5,
+                                      background:
+                                        tx.amount > 0
+                                          ? "rgba(76,175,130,0.15)"
+                                          : "rgba(224,92,92,0.15)",
+                                      color:
+                                        tx.amount > 0 ? "#4caf82" : "#e05c5c",
+                                    }}
+                                  >
                                     {tx.tx_type_display ?? tx.tx_type}
                                   </span>
                                 </td>
-                                <td className="ad-table__muted">{tx.note || '—'}</td>
-                                <td style={{ fontWeight: 600, color: tx.amount > 0 ? '#4caf82' : '#e05c5c' }}>
-                                  {tx.amount > 0 ? '+' : ''}{formatPrice(tx.amount, 'VND')}
-                                </td>
-                                <td>{formatPrice(tx.balance_after, 'VND')}</td>
                                 <td className="ad-table__muted">
-                                  {tx.created_at ? new Date(tx.created_at).toLocaleDateString('vi-VN') : '—'}
+                                  {tx.note || "—"}
+                                </td>
+                                <td
+                                  style={{
+                                    fontWeight: 600,
+                                    color:
+                                      tx.amount > 0 ? "#4caf82" : "#e05c5c",
+                                  }}
+                                >
+                                  {tx.amount > 0 ? "+" : ""}
+                                  {formatPrice(tx.amount, "VND")}
+                                </td>
+                                <td>{formatPrice(tx.balance_after, "VND")}</td>
+                                <td className="ad-table__muted">
+                                  {tx.created_at
+                                    ? new Date(
+                                        tx.created_at,
+                                      ).toLocaleDateString("vi-VN")
+                                    : "—"}
                                 </td>
                               </tr>
                             ))}
                             {/* Lịch sử thanh toán khóa học */}
-                            {payments.map(p => (
+                            {payments.map((p) => (
                               <tr key={`pay-${p.id}`}>
                                 <td>
-                                  <span style={{
-                                    fontSize: 12, padding: '2px 8px', borderRadius: 5,
-                                    background: 'rgba(91,141,238,0.15)',
-                                    color: '#5b8dee',
-                                  }}>
+                                  <span
+                                    style={{
+                                      fontSize: 12,
+                                      padding: "2px 8px",
+                                      borderRadius: 5,
+                                      background: "rgba(91,141,238,0.15)",
+                                      color: "#5b8dee",
+                                    }}
+                                  >
                                     Thanh toán
                                   </span>
                                 </td>
-                                <td className="ad-table__muted">{p.course_title ?? '—'} · {p.student_name ?? ''}</td>
-                                <td style={{ fontWeight: 600, color: '#4caf82' }}>
-                                  +{formatPrice(p.amount ?? 0, 'VND')}
+                                <td className="ad-table__muted">
+                                  {p.course_title ?? "—"} ·{" "}
+                                  {p.student_name ?? ""}
+                                </td>
+                                <td
+                                  style={{ fontWeight: 600, color: "#4caf82" }}
+                                >
+                                  +{formatPrice(p.amount ?? 0, "VND")}
                                 </td>
                                 <td className="ad-table__muted">—</td>
                                 <td className="ad-table__muted">
-                                  {p.created_at ? new Date(p.created_at).toLocaleDateString('vi-VN') : '—'}
+                                  {p.created_at
+                                    ? new Date(p.created_at).toLocaleDateString(
+                                        "vi-VN",
+                                      )
+                                    : "—"}
                                 </td>
                               </tr>
                             ))}
@@ -6136,21 +6600,34 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               <div className="id-page-header">
                 <h1 className="id-page-title">Hoàn tiền</h1>
                 <p className="id-page-sub">
-                  {loadingRefunds ? 'Đang tải…' : `${refundRequests.length} yêu cầu cần xác nhận`}
+                  {loadingRefunds
+                    ? "Đang tải…"
+                    : `${refundRequests.length} yêu cầu cần xác nhận`}
                 </p>
               </div>
               {loadingRefunds ? (
                 <p className="id-muted">Đang tải…</p>
               ) : refundRequests.length === 0 ? (
-                <div className="id-form-card" style={{ textAlign: 'center', padding: '3rem 0' }}>
-                  <p className="id-muted">Không có yêu cầu hoàn tiền nào cần xác nhận.</p>
+                <div
+                  className="id-form-card"
+                  style={{ textAlign: "center", padding: "3rem 0" }}
+                >
+                  <p className="id-muted">
+                    Không có yêu cầu hoàn tiền nào cần xác nhận.
+                  </p>
                 </div>
               ) : (
                 <div className="id-form-card">
-                  <h3 className="id-form-card__title" style={{ color: '#f5a623' }}>
+                  <h3
+                    className="id-form-card__title"
+                    style={{ color: "#f5a623" }}
+                  >
                     Yêu cầu cần xác nhận ({refundRequests.length})
                   </h3>
-                  <div className="id-table-wrap" style={{ border: 'none', marginTop: 12 }}>
+                  <div
+                    className="id-table-wrap"
+                    style={{ border: "none", marginTop: 12 }}
+                  >
                     <table className="id-table">
                       <thead>
                         <tr>
@@ -6162,30 +6639,41 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </tr>
                       </thead>
                       <tbody>
-                        {refundRequests.map(r => (
+                        {refundRequests.map((r) => (
                           <React.Fragment key={r.id}>
                             <tr>
                               <td>
                                 <div className="ad-user-cell">
-                                  <span className="ad-user-cell__name">{r.student_name ?? '—'}</span>
-                                  <span className="ad-user-cell__email">{r.student_email ?? ''}</span>
+                                  <span className="ad-user-cell__name">
+                                    {r.student_name ?? "—"}
+                                  </span>
+                                  <span className="ad-user-cell__email">
+                                    {r.student_email ?? ""}
+                                  </span>
                                 </div>
                               </td>
-                              <td>{r.course_title ?? '—'}</td>
-                              <td style={{ color: 'var(--color-text-secondary)' }}>
-                                {formatPrice(r.amount ?? 0, 'VND')}
+                              <td>{r.course_title ?? "—"}</td>
+                              <td
+                                style={{ color: "var(--color-text-secondary)" }}
+                              >
+                                {formatPrice(r.amount ?? 0, "VND")}
                               </td>
-                              <td style={{ color: '#e05c5c', fontWeight: 600 }}>
-                                {formatPrice(Math.round((r.amount ?? 0) * 0.7), 'VND')}
+                              <td style={{ color: "#e05c5c", fontWeight: 600 }}>
+                                {formatPrice(
+                                  Math.round((r.amount ?? 0) * 0.7),
+                                  "VND",
+                                )}
                               </td>
                               <td>
                                 <button
                                   className="id-btn-primary"
-                                  style={{ fontSize: 12, padding: '4px 12px' }}
+                                  style={{ fontSize: 12, padding: "4px 12px" }}
                                   onClick={() => handleConfirmRefund(r.id)}
                                   disabled={confirmingRefund === r.id}
                                 >
-                                  {confirmingRefund === r.id ? 'Đang xử lý…' : 'Xác nhận hoàn tiền'}
+                                  {confirmingRefund === r.id
+                                    ? "Đang xử lý…"
+                                    : "Xác nhận hoàn tiền"}
                                 </button>
                               </td>
                             </tr>
@@ -6193,19 +6681,35 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             {refundShortage?.id === r.id && (
                               <tr>
                                 <td colSpan={5}>
-                                  <div style={{
-                                    padding: '10px 14px', borderRadius: 8, margin: '4px 0',
-                                    background: 'rgba(224,92,92,0.1)', border: '1px solid rgba(224,92,92,0.3)',
-                                  }}>                                    
-                                    <p style={{ color: 'var(--color-text-secondary)', fontSize: 12, margin: '4px 0 0' }}>
-                                      Hạn chót: {refundShortage.deadline
-                                        ? new Date(refundShortage.deadline).toLocaleString('vi-VN')
-                                        : '2 ngày kể từ hôm nay'}
+                                  <div
+                                    style={{
+                                      padding: "10px 14px",
+                                      borderRadius: 8,
+                                      margin: "4px 0",
+                                      background: "rgba(224,92,92,0.1)",
+                                      border: "1px solid rgba(224,92,92,0.3)",
+                                    }}
+                                  >
+                                    <p
+                                      style={{
+                                        color: "var(--color-text-secondary)",
+                                        fontSize: 12,
+                                        margin: "4px 0 0",
+                                      }}
+                                    >
+                                      Hạn chót:{" "}
+                                      {refundShortage.deadline
+                                        ? new Date(
+                                            refundShortage.deadline,
+                                          ).toLocaleString("vi-VN")
+                                        : "2 ngày kể từ hôm nay"}
                                     </p>
                                     <button
                                       className="id-btn-sm"
                                       style={{ marginTop: 8 }}
-                                      onClick={() => setActiveTab("wallet" as Tab)}
+                                      onClick={() =>
+                                        setActiveTab("wallet" as Tab)
+                                      }
                                     >
                                       Nạp tiền ngay →
                                     </button>
@@ -6225,14 +6729,25 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
           {/* ── Toast ── */}
           {toast && (
-            <div style={{
-              position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
-              padding: '12px 20px', borderRadius: 10, fontSize: 14, fontWeight: 500,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-              background: toast.type === 'success' ? 'rgba(76,175,130,0.95)' : 'rgba(224,92,92,0.95)',
-              color: '#fff',
-              animation: 'fadeInUp 0.2s ease',
-            }}>
+            <div
+              style={{
+                position: "fixed",
+                bottom: 28,
+                right: 28,
+                zIndex: 9999,
+                padding: "12px 20px",
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 500,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+                background:
+                  toast.type === "success"
+                    ? "rgba(76,175,130,0.95)"
+                    : "rgba(224,92,92,0.95)",
+                color: "#fff",
+                animation: "fadeInUp 0.2s ease",
+              }}
+            >
               {toast.msg}
             </div>
           )}

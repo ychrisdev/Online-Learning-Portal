@@ -2316,3 +2316,42 @@
 .ad-edit-alert__dismiss-btn:hover {
   color: rgba(224, 225, 221, 0.6);
 }
+
+.ad-edit-alert__toggle {
+  margin-left: auto;
+  background: none;
+  border: 0.5px solid rgba(245, 166, 35, 0.25);
+  border-radius: 6px;
+  color: rgba(245, 166, 35, 0.7);
+  font-size: 11px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.ad-edit-alert__toggle:hover {
+  background: rgba(245, 166, 35, 0.1);
+  color: #f5a623;
+}
+
+.ad-edit-alert__more-hint {
+  font-size: 12px;
+  color: rgba(224, 225, 221, 0.35);
+  padding: 6px 10px 2px;
+  text-align: center;
+}
+.ad-edit-alert__more-btn {
+  background: none;
+  border: none;
+  color: rgba(245, 166, 35, 0.6);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-decoration: underline;
+  padding: 0;
+  transition: color 0.15s;
+}
+.ad-edit-alert__more-btn:hover {
+  color: #f5a623;
+}

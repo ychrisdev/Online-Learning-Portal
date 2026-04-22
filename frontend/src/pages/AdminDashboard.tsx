@@ -364,6 +364,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     amount: number;
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [alertExpanded, setAlertExpanded] = useState(false);
+  const PREVIEW_COUNT = 3;
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -2322,6 +2324,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const renderEditAlert = () => {
     if (courseEditAlerts.length === 0) return null;
+
+    const isCollapsible = courseEditAlerts.length > PREVIEW_COUNT;
+    const visibleAlerts =
+      isCollapsible && !alertExpanded
+        ? courseEditAlerts.slice(0, PREVIEW_COUNT)
+        : courseEditAlerts;
+        //adminEditAlerts
     return (
       <div className="ad-edit-alert">
         <div className="ad-edit-alert__header">
@@ -2332,9 +2341,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <span className="ad-edit-alert__count">
             {courseEditAlerts.length} khóa
           </span>
+          {isCollapsible && (
+            <button
+              className="ad-edit-alert__toggle"
+              onClick={() => setAlertExpanded((v) => !v)}
+            >
+              {alertExpanded ? "Thu gọn ▲" : `Xem tất cả ▼`}
+            </button>
+          )}
         </div>
+
         <div className="ad-edit-alert__list">
-          {courseEditAlerts.map((c) => (
+          {visibleAlerts.map((c) => (
             <div key={c.id} className="ad-edit-alert__row">
               <span className="ad-edit-alert__course-name">{c.title}</span>
               <div className="ad-edit-alert__meta">
@@ -2358,22 +2376,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <button
                   className="ad-edit-alert__dismiss-single"
                   onClick={() => dismissCourse(c.id, c.updated_at)}
-                  title="Bỏ qua thông báo này"
+                  title="Bỏ qua"
                 >
                   ✕
                 </button>
               </div>
             </div>
           ))}
+
+          {/* Collapsed preview footer */}
+          {isCollapsible && !alertExpanded && (
+            <div className="ad-edit-alert__more-hint">
+              +{courseEditAlerts.length - PREVIEW_COUNT} khóa khác —{" "}
+              <button
+                className="ad-edit-alert__more-btn"
+                onClick={() => setAlertExpanded(true)}
+              >
+                Xem tất cả
+              </button>
+            </div>
+          )}
         </div>
+
         <div className="ad-edit-alert__dismiss">
           <button className="ad-edit-alert__dismiss-btn" onClick={dismissAll}>
-            Bỏ qua tất cả
+            Bỏ qua tất cả ({courseEditAlerts.length})
           </button>
         </div>
       </div>
     );
   };
+  
   const renderLessonModal = () => {
     if (!lessonModal) return null;
     if (lessonModal === "delete") {
