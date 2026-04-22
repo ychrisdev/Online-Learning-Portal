@@ -66,6 +66,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   pending: "Chờ xử lý",
   refunded: "Đã hoàn tiền",
   failed: "Thất bại",
+  refund_approved: "Đã duyệt hoàn",
   refund_requested: "Yêu cầu hoàn",
 };
 
