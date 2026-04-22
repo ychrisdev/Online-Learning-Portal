@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+
 import {
   BarChart,
   Bar,
@@ -11,7 +12,7 @@ import {
   Legend,
 } from "recharts";
 import { formatPrice } from "../utils/format";
-
+import { getUserId } from "../utils/auth";
 interface InstructorDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
   onLogout: () => void;

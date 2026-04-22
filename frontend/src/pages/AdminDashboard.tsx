@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { formatPrice } from "../utils/format";
+import { getUserId } from "../utils/auth";
 
 interface AdminDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -366,7 +367,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     type: "success" | "error";
   } | null>(null);
   const [courseEditAlerts, setCourseEditAlerts] = useState<any[]>([]);
-  const getUserId = () => localStorage.getItem("user_id") ?? "unknown";
   const DISMISS_KEY = `admin_edit_alert_dismissed_${getUserId()}`;
   const [sessionDismissed, setSessionDismissed] = useState<Set<string>>(
     new Set(),
