@@ -29,6 +29,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError('Email này đã được sử dụng.')
         return value
+    
+    def validate_username(self, value):
+        if not value:
+            raise serializers.ValidationError("Username không được để trống")
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username đã tồn tại")
+        return value
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -50,9 +57,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 # ── Hồ sơ cơ bản (User) ───────────────────────────────────────────────────────
-
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Xem & cập nhật các trường trên model User — 5.1.1"""
     role        = serializers.CharField(read_only=True)
     date_joined = serializers.DateTimeField(read_only=True)
 
@@ -61,6 +66,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'full_name', 'avatar', 'bio', 'role', 'date_joined']
         read_only_fields = ['id', 'username', 'role', 'date_joined']
 
+    def validate_email(self, value):
+        user = self.instance
+        if User.objects.filter(email=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError('Email này đã được sử dụng.')
+        return value
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -170,31 +180,27 @@ class UserAdminSerializer(serializers.ModelSerializer):
     student_profile    = StudentProfileSerializer(read_only=True)
     instructor_profile = InstructorProfileSerializer(read_only=True)
     bio                = serializers.CharField(read_only=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model  = User
         fields = [
-            'id', 'username', 'email', 'full_name', 'avatar', 'bio',
+            'id', 'username', 'email', 'full_name', 'avatar', 'bio', 'password',
             'role', 'is_active', 'date_joined',
             'student_profile', 'instructor_profile',
         ]
-        read_only_fields = ['id', 'username', 'email', 'avatar', 'bio', 'date_joined']
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    """Xem & cập nhật các trường trên model User — 5.1.1"""
-    role        = serializers.CharField(read_only=True)
-    date_joined = serializers.DateTimeField(read_only=True)
-
-    class Meta:
-        model  = User
-        fields = ['id', 'username', 'email', 'full_name', 'avatar', 'bio', 'role', 'date_joined']
-        read_only_fields = ['id', 'username', 'role', 'date_joined']
-
-    def validate_email(self, value):
-        user = self.instance
-        if User.objects.filter(email=value).exclude(pk=user.pk).exists():
-            raise serializers.ValidationError('Email này đã được sử dụng.')
-        return value
+        read_only_fields = ['id', 'email', 'avatar', 'bio', 'date_joined']
+    
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = User(**validated_data)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        user.save()
+        
+        return user
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()

@@ -41,7 +41,8 @@ class MyEnrollmentListView(generics.ListCreateAPIView):
 
         course = generics.get_object_or_404(Course, id=course_id)
 
-        if course.sale_price > 0:
+        sale_price = course.sale_price if course.sale_price is not None else (course.price or 0)
+        if int(sale_price) > 0:
             return Response({'detail': 'Khoá học có phí, vui lòng thanh toán qua cổng.'}, status=status.HTTP_400_BAD_REQUEST)
 
         existing = Enrollment.objects.filter(student=request.user, course=course).first()

@@ -178,7 +178,7 @@ class InstructorProfileView(generics.RetrieveUpdateAPIView):
 
 # ── 5.3.1 Admin quản lý người dùng ────────────────────────────────────────────
 
-class UserListView(generics.ListAPIView):
+class UserListView(generics.ListCreateAPIView):
     """
     GET /api/accounts/users/
     Admin xem danh sách toàn bộ người dùng, lọc theo role & is_active.
@@ -196,7 +196,13 @@ class UserListView(generics.ListAPIView):
             qs = qs.filter(is_active=active.lower() == 'true')
         return qs
 
-
+    def perform_create(self, serializer):
+        user = serializer.save()
+        password = self.request.data.get('password')
+        if password:
+            user.set_password(password)
+            user.save()
+            
 class UserDetailAdminView(generics.RetrieveUpdateAPIView):
     """
     GET   /api/accounts/users/<id>/  — xem chi tiết

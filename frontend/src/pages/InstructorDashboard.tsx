@@ -205,29 +205,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
   // ── Admin-edit alert state ─────────────────────────────────────────────────
   const [adminEditAlerts, setAdminEditAlerts] = useState<any[]>([]);
-  const INSTRUCTOR_DISMISS_KEY = "instructor_admin_edit_dismissed";
+  const INSTRUCTOR_DISMISS_KEY = `instructor_admin_edit_dismissed_${getUserId()}`;
+  const [sessionDismissedInstructor, setSessionDismissedInstructor] = useState<
+    Set<string>
+  >(new Set());
 
-  const getInstructorDismissedMap = (): Record<string, string> => {
-    try {
-      return JSON.parse(localStorage.getItem(INSTRUCTOR_DISMISS_KEY) || "{}");
-    } catch {
-      return {};
-    }
-  };
-
-  const dismissAdminEditCourse = (courseId: string, updatedAt: string) => {
-    const map = getInstructorDismissedMap();
-    map[courseId] = updatedAt;
-    localStorage.setItem(INSTRUCTOR_DISMISS_KEY, JSON.stringify(map));
+  const dismissAdminEditCourse = (courseId: string) => {
+    setSessionDismissedInstructor((prev) => new Set([...prev, courseId]));
     setAdminEditAlerts((prev) => prev.filter((c) => c.id !== courseId));
   };
 
   const dismissAllAdminEdits = () => {
-    const map = getInstructorDismissedMap();
-    adminEditAlerts.forEach((c) => {
-      map[c.id] = c.updated_at;
-    });
-    localStorage.setItem(INSTRUCTOR_DISMISS_KEY, JSON.stringify(map));
+    const ids = new Set(adminEditAlerts.map((c) => c.id));
+    setSessionDismissedInstructor((prev) => new Set([...prev, ...ids]));
     setAdminEditAlerts([]);
   };
 
@@ -550,28 +540,41 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   }, []);
 
   useEffect(() => {
-    if (courses.length === 0) return;
-    const dismissed = getInstructorDismissedMap();
-    const selfEdited: Record<string, string> = JSON.parse(
-      localStorage.getItem("instructor_self_edited") || "{}",
-    );
-    const edited = courses.filter((c) => {
-      if (c.status !== "published") return false;
-      if (!c.updated_at || !c.published_at) return false;
-      const diff =
-        new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
-      if (diff <= 5000) return false;
-      if (dismissed[c.id] === c.updated_at) return false;
-      // Instructor vừa tự sửa → không hiện alert
-      if (selfEdited[c.id]) {
-        const selfTime = new Date(selfEdited[c.id]).getTime();
-        const courseTime = new Date(c.updated_at).getTime();
-        if (Math.abs(selfTime - courseTime) < 10_000) return false;
-      }
-      return true;
-    });
-    setAdminEditAlerts(edited);
-  }, [courses]);
+  if (courses.length === 0) return;
+
+  const prevLoginAt = localStorage.getItem('prev_login_at');
+  const selfEdited: Record<string, string> = JSON.parse(
+    localStorage.getItem('instructor_self_edited') || '{}'
+  );
+
+  const edited = courses.filter(c => {
+    if (c.status !== 'published') return false;
+    if (!c.updated_at || !c.published_at) return false;
+
+    const diff = new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
+    if (diff <= 5000) return false;
+
+    if (sessionDismissedInstructor.has(c.id)) return false;
+
+    // Instructor tự sửa → không hiện
+    if (selfEdited[c.id]) {
+      const selfTime = new Date(selfEdited[c.id]).getTime();
+      const courseTime = new Date(c.updated_at).getTime();
+      if (Math.abs(selfTime - courseTime) < 10_000) return false;
+    }
+
+    // Chỉ hiện nếu updated_at xảy ra sau lần login trước
+    if (prevLoginAt) {
+      const prevTime = new Date(prevLoginAt).getTime();
+      const updatedTime = new Date(c.updated_at).getTime();
+      if (updatedTime <= prevTime) return false;
+    }
+
+    return true;
+  });
+
+  setAdminEditAlerts(edited);
+}, [courses, sessionDismissedInstructor]);
 
   useEffect(() => {
     if (courses.length === 0) return;

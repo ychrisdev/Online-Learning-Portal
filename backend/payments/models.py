@@ -54,6 +54,7 @@ class Transaction(models.Model):
     created_at  = models.DateTimeField('Tạo lúc', auto_now_add=True)
     paid_at     = models.DateTimeField('Thanh toán lúc', null=True, blank=True)
     refund_approved_at = models.DateTimeField(null=True, blank=True)
+    refund_requested_at = models.DateTimeField(null=True, blank=True)
     refund_deadline    = models.DateTimeField(null=True, blank=True)
 
     class Meta:
