@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    STUDENT DASHBOARD — Complete CSS
-   Dark theme · All classes covered
+   Dark theme · All classes covered · Inline styles extracted
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Page & Layout ─────────────────────────────────────────────── */
@@ -253,97 +253,182 @@
   letter-spacing: 0.06em;
 }
 
-/* ── Course Card ────────────────────────────────────────────────── */
-.db-course-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  background: rgba(13, 27, 42, 0.5);
-  border: 1px solid rgba(119, 141, 169, 0.1);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast);
+/* ── Overview: In-progress courses ─────────────────────────────── */
+.overview-courses-card {
+  margin-top: 20px;
 }
-.db-course-card:hover {
-  border-color: rgba(119, 141, 169, 0.3);
-  background: rgba(65, 90, 119, 0.12);
-}
-.db-course-card__thumb {
-  width: 80px;
-  height: 56px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-  flex-shrink: 0;
-  filter: brightness(0.85);
-}
-.db-course-card__body {
-  flex: 1;
-  min-width: 0;
+.overview-courses-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 12px;
+  margin-top: 12px;
 }
-.db-course-card__body strong {
-  font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
-  color: #e0e1dd;
-  display: block;
+.overview-course-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+}
+.overview-course-item:last-of-type {
+  border-bottom: none;
+}
+.overview-course-item__info {
+  flex: 1;
+  min-width: 0;
+}
+.overview-course-item__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+.overview-course-item__instructor {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.overview-course-item__progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.overview-course-item__pct {
+  font-size: 12px;
+  color: #4caf82;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+.overview-view-all-btn {
+  align-self: flex-start;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* ── Overview: Empty state ──────────────────────────────────────── */
+.overview-empty-card {
+  margin-top: 20px;
+  text-align: center;
+  padding: 2rem;
+}
+.overview-empty-card__text {
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
 }
 
 /* ── Progress Bar ───────────────────────────────────────────────── */
 .db-progress-bar {
+  width: 100%;
   height: 4px;
-  background: rgba(119, 141, 169, 0.15);
-  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
   overflow: hidden;
-  margin-top: var(--space-1);
-}
-.db-progress-bar__fill {
-  height: 100%;
-  background: linear-gradient(90deg, #415a77 0%, #778da9 100%);
-  border-radius: var(--radius-full);
-  transition: width 0.4s ease;
 }
 
-/* ── Payment Row ────────────────────────────────────────────────── */
-.db-payment-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
+.db-progress-bar__fill {
+  height: 80%;
+  background: linear-gradient(90deg, #4f8ef7, #7c3aed);
+  border-radius: 999px;
+  min-width: 4px;
+}
+
+/* ── Payment card (overview) ────────────────────────────────────── */
+.payment-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: 16px;
+}
+.payment-card-header {
+  background: #1f2a3a;
+  padding: 16px;
+}
+.payment-card-header h3 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+}
+.payment-card-body {
+  background: transparent;
+  padding: 0 16px;
+}
+.payment-item {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  background: rgba(13, 27, 42, 0.5);
-  border: 1px solid rgba(119, 141, 169, 0.1);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  color: rgba(224, 225, 221, 0.7);
-  transition: border-color var(--transition-fast);
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-.db-payment-row:hover {
-  border-color: rgba(119, 141, 169, 0.25);
+.payment-item:last-of-type {
+  border-bottom: none;
 }
-.db-payment-row > span:first-child {
-  color: #e0e1dd;
-  font-weight: var(--fw-medium);
+.payment-item__left {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+.payment-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.db-payment-row > span:nth-child(2) {
-  font-size: var(--text-xs);
-  color: rgba(224, 225, 221, 0.4);
+.payment-date {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 3px;
+}
+.payment-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.payment-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4caf82;
   white-space: nowrap;
 }
-.db-payment-row > span:nth-child(3) {
-  font-weight: var(--fw-semibold);
-  color: #e0e1dd;
+.payment-view-all-btn {
+  margin-top: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+/* ── Payment actions (table) ────────────────────────────────────── */
+.payment-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.db-payment-course-cell {
+  width: 42%;
+  min-width: 260px;
+}
+
+.db-payment-course-text {
+  display: block;
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── Refund button variant ──────────────────────────────────────── */
+.ad-btn-sm--refund {
+  color: #e07a5f;
+  border: 1px solid rgba(224, 122, 95, 0.3);
+}
+.ad-btn-sm--refund:hover {
+  background: rgba(224, 122, 95, 0.1);
+  border-color: rgba(224, 122, 95, 0.5);
 }
 
 /* ── Badges ─────────────────────────────────────────────────────── */
@@ -357,6 +442,26 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+.db-badge--refused {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.db-badge--pending {
+  background: rgba(234, 179, 8, 0.12);
+  color: #ca8a04;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+.payment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .db-badge--success {
   background: rgba(76, 175, 130, 0.12);
   color: #4caf82;
@@ -450,6 +555,36 @@ select.db-input {
   margin-top: 2px;
 }
 
+/* ── Form error message (inline) ────────────────────────────────── */
+.form-error {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin: 4px 0 8px;
+}
+
+/* ── id-form-card title row ─────────────────────────────────────── */
+.id-form-card__title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.id-form-card__edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Table: loading / empty text ────────────────────────────────── */
+.table-loading-text {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 2rem;
+}
+
+/* ── Certificate course title ───────────────────────────────────── */
+.cert-course-title {
+  font-weight: 600;
+}
+
 /* ── Checkbox Group ─────────────────────────────────────────────── */
 .db-checkbox-group {
   display: flex;
@@ -531,14 +666,45 @@ select.db-input {
   color: #e05c5c;
 }
 @keyframes toastIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Payment Detail Modal (cm-*) ────────────────────────────────── */
+.cm-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.cm-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+}
+.cm-detail-row:last-child {
+  border-bottom: none;
+}
+.cm-detail-row__label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.cm-detail-row__value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+/* cm-footer refund button */
+.cm-btn--refund {
+  color: #e07a5f;
+  margin-right: auto;
+}
+.cm-footer__note {
+  font-size: 13px;
+  margin-right: auto;
 }
 
 /* ── Legacy / table classes (kept for compatibility) ────────────── */
@@ -699,6 +865,8 @@ select.db-input {
   transition:
     border-color var(--transition-fast),
     background var(--transition-fast);
+  width: 100%;
+  box-sizing: border-box;
 }
 .db-field__input::placeholder { color: rgba(224, 225, 221, 0.2); }
 .db-field__input:focus {
@@ -848,53 +1016,6 @@ select.db-input {
 }
 .db-btn-explore:hover { background: #4f6d8f; }
 
-/* ── Responsive ─────────────────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .db-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-@media (max-width: 768px) {
-  .db-layout {
-    grid-template-columns: 1fr;
-  }
-  .db-sidebar {
-    position: static;
-  }
-  .db-form-grid {
-    grid-template-columns: 1fr;
-  }
-  .db-payment-row {
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-  }
-  .db-payment-row > span:nth-child(2) {
-    grid-column: 1;
-  }
-  .db-payment-row > span:nth-child(3) {
-    grid-row: 1;
-    grid-column: 2;
-  }
-}
-@media (max-width: 560px) {
-  .db-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .db-course-card__thumb,
-  .db-course-row__thumb {
-    display: none;
-  }
-  .db-explore {
-    flex-direction: column;
-    text-align: center;
-  }
-  .db-toast {
-    left: var(--space-4);
-    right: var(--space-4);
-    bottom: var(--space-4);
-  }
-}
-
 /* ── Quiz Attempt Detail Modal ──────────────────────────────────── */
 .qad-overlay {
   position: fixed;
@@ -993,30 +1114,22 @@ select.db-input {
   background: rgba(65, 90, 119, 0.1);
   border-color: rgba(119, 141, 169, 0.15);
 }
-.qad-answer--default .qad-answer__text {
-  color: rgba(224, 225, 221, 0.6);
-}
+.qad-answer--default .qad-answer__text { color: rgba(224, 225, 221, 0.6); }
 .qad-answer--correct-chosen {
   background: rgba(76, 175, 130, 0.12);
   border-color: rgba(76, 175, 130, 0.35);
 }
-.qad-answer--correct-chosen .qad-answer__text {
-  color: #4caf82;
-}
+.qad-answer--correct-chosen .qad-answer__text { color: #4caf82; }
 .qad-answer--wrong-chosen {
   background: rgba(224, 122, 95, 0.1);
   border-color: rgba(224, 122, 95, 0.35);
 }
-.qad-answer--wrong-chosen .qad-answer__text {
-  color: #e07a5f;
-}
+.qad-answer--wrong-chosen .qad-answer__text { color: #e07a5f; }
 .qad-answer--correct-missed {
   background: rgba(76, 175, 130, 0.06);
   border-color: rgba(76, 175, 130, 0.2);
 }
-.qad-answer--correct-missed .qad-answer__text {
-  color: rgba(76, 175, 130, 0.75);
-}
+.qad-answer--correct-missed .qad-answer__text { color: rgba(76, 175, 130, 0.75); }
 .qad-badge {
   font-size: 11px;
   padding: 1px 7px;
@@ -1024,18 +1137,9 @@ select.db-input {
   margin-left: 8px;
   white-space: nowrap;
 }
-.qad-badge--correct {
-  background: rgba(76, 175, 130, 0.15);
-  color: #4caf82;
-}
-.qad-badge--wrong {
-  background: rgba(224, 122, 95, 0.12);
-  color: #e07a5f;
-}
-.qad-badge--missed {
-  background: rgba(76, 175, 130, 0.1);
-  color: rgba(76, 175, 130, 0.8);
-}
+.qad-badge--correct { background: rgba(76, 175, 130, 0.15); color: #4caf82; }
+.qad-badge--wrong   { background: rgba(224, 122, 95, 0.12); color: #e07a5f; }
+.qad-badge--missed  { background: rgba(76, 175, 130, 0.1);  color: rgba(76, 175, 130, 0.8); }
 .qad-explanation {
   margin-top: 0.6rem;
   font-size: 12px;
@@ -1045,13 +1149,8 @@ select.db-input {
 }
 
 /* ── Courses tab ────────────────────────────────────────────────── */
-.db-courses__progress-cell {
-  min-width: 160px;
-}
-.db-table__price {
-  color: #4caf82;
-  font-weight: 600;
-}
+.db-courses__progress-cell { min-width: 160px; }
+.db-table__price { color: #4caf82; font-weight: 600; }
 .db-courses__progress-wrap {
   display: flex;
   flex-direction: column;
@@ -1066,43 +1165,32 @@ select.db-input {
   padding: 2px 8px;
   border-radius: 5px;
 }
-.db-quiz__badge--passed {
-  background: rgba(76, 175, 130, 0.15);
-  color: #4caf82;
-}
-.db-quiz__badge--failed {
-  background: rgba(224, 122, 95, 0.15);
-  color: #e07a5f;
-}
+.db-quiz__badge--passed { background: rgba(76, 175, 130, 0.15); color: #4caf82; }
+.db-quiz__badge--failed { background: rgba(224, 122, 95, 0.15); color: #e07a5f; }
 
-.quizzes-container{
+/* ── Quizzes filter bar ─────────────────────────────────────────── */
+.quizzes-filter-bar {
   display: flex;
-  gap: 10;
+  gap: 10px;
   margin-bottom: 16px;
-  flex-wrap: wrap; 
+  flex-wrap: wrap;
 }
-
-.id-field__input{
-  max-width: 180px;
-  margin-right: 15px;
+.quiz-filter-select {
+  padding: 0.5em 0.8em;
+  background: rgba(13, 27, 42, 0.6);
+  border: 1.5px solid rgba(119, 141, 169, 0.2);
+  border-radius: var(--radius-md);
+  color: #e0e1dd;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  outline: none;
+  cursor: pointer;
+  min-width: 160px;
+  max-width: 220px;
+  transition: border-color var(--transition-fast);
 }
-
-.cm-detail-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
-}
-.cm-detail-row__label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-.cm-detail-row__value {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  text-align: right;
+.quiz-filter-select:focus {
+  border-color: rgba(119, 141, 169, 0.5);
 }
 
 /* ── Certificate badge ──────────────────────────────────────────── */
@@ -1115,110 +1203,168 @@ select.db-input {
   border: 0.5px solid rgba(76, 175, 130, 0.3);
 }
 
+/* ── Table empty cell ───────────────────────────────────────────── */
 .ad-table__empty-cell {
   text-align: center;
   vertical-align: middle;
+  padding: 2rem !important;
+  color: var(--color-text-secondary);
 }
 .ad-table__empty-text {
   display: inline-block;
-  padding: 0.5cm;
-}
-.payment-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 0; /* tăng khoảng cách giống hình 2 */
-  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-.payment-title {
+/* ── Wallet ─────────────────────────────────────────────────────── */
+.wallet-balance-card {
+  margin-bottom: 16px;
+}
+.wallet-balance-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+.wallet-balance-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: #4caf82;
+  margin-bottom: 12px;
+}
+.wallet-action-btns {
+  display: flex;
+  gap: 10px;
+}
+.wallet-panel-card {
+  margin-bottom: 16px;
+}
+.wallet-deposit-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.wallet-deposit-input {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+.wallet-deposit-btn {
+  flex-shrink: 0;
+}
+.wallet-quick-amounts {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.wallet-msg {
+  font-size: 13px;
+  margin-top: 8px;
+}
+.wallet-msg--err { color: #e05c5c; }
+.wallet-msg--ok  { color: #4caf82; }
+.wallet-tx-table {
+  border: none;
+  margin-top: 12px;
+}
+.wallet-tx-type {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.wallet-tx-type--in {
+  background: rgba(76, 175, 130, 0.15);
+  color: #4caf82;
+  border: 0.5px solid rgba(76, 175, 130, 0.3);
+}
+.wallet-tx-type--out {
+  background: rgba(224, 92, 92, 0.15);
+  color: #e05c5c;
+  border: 0.5px solid rgba(224, 92, 92, 0.3);
+}
+.wallet-tx-amount--in  { font-weight: 600; color: #4caf82; }
+.wallet-tx-amount--out { font-weight: 600; color: #e05c5c; }
+
+/* ── Refund modal ───────────────────────────────────────────────── */
+.refund-modal__line {
+  margin-bottom: 0.5rem;
+}
+.refund-modal__line--highlight {
+  margin-bottom: 1rem;
+}
+.refund-modal__textarea {
+  margin-top: 0.4rem;
+  margin-bottom: 1rem;
+}
+.refund-modal__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .db-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .db-layout { grid-template-columns: 1fr; }
+  .db-sidebar { position: static; }
+  .db-form-grid { grid-template-columns: 1fr; }
+  .db-payment-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+  .db-payment-row > span:nth-child(2) { grid-column: 1; }
+  .db-payment-row > span:nth-child(3) { grid-row: 1; grid-column: 2; }
+}
+@media (max-width: 560px) {
+  .db-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .db-course-card__thumb,
+  .db-course-row__thumb { display: none; }
+  .db-explore { flex-direction: column; text-align: center; }
+  .db-toast { left: var(--space-4); right: var(--space-4); bottom: var(--space-4); }
+}
+.payment-table-head {
+  display: grid;
+  grid-template-columns: 1fr 120px 130px 60px;
+  padding: 6px 12px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #888);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 4px;
+}
+
+.payment-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 130px 60px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.payment-row:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.payment-row__title {
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-primary);
-}
-
-.payment-date {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin-top: 3px;
-}
-
-.payment-price {
-  font-size: 14px;
-  font-weight: 600;
-  color: #4caf82;
-}
-/* CARD CHA */
-.payment-card {
-  border-radius: 12px;
-  overflow: hidden; /* để header + body liền nhau */
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-/* HEADER (giữ màu xanh như bạn đang có) */
-.payment-card-header {
-  background: #1f2a3a; /* giống hiện tại */
-  padding: 16px;
-}
-
-.payment-card-header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-/* BODY (nền đen giống khóa học) */
-.payment-card-body {
-  background: #0f172a; /* nền đen/xanh đậm */
-  padding: 0 16px;
-}
-
-/* ITEM */
-.payment-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-/* bỏ border dòng cuối */
-.payment-item:last-child {
-  border-bottom: none;
-}
-/* CARD */
-.payment-card {
-  border-radius: 12px;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 12px;
 }
 
-/* HEADER có nền */
-.payment-card-header {
-  background: #1f2a3a; /* giữ màu hiện tại */
-  padding: 16px;
+.payment-row__date {
+  font-size: 13px;
+  color: var(--color-text-secondary, #888);
 }
 
-/* BODY KHÔNG nền */
-.payment-card-body {
-  background: transparent; /* QUAN TRỌNG */
-  padding: 0 16px;
-}
-
-/* ITEM */
-.payment-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.payment-item:last-child {
-  border-bottom: none;
-}
-.payment-card-header h3 {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: rgba(255,255,255,0.6); /* giống KHÓA HỌC */
-  font-weight: 600;
+.payment-row__price {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4ade80;
 }

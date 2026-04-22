@@ -28,7 +28,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 const API = "http://127.0.0.1:8000";
 
-// ── Interfaces ────────────────────────────────────────────────────────────────
+// ── Interfaces ───────────────────────────────────────────────────────────────
 interface EnrolledCourse {
   id: string;
   course_id: string;
@@ -112,6 +112,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   pending: "Đang xử lý",
   failed: "Thất bại",
   refunded: "Đã hoàn tiền",
+  refund_approved: "Đã duyệt hoàn",
   refund_requested: "Chờ hoàn tiền",
 };
 
@@ -120,6 +121,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onNavigate,
   onLogout,
 }) => {
+  const [visibleProgress, setVisibleProgress] = useState<Record<string, number>>({});
   const [quizSortCourse, setQuizSortCourse] = useState<string>("all");
   const [quizSortResult, setQuizSortResult] = useState<
     "all" | "passed" | "failed"
@@ -178,12 +180,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [profileEditing, setProfileEditing] = useState(false);
   const [studentEditing, setStudentEditing] = useState(false);
 
+  // ── Payment modal — moved to TOP LEVEL so it works from any tab ──
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentDetail, setPaymentDetail] = useState<Payment | null>(null);
   const [attemptDetail, setAttemptDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  //state wallet
+  // state wallet
   const [wallet, setWallet] = useState<any>(null);
   const [walletTxs, setWalletTxs] = useState<any[]>([]);
   const [loadingWallet, setLoadingWallet] = useState(false);
@@ -198,7 +201,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [withdrawing, setWithdrawing] = useState(false);
   const [walletError, setWalletError] = useState("");
   const [walletSuccess, setWalletSuccess] = useState("");
-
   const [withdrawError, setWithdrawError] = useState("");
   const [withdrawSuccess, setWithdrawSuccess] = useState("");
   const [walletPanel, setWalletPanel] = useState<"deposit" | "withdraw" | null>(
@@ -347,6 +349,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
       setLoadingWallet(false);
     })();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "courses") return;
+    const timer = setTimeout(() => {
+      const map: Record<string, number> = {};
+      activeCourses.forEach((c) => { map[c.id] = c.progress ?? 0; });
+      setVisibleProgress(map);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [activeTab, enrolledCourses]);
 
   // ── Avatar ────────────────────────────────────────────────────────────────
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -497,6 +509,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     setLoadingDetail(false);
   };
 
+  // ── openPaymentDetail works from ANY tab ──────────────────────────────────
   const openPaymentDetail = (id: string) => {
     const p = payments.find((p) => p.id === id) ?? null;
     setPaymentDetail(p);
@@ -508,7 +521,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     setPaymentDetail(null);
   };
 
-  //nạp tiền
+  // nạp tiền
   const handleDeposit = async () => {
     const amount = parseInt(depositAmount);
     if (!amount || amount < 10000) {
@@ -529,7 +542,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         setWallet((w: any) => ({ ...w, balance: data.balance }));
         setDepositAmount("");
         setWalletSuccess("Nạp tiền thành công!");
-        // Refresh transactions
         const txRes = await fetch(`${API}/api/wallet/transactions/`, {
           headers: authHeaders(),
         });
@@ -629,6 +641,102 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
+      {/* ── Payment Detail Modal — GLOBAL (works from any tab) ── */}
+      {showPaymentModal && (
+        <div
+          className="cm-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePaymentDetail();
+          }}
+        >
+          <div className="cm-box cm-box--sm">
+            <div className="cm-header">
+              <h2 className="cm-title">Chi tiết giao dịch</h2>
+              <button className="cm-close" onClick={closePaymentDetail}>
+                ✕
+              </button>
+            </div>
+            <div className="cm-body">
+              {!paymentDetail ? (
+                <p className="db-muted">Không tìm thấy giao dịch.</p>
+              ) : (
+                <div className="cm-detail-list">
+                  {[
+                    {
+                      label: "Khóa học",
+                      value: paymentDetail.course_title ?? "—",
+                    },
+                    {
+                      label: "Số tiền",
+                      value: formatPrice(paymentDetail.amount, "VND"),
+                    },
+                    {
+                      label: "Trạng thái",
+                      value:
+                        PAYMENT_STATUS_LABEL[paymentDetail.status] ??
+                        paymentDetail.status ??
+                        "—",
+                    },
+                    {
+                      label: "Ngày",
+                      value: paymentDetail.created_at
+                        ? new Date(
+                            paymentDetail.created_at,
+                          ).toLocaleString("vi-VN")
+                        : "—",
+                    },
+                    {
+                      label: "Phương thức",
+                      value: paymentDetail.method || "—",
+                    },
+                    {
+                      label: "Mã GD",
+                      value:
+                        paymentDetail.ref_code || paymentDetail.id || "—",
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className="cm-detail-row">
+                      <span className="cm-detail-row__label">
+                        {item.label}
+                      </span>
+                      <span className="cm-detail-row__value">
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="cm-footer">
+              {paymentDetail?.status === "success" &&
+                !paymentDetail?.refund_requested_once && (
+                  <button
+                    className="cm-btn cm-btn--refund"
+                    onClick={() => {
+                      closePaymentDetail();
+                      openRefundModal(paymentDetail);
+                    }}
+                  >
+                    Yêu cầu hoàn tiền
+                  </button>
+                )}
+              {paymentDetail?.status === "success" &&
+                paymentDetail?.refund_requested_once && (
+                  <span className="db-muted cm-footer__note">
+                    Đã dùng quyền hoàn tiền
+                  </span>
+                )}
+              <button
+                className="cm-btn cm-btn--cancel"
+                onClick={closePaymentDetail}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container db-layout">
         {/* ══ Sidebar ══════════════════════════════════════════════ */}
         <aside className="db-sidebar">
@@ -697,7 +805,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <span className="db-stat-card__label">Khóa đã đăng ký</span>
                 </div>
                 <div className="db-stat-card">
-                  <span className="db-stat-card__value">
+                                    <span className="db-stat-card__value">
                     {loadingCourses ? "…" : `${avgProgress}%`}
                   </span>
                   <span className="db-stat-card__label">
@@ -722,82 +830,30 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
               {/* Khóa học đang học */}
               {!loadingCourses && inProgressCourses.length > 0 && (
-                <div className="id-form-card" style={{ marginTop: 20 }}>
+                <div className="id-form-card overview-courses-card">
                   <h3 className="id-form-card__title">
                     Đang học ({inProgressCourses.length})
                   </h3>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 12,
-                      marginTop: 12,
-                    }}
-                  >
+                  <div className="overview-courses-list">
                     {inProgressCourses.slice(0, 3).map((c) => (
-                      <div
-                        key={c.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          padding: "10px 0",
-                          borderBottom: "0.5px solid rgba(255,255,255,0.06)",
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <div
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 600,
-                              color: "var(--color-text-primary)",
-                              marginBottom: 4,
-                            }}
-                          >
+                      <div key={c.id} className="overview-course-item">
+                        <div className="overview-course-item__info">
+                          <div className="overview-course-item__title">
                             {c.course_title}
                           </div>
                           {c.instructor_name && (
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: "var(--color-text-secondary)",
-                              }}
-                            >
+                            <div className="overview-course-item__instructor">
                               {c.instructor_name}
                             </div>
                           )}
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              marginTop: 6,
-                            }}
-                          >
-                            <div
-                              style={{
-                                flex: 1,
-                                height: 4,
-                                borderRadius: 2,
-                                background: "rgba(255,255,255,0.1)",
-                              }}
-                            >
+                          <div className="overview-course-item__progress">
+                            <div className="db-progress-bar">
                               <div
-                                style={{
-                                  width: `${c.progress}%`,
-                                  height: "100%",
-                                  borderRadius: 2,
-                                  background: "#4caf82",
-                                }}
+                                className="db-progress-bar__fill"
+                                style={{ width: `${c.progress}%` }}
                               />
                             </div>
-                            <span
-                              style={{
-                                fontSize: 12,
-                                color: "#4caf82",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
+                            <span className="overview-course-item__pct">
                               {c.progress}%
                             </span>
                           </div>
@@ -814,8 +870,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     ))}
                     {inProgressCourses.length > 3 && (
                       <button
-                        className="id-btn-secondary"
-                        style={{ alignSelf: "flex-start", fontSize: 13 }}
+                        className="id-btn-secondary overview-view-all-btn"
                         onClick={() => setActiveTab("courses")}
                       >
                         Xem tất cả {inProgressCourses.length} khóa →
@@ -826,81 +881,54 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               )}
 
               {/* Thanh toán gần đây */}
-              {!loadingPayments &&
-                payments.filter((p) => p.status === "success").length > 0 && (
-                <div className="payment-card" style={{ marginTop: 16 }}>
-                  {/* HEADER */}
+              {!loadingPayments && payments.filter((p) => p.status === "success").length > 0 && (
+                <div className="payment-card">
                   <div className="payment-card-header">
                     <h3>Giao dịch gần đây</h3>
                   </div>
-
-                  {/* BODY */}
                   <div className="payment-card-body">
-                      {payments
-                        .filter((p) => p.status === "success")
-                        .slice(0, 3)
-                        .map((p) => (
-                          <div
-                            key={p.id}
-                             className="payment-item"
-                          >
-                            <div>
-                              <div
-                               className="payment-title"
-                              >
-                                {p.course_title}
-                              </div>
-                              <div
-                                className="payment-date"
-                              >
-                                {p.created_at
-                                  ? new Date(p.created_at).toLocaleDateString(
-                                      "vi-VN",
-                                    )
-                                  : "—"}
-                              </div>
-                            </div>
-                            <div className="payment-right">
-                            <span className="payment-price">
-                              {formatPrice(p.amount, "VND")}
-                            </span>
-
-                            <button
-                              className="btn-view"
-                              onClick={() => console.log("xem chi tiet", p.id)}
-                            >
-                              Xem
-                            </button>
-                          </div>
-                          </div>
-                        ))}
-                      <button
-                        className="id-btn-secondary"
-                        style={{ marginTop: 10, fontSize: 13 }}
-                        onClick={() => setActiveTab("payments")}
-                      >
-                        Xem tất cả →
-                      </button>
+                    <div className="payment-table-head">
+                      <span>Khóa học</span>
+                      <span>Ngày</span>
+                      <span>Số tiền</span>
+                      <span></span>
                     </div>
+                    {payments
+                      .filter((p) => p.status === "success")
+                      .slice(0, 3)
+                      .map((p) => (
+                        <div key={p.id} className="payment-row">
+                          <span className="payment-row__title">{p.course_title}</span>
+                          <span className="payment-row__date">
+                            {p.created_at
+                              ? new Date(p.created_at).toLocaleDateString("vi-VN")
+                              : "—"}
+                          </span>
+                          <span className="payment-row__price">
+                            {formatPrice(p.amount, "VND")}
+                          </span>
+                          <button
+                            className="ad-btn-sm ad-btn-sm--view"
+                            onClick={() => openPaymentDetail(p.id)}
+                          >
+                            Xem
+                          </button>
+                        </div>
+                      ))}
+                    <button
+                      className="id-btn-secondary payment-view-all-btn"
+                      onClick={() => setActiveTab("payments")}
+                    >
+                      Xem tất cả →
+                    </button>
                   </div>
-                )}
+                </div>
+              )}
 
               {/* Không có khóa học */}
               {!loadingCourses && activeCourses.length === 0 && (
-                <div
-                  className="id-form-card"
-                  style={{
-                    marginTop: 20,
-                    textAlign: "center",
-                    padding: "2rem",
-                  }}
-                >
-                  <p
-                    style={{
-                      color: "var(--color-text-secondary)",
-                      marginBottom: 12,
-                    }}
-                  >
+                <div className="id-form-card overview-empty-card">
+                  <p className="overview-empty-card__text">
                     Bạn chưa đăng ký khóa học nào.
                   </p>
                   <button
@@ -927,15 +955,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               {loadingCourses ? (
                 <div className="id-form-card">
-                  <p
-                    style={{
-                      textAlign: "center",
-                      color: "var(--color-text-secondary)",
-                      padding: "2rem",
-                    }}
-                  >
-                    ⏳ Đang tải…
-                  </p>
+                  <p className="table-loading-text">⏳ Đang tải…</p>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -961,20 +981,15 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         activeCourses.map((c) => (
                           <tr key={c.id}>
                             <td>
-                              <div
-                                className="ad-user-cell"
-                                style={{ display: "flex", gap: 12 }}
-                              >
-                                <div>
-                                  <span className="ad-user-cell__name">
-                                    {c.course_title}
+                              <div className="ad-user-cell">
+                                <span className="ad-user-cell__name">
+                                  {c.course_title}
+                                </span>
+                                {c.instructor_name && (
+                                  <span className="ad-user-cell__email">
+                                    {c.instructor_name}
                                   </span>
-                                  {c.instructor_name && (
-                                    <span className="ad-user-cell__email">
-                                      {c.instructor_name}
-                                    </span>
-                                  )}
-                                </div>
+                                )}
                               </div>
                             </td>
                             <td className="db-table__price">
@@ -987,7 +1002,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                 <div className="db-progress-bar">
                                   <div
                                     className="db-progress-bar__fill"
-                                    style={{ width: `${c.progress ?? 0}%` }}
+                                    style={{
+                                      width: `${visibleProgress[c.id] ?? 0}%`,
+                                      transition: "width 0.7s ease",
+                                    }}
                                   />
                                 </div>
                                 <span className="db-muted">
@@ -1042,20 +1060,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <tbody>
                     {loadingPayments ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="ad-table__empty-cell">
                           Đang tải…
                         </td>
                       </tr>
                     ) : payments.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
-                        >
+                        <td colSpan={5} className="ad-table__empty-cell">
                           🔍 Chưa có giao dịch nào.
                         </td>
                       </tr>
@@ -1064,8 +1075,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         const status = p.status ?? "pending";
                         return (
                           <tr key={p.id}>
-                            <td className="ad-table__title">
-                              {p.course_title || "—"}
+                            <td className="ad-table__title db-payment-course-cell">
+                              <span className="db-payment-course-text">
+                                {p.course_title || "—"}
+                              </span>
                             </td>
                             <td className="db-table__price">
                               {formatPrice(p.amount, "VND")}
@@ -1085,13 +1098,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                               </span>
                             </td>
                             <td>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: 6,
-                                  alignItems: "center",
-                                }}
-                              >
+                              <div className="payment-actions">
                                 <button
                                   className="ad-btn-sm ad-btn-sm--view"
                                   onClick={() => openPaymentDetail(p.id)}
@@ -1101,12 +1108,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                 {status === "success" &&
                                   !p.refund_requested_once && (
                                     <button
-                                      className="ad-btn-sm"
-                                      style={{
-                                        color: "#e07a5f",
-                                        border:
-                                          "1px solid rgba(224,122,95,0.3)",
-                                      }}
+                                      className="ad-btn-sm ad-btn-sm--refund"
                                       onClick={() => openRefundModal(p)}
                                     >
                                       Hoàn tiền
@@ -1114,12 +1116,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                   )}
                                 {status === "success" &&
                                   p.refund_requested_once && (
-                                    <span className="db-muted">
-                                      Từ chối hoàn tiền
+                                    <span className="db-badge db-badge--refused">
+                                      Đã từ chối hoàn
                                     </span>
                                   )}
                                 {status === "refund_requested" && (
-                                  <span className="db-muted">
+                                  <span className="db-badge db-badge--pending">
                                     Đang chờ xử lý
                                   </span>
                                 )}
@@ -1132,119 +1134,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   </tbody>
                 </table>
               </div>
-
-              {/* Payment Detail Modal */}
-              {showPaymentModal && (
-                <div
-                  className="cm-overlay"
-                  onClick={(e) => {
-                    if (e.target === e.currentTarget) closePaymentDetail();
-                  }}
-                >
-                  <div className="cm-box cm-box--sm">
-                    <div className="cm-header">
-                      <h2 className="cm-title">Chi tiết giao dịch</h2>
-                      <button className="cm-close" onClick={closePaymentDetail}>
-                        ✕
-                      </button>
-                    </div>
-                    <div className="cm-body">
-                      {!paymentDetail ? (
-                        <p style={{ color: "var(--color-text-secondary)" }}>
-                          Không tìm thấy giao dịch.
-                        </p>
-                      ) : (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 12,
-                          }}
-                        >
-                          {[
-                            {
-                              label: "Khóa học",
-                              value: paymentDetail.course_title ?? "—",
-                            },
-                            {
-                              label: "Số tiền",
-                              value: formatPrice(paymentDetail.amount, "VND"),
-                            },
-                            {
-                              label: "Trạng thái",
-                              value:
-                                PAYMENT_STATUS_LABEL[paymentDetail.status] ??
-                                paymentDetail.status ??
-                                "—",
-                            },
-                            {
-                              label: "Ngày",
-                              value: paymentDetail.created_at
-                                ? new Date(
-                                    paymentDetail.created_at,
-                                  ).toLocaleString("vi-VN")
-                                : "—",
-                            },
-                            {
-                              label: "Phương thức",
-                              value: paymentDetail.method || "—",
-                            },
-                            {
-                              label: "Mã GD",
-                              value:
-                                paymentDetail.ref_code ||
-                                paymentDetail.id ||
-                                "—",
-                            },
-                          ].map((item) => (
-                            <div key={item.label} className="cm-detail-row">
-                              <span className="cm-detail-row__label">
-                                {item.label}
-                              </span>
-                              <span className="cm-detail-row__value">
-                                {item.value}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="cm-footer">
-                      {paymentDetail?.status === "success" &&
-                        !paymentDetail?.refund_requested_once && (
-                          <button
-                            className="cm-btn"
-                            style={{ color: "#e07a5f", marginRight: "auto" }}
-                            onClick={() => {
-                              closePaymentDetail();
-                              openRefundModal(paymentDetail);
-                            }}
-                          >
-                            Yêu cầu hoàn tiền
-                          </button>
-                        )}
-                      {paymentDetail?.status === "success" &&
-                        paymentDetail?.refund_requested_once && (
-                          <span
-                            style={{
-                              color: "var(--color-text-secondary)",
-                              fontSize: 13,
-                              marginRight: "auto",
-                            }}
-                          >
-                            Đã dùng quyền hoàn tiền
-                          </span>
-                        )}
-                      <button
-                        className="cm-btn cm-btn--cancel"
-                        onClick={closePaymentDetail}
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -1313,14 +1202,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
               {/* Thông tin cơ bản */}
               <div className="id-form-card">
-                <div
-                  className="id-form-card__title-row"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
+                <div className="id-form-card__title-row">
                   <h3 className="id-form-card__title">Thông tin cơ bản</h3>
                   {!studentEditing ? (
                     <button
@@ -1330,7 +1212,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       Chỉnh sửa
                     </button>
                   ) : (
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div className="id-form-card__edit-actions">
                       <button
                         className="id-btn-primary"
                         onClick={async () => {
@@ -1562,37 +1444,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   </div>
                 </div>
                 {errors.currentPassword && (
-                  <p
-                    style={{
-                      color: "#ff6b6b",
-                      fontSize: 13,
-                      margin: "4px 0 8px",
-                    }}
-                  >
-                    ⚠ {errors.currentPassword}
-                  </p>
+                  <p className="form-error">⚠ {errors.currentPassword}</p>
                 )}
                 {errors.newPassword && (
-                  <p
-                    style={{
-                      color: "#ff6b6b",
-                      fontSize: 13,
-                      margin: "4px 0 8px",
-                    }}
-                  >
-                    ⚠ {errors.newPassword}
-                  </p>
+                  <p className="form-error">⚠ {errors.newPassword}</p>
                 )}
                 {errors.confirmPassword && (
-                  <p
-                    style={{
-                      color: "#ff6b6b",
-                      fontSize: 13,
-                      margin: "4px 0 8px",
-                    }}
-                  >
-                    ⚠ {errors.confirmPassword}
-                  </p>
+                  <p className="form-error">⚠ {errors.confirmPassword}</p>
                 )}
                 <div className="id-form-actions">
                   <button
@@ -1619,9 +1477,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </p>
               </div>
               {!loadingQuizAttempts && quizAttempts.length > 0 && (
-                <div className="quizzes-container">
+                <div className="quizzes-filter-bar">
                   <select
-                    className="id-field__input"
+                    className="quiz-filter-select"
                     value={quizSortCourse}
                     onChange={(e) => setQuizSortCourse(e.target.value)}
                   >
@@ -1642,7 +1500,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       ))}
                   </select>
                   <select
-                    className="id-field__input"
+                    className="quiz-filter-select"
                     value={quizSortResult}
                     onChange={(e) => setQuizSortResult(e.target.value as any)}
                   >
@@ -1685,11 +1543,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                             <tr>
                               <td
                                 colSpan={7}
-                                style={{
-                                  textAlign: "center",
-                                  padding: "2rem",
-                                  color: "var(--color-text-secondary)",
-                                }}
+                                className="ad-table__empty-cell"
                               >
                                 {quizAttempts.length === 0
                                   ? "🔍 Chưa có lần kiểm tra nào."
@@ -1891,15 +1745,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               {loadingCerts ? (
                 <div className="id-form-card">
-                  <p
-                    style={{
-                      textAlign: "center",
-                      color: "var(--color-text-secondary)",
-                      padding: "2rem",
-                    }}
-                  >
-                    ⏳ Đang tải…
-                  </p>
+                  <p className="table-loading-text">⏳ Đang tải…</p>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -1924,10 +1770,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       ) : (
                         certificates.map((cert) => (
                           <tr key={cert.id}>
-                            <td>
-                              <span style={{ fontWeight: 600 }}>
-                                {cert.course_title}
-                              </span>
+                            <td className="cert-course-title">
+                              {cert.course_title}
                             </td>
                             <td>
                               <strong>{cert.cert_number}</strong>
@@ -1941,7 +1785,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                             </td>
                             <td>
                               <span className="db-cert__badge">
-                                ✓ Hoàn thành
+                                Hoàn thành
                               </span>
                             </td>
                           </tr>
@@ -1969,27 +1813,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               ) : (
                 <>
                   {/* Số dư + nút toggle */}
-                  <div className="id-form-card" style={{ marginBottom: 16 }}>
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--color-text-secondary)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Số dư hiện tại
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 28,
-                        fontWeight: 700,
-                        color: "#4caf82",
-                        marginBottom: 12,
-                      }}
-                    >
+                  <div className="id-form-card wallet-balance-card">
+                    <p className="wallet-balance-label">Số dư hiện tại</p>
+                    <p className="wallet-balance-amount">
                       {formatPrice(wallet?.balance ?? 0, "VND")}
                     </p>
-                    <div style={{ display: "flex", gap: 10 }}>
+                    <div className="wallet-action-btns">
                       <button
                         className={
                           walletPanel === "deposit"
@@ -2023,20 +1852,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
                   {/* Panel Nạp tiền */}
                   {walletPanel === "deposit" && (
-                    <div className="id-form-card" style={{ marginBottom: 16 }}>
+                    <div className="id-form-card wallet-panel-card">
                       <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          alignItems: "flex-end",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div
-                          className="id-field"
-                          style={{ flex: 1, minWidth: 200, marginBottom: 0 }}
-                        >
+                      <div className="wallet-deposit-row">
+                        <div className="id-field wallet-deposit-input">
                           <label className="id-field__label">
                             Số tiền (VNĐ)
                           </label>
@@ -2054,21 +1873,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                           />
                         </div>
                         <button
-                          className="id-btn-primary"
+                          className="id-btn-primary wallet-deposit-btn"
                           onClick={handleDeposit}
                           disabled={depositing}
                         >
                           {depositing ? "Đang nạp…" : "Nạp tiền"}
                         </button>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          marginTop: 10,
-                          flexWrap: "wrap",
-                        }}
-                      >
+                      <div className="wallet-quick-amounts">
                         {[50000, 100000, 200000, 500000].map((v) => (
                           <button
                             key={v}
@@ -2084,24 +1896,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         ))}
                       </div>
                       {walletError && (
-                        <p
-                          style={{
-                            color: "#e05c5c",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
-                        >
+                        <p className="wallet-msg wallet-msg--err">
                           ⚠ {walletError}
                         </p>
                       )}
                       {walletSuccess && (
-                        <p
-                          style={{
-                            color: "#4caf82",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
-                        >
+                        <p className="wallet-msg wallet-msg--ok">
                           ✓ {walletSuccess}
                         </p>
                       )}
@@ -2110,7 +1910,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
                   {/* Panel Rút tiền */}
                   {walletPanel === "withdraw" && (
-                    <div className="id-form-card" style={{ marginBottom: 16 }}>
+                    <div className="id-form-card wallet-panel-card">
                       <h3 className="id-form-card__title">Rút tiền</h3>
                       <div className="id-form-grid">
                         <div className="id-field">
@@ -2183,24 +1983,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         </div>
                       </div>
                       {withdrawError && (
-                        <p
-                          style={{
-                            color: "#e05c5c",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
-                        >
+                        <p className="wallet-msg wallet-msg--err">
                           ⚠ {withdrawError}
                         </p>
                       )}
                       {withdrawSuccess && (
-                        <p
-                          style={{
-                            color: "#4caf82",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
-                        >
+                        <p className="wallet-msg wallet-msg--ok">
                           ✓ {withdrawSuccess}
                         </p>
                       )}
@@ -2222,10 +2010,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     {walletTxs.length === 0 ? (
                       <p className="db-muted">Chưa có giao dịch nào.</p>
                     ) : (
-                      <div
-                        className="ad-table-wrap"
-                        style={{ border: "none", marginTop: 12 }}
-                      >
+                      <div className="ad-table-wrap wallet-tx-table">
                         <table className="ad-table">
                           <thead>
                             <tr>
@@ -2241,28 +2026,17 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                               <tr key={tx.id}>
                                 <td>
                                   <span
-                                    style={{
-                                      fontSize: 12,
-                                      padding: "2px 8px",
-                                      borderRadius: 5,
-                                      background:
-                                        tx.amount > 0
-                                          ? "rgba(76,175,130,0.15)"
-                                          : "rgba(224,92,92,0.15)",
-                                      color:
-                                        tx.amount > 0 ? "#4caf82" : "#e05c5c",
-                                      border: `0.5px solid ${tx.amount > 0 ? "rgba(76,175,130,0.3)" : "rgba(224,92,92,0.3)"}`,
-                                    }}
+                                    className={`wallet-tx-type ${tx.amount > 0 ? "wallet-tx-type--in" : "wallet-tx-type--out"}`}
                                   >
                                     {tx.tx_type_display ?? tx.tx_type}
                                   </span>
                                 </td>
                                 <td
-                                  style={{
-                                    fontWeight: 600,
-                                    color:
-                                      tx.amount > 0 ? "#4caf82" : "#e05c5c",
-                                  }}
+                                  className={
+                                    tx.amount > 0
+                                      ? "wallet-tx-amount--in"
+                                      : "wallet-tx-amount--out"
+                                  }
                                 >
                                   {tx.amount > 0 ? "+" : ""}
                                   {formatPrice(tx.amount, "VND")}
@@ -2311,13 +2085,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </button>
             </div>
             <div className="modal__body">
-              <p style={{ marginBottom: "0.5rem" }}>
+              <p className="refund-modal__line">
                 Khóa học: <strong>{refundTarget.course_title}</strong>
               </p>
-              <p style={{ marginBottom: "1rem" }}>
+              <p className="refund-modal__line">
                 Giá: <strong>{formatPrice(refundTarget.amount)}</strong>
               </p>
-              <p style={{ marginBottom: "1rem" }}>
+              <p className="refund-modal__line refund-modal__line--highlight">
                 Số tiền được hoàn:{" "}
                 <strong>
                   {formatPrice(Math.round((refundTarget.amount ?? 0) * 0.7))}
@@ -2325,20 +2099,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </p>
               <label className="db-field__label">Lý do hoàn tiền *</label>
               <textarea
-                className="db-input db-input--textarea"
+                className="db-input db-input--textarea refund-modal__textarea"
                 rows={4}
                 placeholder="Mô tả lý do bạn muốn hoàn tiền…"
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
-                style={{ marginTop: "0.4rem", marginBottom: "1rem" }}
               />
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.75rem",
-                  justifyContent: "flex-end",
-                }}
-              >
+              <div className="refund-modal__actions">
                 <button
                   className="btn btn--ghost"
                   onClick={() => setRefundTarget(null)}
