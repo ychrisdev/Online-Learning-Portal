@@ -1123,3 +1123,102 @@ select.db-input {
   display: inline-block;
   padding: 0.5cm;
 }
+.payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0; /* tăng khoảng cách giống hình 2 */
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.payment-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.payment-date {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: 3px;
+}
+
+.payment-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4caf82;
+}
+/* CARD CHA */
+.payment-card {
+  border-radius: 12px;
+  overflow: hidden; /* để header + body liền nhau */
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* HEADER (giữ màu xanh như bạn đang có) */
+.payment-card-header {
+  background: #1f2a3a; /* giống hiện tại */
+  padding: 16px;
+}
+
+.payment-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* BODY (nền đen giống khóa học) */
+.payment-card-body {
+  background: #0f172a; /* nền đen/xanh đậm */
+  padding: 0 16px;
+}
+
+/* ITEM */
+.payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* bỏ border dòng cuối */
+.payment-item:last-child {
+  border-bottom: none;
+}
+/* CARD */
+.payment-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* HEADER có nền */
+.payment-card-header {
+  background: #1f2a3a; /* giữ màu hiện tại */
+  padding: 16px;
+}
+
+/* BODY KHÔNG nền */
+.payment-card-body {
+  background: transparent; /* QUAN TRỌNG */
+  padding: 0 16px;
+}
+
+/* ITEM */
+.payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.payment-item:last-child {
+  border-bottom: none;
+}
+.payment-card-header h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.6); /* giống KHÓA HỌC */
+  font-weight: 600;
+}

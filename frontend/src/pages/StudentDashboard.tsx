@@ -828,39 +828,30 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               {/* Thanh toán gần đây */}
               {!loadingPayments &&
                 payments.filter((p) => p.status === "success").length > 0 && (
-                  <div className="id-form-card" style={{ marginTop: 16 }}>
-                    <h3 className="id-form-card__title">Giao dịch gần đây</h3>
-                    <div style={{ marginTop: 12 }}>
+                <div className="payment-card" style={{ marginTop: 16 }}>
+                  {/* HEADER */}
+                  <div className="payment-card-header">
+                    <h3>Giao dịch gần đây</h3>
+                  </div>
+
+                  {/* BODY */}
+                  <div className="payment-card-body">
                       {payments
                         .filter((p) => p.status === "success")
                         .slice(0, 3)
                         .map((p) => (
                           <div
                             key={p.id}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "8px 0",
-                              borderBottom:
-                                "0.5px solid rgba(255,255,255,0.06)",
-                            }}
+                             className="payment-item"
                           >
                             <div>
                               <div
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 500,
-                                  color: "var(--color-text-primary)",
-                                }}
+                               className="payment-title"
                               >
                                 {p.course_title}
                               </div>
                               <div
-                                style={{
-                                  fontSize: 12,
-                                  color: "var(--color-text-secondary)",
-                                }}
+                                className="payment-date"
                               >
                                 {p.created_at
                                   ? new Date(p.created_at).toLocaleDateString(
@@ -869,15 +860,18 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                   : "—"}
                               </div>
                             </div>
-                            <span
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                                color: "#4caf82",
-                              }}
-                            >
+                            <div className="payment-right">
+                            <span className="payment-price">
                               {formatPrice(p.amount, "VND")}
                             </span>
+
+                            <button
+                              className="btn-view"
+                              onClick={() => console.log("xem chi tiet", p.id)}
+                            >
+                              Xem
+                            </button>
+                          </div>
                           </div>
                         ))}
                       <button
