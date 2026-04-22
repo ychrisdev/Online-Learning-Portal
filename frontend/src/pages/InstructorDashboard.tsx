@@ -2288,12 +2288,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <img
                   src={avatarUrl}
                   alt="avatar"
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                  }}
+                  className="id-profile__avatar-img"
                 />
               ) : (
                 <svg viewBox="0 0 64 64" fill="none">
@@ -2505,11 +2500,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               <div className="id-form-card">
                 <div
                   className="id-form-card__title-row"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
                 >
                   <h3 className="id-form-card__title">Thông tin cơ bản</h3>
                   {!profileEditing ? (
@@ -2520,7 +2510,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       Chỉnh sửa
                     </button>
                   ) : (
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div className="id-btn-group">
                       <button
                         className="id-btn-primary"
                         onClick={handleProfileSave}
@@ -6681,22 +6671,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             {refundShortage?.id === r.id && (
                               <tr>
                                 <td colSpan={5}>
-                                  <div
-                                    style={{
-                                      padding: "10px 14px",
-                                      borderRadius: 8,
-                                      margin: "4px 0",
-                                      background: "rgba(224,92,92,0.1)",
-                                      border: "1px solid rgba(224,92,92,0.3)",
-                                    }}
-                                  >
-                                    <p
-                                      style={{
-                                        color: "var(--color-text-secondary)",
-                                        fontSize: 12,
-                                        margin: "4px 0 0",
-                                      }}
-                                    >
+                                  <div 
+                                    className="id-refund-warning">
+                                    <p className="id-refund-warning__text">
                                       Hạn chót:{" "}
                                       {refundShortage.deadline
                                         ? new Date(
@@ -6729,25 +6706,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
           {/* ── Toast ── */}
           {toast && (
-            <div
-              style={{
-                position: "fixed",
-                bottom: 28,
-                right: 28,
-                zIndex: 9999,
-                padding: "12px 20px",
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 500,
-                boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-                background:
-                  toast.type === "success"
-                    ? "rgba(76,175,130,0.95)"
-                    : "rgba(224,92,92,0.95)",
-                color: "#fff",
-                animation: "fadeInUp 0.2s ease",
-              }}
-            >
+            <div className={`id-toast id-toast--${toast.type}`}>
               {toast.msg}
             </div>
           )}

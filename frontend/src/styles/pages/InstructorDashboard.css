@@ -12,6 +12,7 @@
   grid-template-columns: 220px 1fr;
   gap: var(--space-8);
   align-items: start;
+   min-width: 0;
 }
 /* ── Sidebar ─────────────────────────────────────────────────── */
 .id-sidebar {
@@ -20,6 +21,9 @@
   gap: var(--space-2);
   position: sticky;
   top: calc(var(--navbar-height) + var(--space-4));
+  max-height: calc(100vh - var(--navbar-height, 64px) - 2rem);
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 .id-profile {
   display: flex;
@@ -87,6 +91,7 @@
   background: rgba(65, 90, 119, 0.3);
   color: #e0e1dd;
   font-weight: var(--fw-semibold);
+  box-shadow: inset 3px 0 0 #5b8dee;
 }
 .id-nav__item--back {
   color: rgba(224, 225, 221, 0.35);
@@ -102,6 +107,7 @@
 /* ── Main content ────────────────────────────────────────────── */
 .id-main {
   min-width: 0;
+  overflow-x: hidden; 
 }
 .id-content {
   display: flex;
@@ -134,7 +140,7 @@
 /* ── Stat cards ──────────────────────────────────────────────── */
 .id-stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-4);
 }
 .id-stat-card {
@@ -168,6 +174,7 @@
   border: 1px solid rgba(119, 141, 169, 0.15);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
+  overflow: hidden; 
 }
 .id-chart-card__header {
   display: flex;
@@ -395,6 +402,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);
+  min-width: 500px;
 }
 .id-table thead tr {
   background: #1b263b;
@@ -713,7 +721,12 @@
     min-width: 80px;
     justify-content: center;
     text-align: center;
+    box-shadow: none;
   }
+  .id-nav__item--active {
+  box-shadow: inset 0 -3px 0 #5b8dee; 
+  }
+
   .id-profile {
     flex-direction: row;
     text-align: left;
@@ -742,6 +755,63 @@
     align-items: flex-start;
   }
 }
+/* ── Toast notification ──────────────────────────────────── */
+.id-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  animation: id-fadeInUp 0.2s ease;
+  pointer-events: none;
+}
+.id-toast--success {
+  background: rgba(76, 175, 130, 0.95);
+}
+.id-toast--error {
+  background: rgba(224, 92, 92, 0.95);
+}
+@keyframes id-fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Button group ────────────────────────────────────────── */
+.id-btn-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  flex-wrap: wrap;
+}
+
+/* ── Form card title row ─────────────────────────────────── */
+.id-form-card__title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+  flex-wrap: wrap;
+}
+
+/* ── Refund shortage warning ─────────────────────────────── */
+.id-refund-warning {
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 4px 0;
+  background: rgba(224, 92, 92, 0.1);
+  border: 1px solid rgba(224, 92, 92, 0.3);
+}
+.id-refund-warning__text {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
 
 .ad-review-badge--reported {
   background: rgba(239, 68, 68, 0.15);
