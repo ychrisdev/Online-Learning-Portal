@@ -274,7 +274,7 @@
   border-radius: var(--radius-lg);
   border: 1px solid rgba(119, 141, 169, 0.15);
 }
-.ad-table { 
+.ad-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);
@@ -308,6 +308,11 @@
   padding: var(--space-3) var(--space-4);
   color: rgba(224, 225, 221, 0.7);
   vertical-align: middle;
+}
+.ad-table td:first-child,
+.ad-table td .ad-user-cell,
+.ad-table td .ad-table__title {
+  text-align: left;
 }
 .ad-table__title {
   color: #e0e1dd;
@@ -355,7 +360,9 @@
 .ad-table--users th:nth-child(5),
 .ad-table--users td:nth-child(3),
 .ad-table--users td:nth-child(4),
-.ad-table--users td:nth-child(5) { text-align: center; }
+.ad-table--users td:nth-child(5) {
+  text-align: center;
+}
 
 .ad-table--courses td:nth-child(2),
 .ad-table--courses td:nth-child(3),
@@ -370,37 +377,60 @@
 }
 
 /* ── Sections table ── */
-.ad-table--sections th:nth-child(1) { width: 7%;  } /* STT */
-.ad-table--sections th:nth-child(2) { width: 28%; } /* Tên chương */
-.ad-table--sections th:nth-child(3) { width: 30%; } /* Khóa học */
-.ad-table--sections th:nth-child(4) { width: 20%; } /* Mô tả */
-.ad-table--sections th:nth-child(5) { width: 15%; } /* Thao tác */
+.ad-table--sections th:nth-child(1) {
+  width: 7%;
+} /* STT */
+.ad-table--sections th:nth-child(2) {
+  width: 28%;
+} /* Tên chương */
+.ad-table--sections th:nth-child(3) {
+  width: 30%;
+} /* Khóa học */
+.ad-table--sections th:nth-child(4) {
+  width: 20%;
+} /* Mô tả */
+.ad-table--sections th:nth-child(5) {
+  width: 15%;
+} /* Thao tác */
 .ad-table--sections td:nth-child(1),
-.ad-table--sections td:nth-child(5) { text-align: center; }
+.ad-table--sections td:nth-child(2),
+.ad-table--sections td:nth-child(5) {
+  text-align: center;
+}
 
 /* ── Lessons table ── */
-.ad-table--lessons th:nth-child(1),
+.ad-table--lessons th:nth-child(2),
 .ad-table--lessons th:nth-child(3),
-.ad-table--lessons th:nth-child(4),
-.ad-table--lessons th:nth-child(5),
-.ad-table--lessons td:nth-child(1),
-.ad-table--lessons td:nth-child(3),
-.ad-table--lessons td:nth-child(4),
-.ad-table--lessons td:nth-child(5) {
+.ad-table--lessons td:nth-child(2),
+.ad-table--lessons td:nth-child(3) {
   text-align: center;
 }
 
 /* ── Quizzes table ── */
-.ad-table--quizzes th:nth-child(1) { width: 22%; }  /* Tên bài KT */
-.ad-table--quizzes th:nth-child(2) { width: 22%; }  /* Bài học */
-.ad-table--quizzes th:nth-child(3) { width: 10%; }  /* Điểm đạt */
-.ad-table--quizzes th:nth-child(4) { width: 13%; }  /* Thời gian */
-.ad-table--quizzes th:nth-child(5) { width: 12%; }  /* Câu hỏi */
-.ad-table--quizzes th:nth-child(6) { width: 21%; }  /* Thao tác */
+.ad-table--quizzes th:nth-child(1) {
+  width: 22%;
+} /* Tên bài KT */
+.ad-table--quizzes th:nth-child(2) {
+  width: 22%;
+} /* Bài học */
+.ad-table--quizzes th:nth-child(3) {
+  width: 10%;
+} /* Điểm đạt */
+.ad-table--quizzes th:nth-child(4) {
+  width: 13%;
+} /* Thời gian */
+.ad-table--quizzes th:nth-child(5) {
+  width: 12%;
+} /* Câu hỏi */
+.ad-table--quizzes th:nth-child(6) {
+  width: 21%;
+} /* Thao tác */
 .ad-table--quizzes td:nth-child(3),
 .ad-table--quizzes td:nth-child(4),
 .ad-table--quizzes td:nth-child(5),
-.ad-table--quizzes td:nth-child(6) { text-align: center; }
+.ad-table--quizzes td:nth-child(6) {
+  text-align: center;
+}
 
 /* ── Enrollments table ── */
 .ad-table--enrollments {
@@ -431,27 +461,55 @@
 }
 
 /* ── Categories table ── */
-.ad-table--categories th:nth-child(1) { width: 5%;  }  /* # */
-.ad-table--categories th:nth-child(2) { width: 18%; }  /* Tên */
-.ad-table--categories th:nth-child(3) { width: 30%; }  /* Mô tả */
-.ad-table--categories th:nth-child(4) { width: 12%; }  /* Số KH */
-.ad-table--categories th:nth-child(5) { width: 10%; }  /* Ghim */
-.ad-table--categories th:nth-child(6) { width: 10%; }  /* Thứ tự */
-.ad-table--categories th:nth-child(7) { width: 15%; }  /* Thao tác */
+.ad-table--categories th:nth-child(1) {
+  width: 5%;
+} /* # */
+.ad-table--categories th:nth-child(2) {
+  width: 18%;
+} /* Tên */
+.ad-table--categories th:nth-child(3) {
+  width: 30%;
+} /* Mô tả */
+.ad-table--categories th:nth-child(4) {
+  width: 12%;
+} /* Số KH */
+.ad-table--categories th:nth-child(5) {
+  width: 10%;
+} /* Ghim */
+.ad-table--categories th:nth-child(6) {
+  width: 10%;
+} /* Thứ tự */
+.ad-table--categories th:nth-child(7) {
+  width: 15%;
+} /* Thao tác */
 .ad-table--categories td:nth-child(1),
 .ad-table--categories td:nth-child(2),
 .ad-table--categories td:nth-child(4),
 .ad-table--categories td:nth-child(5),
 .ad-table--categories td:nth-child(6),
-.ad-table--categories td:nth-child(7) { text-align: center; }
+.ad-table--categories td:nth-child(7) {
+  text-align: center;
+}
 
 /* ── Payments table ── */
-.ad-table--payments th:nth-child(1) { width: 22%; } /* Người dùng */
-.ad-table--payments th:nth-child(2) { width: 20%; } /* Khóa học */
-.ad-table--payments th:nth-child(3) { width: 13%; } /* Số tiền */
-.ad-table--payments th:nth-child(4) { width: 12%; } /* Ngày (GIẢM) */
-.ad-table--payments th:nth-child(5) { width: 13%; } /* Trạng thái */
-.ad-table--payments th:nth-child(6) { width: 20%; } /* Thao tác (TĂNG) */
+.ad-table--payments th:nth-child(1) {
+  width: 22%;
+} /* Người dùng */
+.ad-table--payments th:nth-child(2) {
+  width: 20%;
+} /* Khóa học */
+.ad-table--payments th:nth-child(3) {
+  width: 13%;
+} /* Số tiền */
+.ad-table--payments th:nth-child(4) {
+  width: 12%;
+} /* Ngày (GIẢM) */
+.ad-table--payments th:nth-child(5) {
+  width: 13%;
+} /* Trạng thái */
+.ad-table--payments th:nth-child(6) {
+  width: 20%;
+} /* Thao tác (TĂNG) */
 
 .ad-table--payments th:nth-child(2),
 .ad-table--payments th:nth-child(3),
@@ -483,30 +541,62 @@
 }
 
 /* ── Reviews table ── */
-.ad-table--reviews th:nth-child(1) { width: 18%; }  /* Học viên */
-.ad-table--reviews th:nth-child(2) { width: 22%; }  /* Khóa học */
-.ad-table--reviews th:nth-child(3) { width: 10%; }  /* Số sao */
-.ad-table--reviews th:nth-child(4) { width: 25%; }  /* Nhận xét */
-.ad-table--reviews th:nth-child(5) { width: 10%; }  /* Trạng thái */
-.ad-table--reviews th:nth-child(6) { width: 15%; }  /* Thao tác */
+.ad-table--reviews th:nth-child(1) {
+  width: 18%;
+} /* Học viên */
+.ad-table--reviews th:nth-child(2) {
+  width: 22%;
+} /* Khóa học */
+.ad-table--reviews th:nth-child(3) {
+  width: 10%;
+} /* Số sao */
+.ad-table--reviews th:nth-child(4) {
+  width: 25%;
+} /* Nhận xét */
+.ad-table--reviews th:nth-child(5) {
+  width: 10%;
+} /* Trạng thái */
+.ad-table--reviews th:nth-child(6) {
+  width: 15%;
+} /* Thao tác */
 .ad-table--reviews td:nth-child(3),
 .ad-table--reviews td:nth-child(4),
 .ad-table--reviews td:nth-child(5),
-.ad-table--reviews td:nth-child(6) { text-align: center; }
+.ad-table--reviews td:nth-child(6) {
+  text-align: center;
+}
 
 /* ── Attempts table (modal) ── */
-.ad-table--attempts th:nth-child(1) { width: 6%;  }  /* STT */
-.ad-table--attempts th:nth-child(2) { width: 22%; }  /* Học viên */
-.ad-table--attempts th:nth-child(3) { width: 8%;  }  /* Điểm */
-.ad-table--attempts th:nth-child(4) { width: 10%; }  /* Kết quả */
-.ad-table--attempts th:nth-child(5) { width: 16%; }  /* Bắt đầu */
-.ad-table--attempts th:nth-child(6) { width: 16%; }  /* Nộp bài */
-.ad-table--attempts th:nth-child(7) { width: 14%; }  /* Thời gian làm */
-.ad-table--attempts th:nth-child(8) { width: 8%;  }  /* Chi tiết */
+.ad-table--attempts th:nth-child(1) {
+  width: 6%;
+} /* STT */
+.ad-table--attempts th:nth-child(2) {
+  width: 22%;
+} /* Học viên */
+.ad-table--attempts th:nth-child(3) {
+  width: 8%;
+} /* Điểm */
+.ad-table--attempts th:nth-child(4) {
+  width: 10%;
+} /* Kết quả */
+.ad-table--attempts th:nth-child(5) {
+  width: 16%;
+} /* Bắt đầu */
+.ad-table--attempts th:nth-child(6) {
+  width: 16%;
+} /* Nộp bài */
+.ad-table--attempts th:nth-child(7) {
+  width: 14%;
+} /* Thời gian làm */
+.ad-table--attempts th:nth-child(8) {
+  width: 8%;
+} /* Chi tiết */
 .ad-table--attempts td:nth-child(1),
 .ad-table--attempts td:nth-child(3),
 .ad-table--attempts td:nth-child(4),
-.ad-table--attempts td:nth-child(8) { text-align: center; }
+.ad-table--attempts td:nth-child(8) {
+  text-align: center;
+}
 
 /* ── Nút thao tác trong bảng: không wrap, căn giữa ── */
 .ad-table .ad-actions {
@@ -669,7 +759,7 @@
   gap: 6px;
   flex-wrap: wrap;
 }
-.viewhid-btn{
+.viewhid-btn {
   background-color: none;
   border: none;
   color: #5ba4de;
@@ -677,7 +767,7 @@
   font-size: 1em;
 }
 
-.ad-btn-sm{
+.ad-btn-sm {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -704,6 +794,9 @@
   background: rgba(65, 90, 119, 0.18);
   color: rgba(224, 225, 221, 0.65);
   border: 0.5px solid rgba(119, 141, 169, 0.2);
+  min-width: 64px;
+  text-align: center;
+  justify-content: center;
 }
 .ad-btn-sm:hover {
   background: rgba(65, 90, 119, 0.35);
@@ -932,9 +1025,9 @@
 }
 
 .filter-clear {
-  padding: 5px 12px;
+  padding: 8px 12px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 13px;
   font-family: var(--font-body);
   background: rgba(224, 122, 95, 0.08);
   color: rgba(224, 122, 95, 0.7);
@@ -1410,6 +1503,7 @@
   background: rgba(255, 255, 255, 0.05);
   color: rgba(229, 232, 240, 0.5);
   border: 0.5px solid rgba(255, 255, 255, 0.1);
+  margin-left: auto;
 }
 .cm-btn--cancel:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.09);
@@ -1515,18 +1609,22 @@
 
 /* Cột Tên bài học cho phép wrap, không để tràn */
 .ad-table .ad-table__title {
-  display: block;
+  display: flex;
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin: 0 auto;
 }
 
 /* Cột Xem thử và Hành động không bị rớt dòng */
 .ad-actions {
   display: flex;
   gap: 6px;
-  flex-wrap: nowrap; /* ← sửa từ wrap thành nowrap */
+  flex-wrap: nowrap;
   align-items: center;
 }
 
@@ -2354,4 +2452,26 @@
 }
 .ad-edit-alert__more-btn:hover {
   color: #f5a623;
+}
+.ad-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Cột đầu (tên/user) căn trái */
+.ad-table td:first-child {
+  text-align: left;
+}
+
+/* Đồng đều kích thước nút */
+.ad-btn-sm {
+  min-width: 72px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.ad-actions {
+  justify-content: center;
+  flex-wrap: nowrap;
 }

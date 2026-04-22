@@ -9,6 +9,7 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model  = Category
         fields = ['id', 'name', 'slug', 'description', 'is_pinned', 'pin_order']
+        read_only_fields = ['id', 'slug']
 
     def validate_is_pinned(self, value):
         if not value:
@@ -21,6 +22,17 @@ class CategorySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Chỉ được ghim tối đa 6 danh mục ra trang chủ.')
         return value
 
+    def create(self, validated_data):
+        from django.utils.text import slugify
+        name      = validated_data.get('name', '')
+        base_slug = slugify(name) or 'category'
+        slug      = base_slug
+        counter   = 1
+        while Category.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        validated_data['slug'] = slug
+        return super().create(validated_data)
 
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:

@@ -189,7 +189,7 @@ class UserAdminSerializer(serializers.ModelSerializer):
             'role', 'is_active', 'date_joined',
             'student_profile', 'instructor_profile',
         ]
-        read_only_fields = ['id', 'email', 'avatar', 'bio', 'date_joined']
+        read_only_fields = ['id', 'avatar', 'bio', 'date_joined']
     
     def create(self, validated_data):
         password = validated_data.pop('password', None)

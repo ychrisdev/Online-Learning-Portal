@@ -29,21 +29,19 @@ from .serializers import (
 MAX_REVIEW_EDITS = 5
 MAX_REVIEWS_PER_USER = 3
 # ── Category ──────────────────────────────────────────────────────────────────
-class CategoryListView(generics.ListAPIView):
-    """
-    GET /api/courses/categories/
-    GET /api/courses/categories/?pinned=true  → chỉ lấy 6 danh mục được ghim, theo pin_order
-    """
-    serializer_class   = CategorySerializer
-    permission_classes = [AllowAny]
+class CategoryListView(generics.ListCreateAPIView):
+    serializer_class = CategorySerializer
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]
 
     def get_queryset(self):
         if self.request.query_params.get('pinned') == 'true':
             return Category.objects.filter(is_pinned=True).order_by('pin_order')
         return Category.objects.all().order_by('name')
 
-
-# ── Course (public) ───────────────────────────────────────────────────────────
 class CourseListView(generics.ListAPIView):
     serializer_class   = CourseListSerializer
     permission_classes = [AllowAny]
@@ -290,19 +288,13 @@ class AdminCourseListView(generics.ListCreateAPIView):
         return Course.objects.all().select_related('instructor').order_by('-created_at')
 
 
-class AdminCourseDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    GET    /api/courses/admin/<id>/  → load đủ data cho form edit
-    PATCH  /api/courses/admin/<id>/  → lưu chỉnh sửa
-    DELETE /api/courses/admin/<id>/  → xóa cứng
-    """
+class AdminCourseDetailView(generics.RetrieveAPIView):
     serializer_class   = CourseAdminSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     lookup_field       = 'id'
 
     def get_queryset(self):
         return Course.objects.all().select_related('instructor', 'category')
-
 
 class AdminCourseApproveView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -331,10 +323,14 @@ class AdminCourseArchiveView(APIView):
 
     def patch(self, request, id):
         course = generics.get_object_or_404(Course, id=id, status=Course.Status.PUBLISHED)
+        if course.enrollments.filter(status='active').exists():
+            return Response(
+                {'detail': 'Không thể ẩn khoá học khi có học viên đang học.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         course.status = Course.Status.ARCHIVED
         course.save()
         return Response({'message': f'Đã ẩn khoá học "{course.title}".'})
-
 
 class AdminCourseUnarchiveView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -355,7 +351,7 @@ class AdminSectionListCreateView(generics.ListCreateAPIView):
         return Section.objects.all().select_related('course').order_by('course', 'order_index')
 
 
-class AdminSectionDetailView(generics.RetrieveUpdateDestroyAPIView):
+class AdminSectionDetailView(generics.RetrieveAPIView):
     serializer_class   = SectionWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     lookup_field       = 'id'
@@ -365,7 +361,7 @@ class AdminSectionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # ── Admin — Lesson ────────────────────────────────────────────────────────────
-class AdminLessonListCreateView(generics.ListCreateAPIView):
+class AdminLessonListCreateView(generics.ListAPIView):
     serializer_class   = LessonWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
 
@@ -381,7 +377,7 @@ class AdminLessonListCreateView(generics.ListCreateAPIView):
         return qs
 
 
-class AdminLessonDetailView(generics.RetrieveUpdateDestroyAPIView):
+class AdminLessonDetailView(generics.RetrieveAPIView):
     serializer_class   = LessonWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     lookup_field       = 'id'

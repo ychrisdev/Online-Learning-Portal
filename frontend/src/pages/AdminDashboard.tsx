@@ -151,6 +151,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [saving, setSaving] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [modalFilterCourse, setModalFilterCourse] = useState("");
+  const [courseViewModal, setCourseViewModal] = useState(false);
+  const [viewingCourse, setViewingCourse] = useState<any>(null);
+
+  const openViewCourse = async (c: any) => {
+    setViewingCourse(c);
+    setCourseViewModal(true);
+    // Fetch chi tiết nếu cần
+    try {
+      const res = await fetch(`${API}/api/courses/admin/${c.id}/`, {
+        headers: authHeader(),
+      });
+      if (res.ok) setViewingCourse(await res.json());
+    } catch {}
+  };
 
   // ── Section state ────────────────────────────────────────────────────────────
   type SectionModalType = "add" | "edit" | "delete" | null;
@@ -219,6 +233,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [savingLesson, setSavingLesson] = useState(false);
   const [filterLessonSection, setFilterLessonSection] = useState("");
   const [filterLessonCourse, setFilterLessonCourse] = useState("");
+  const [lessonViewModal, setLessonViewModal] = useState(false);
+  const [viewingLesson, setViewingLesson] = useState<any>(null);
+
+  const openViewLesson = (l: any) => {
+    setViewingLesson(l);
+    setLessonViewModal(true);
+  };
 
   // ── Quiz state ────────────────────────────────────────────────────────────────
   type QuizModalType = "add" | "edit" | "delete" | null;
@@ -883,68 +904,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } catch {}
   };
 
-  // ── Course CRUD helpers ───────────────────────────────────────────────────
-  const openAdd = () => {
-    setCourseForm({ ...EMPTY_FORM });
-    setFormError("");
-    setSelectedCourse(null);
-    setCourseModal("add");
-  };
-
-  const openEdit = async (c: any) => {
-    setFormError("");
-    setSelectedCourse(c);
-    setCourseForm({ ...EMPTY_FORM, title: c.title ?? "" });
-    setCourseModal("edit");
-    setEditLoading(true);
-
-    try {
-      const res = await fetch(`${API}/api/courses/admin/${c.id}/`, {
-        headers: authHeader(),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = await res.json();
-
-      const categoryId =
-        typeof d.category === "object" && d.category !== null
-          ? (d.category.id ?? "")
-          : (d.category ?? "");
-
-      const instructorId =
-        typeof d.instructor === "object" && d.instructor !== null
-          ? (d.instructor.id ?? "")
-          : (d.instructor ?? "");
-
-      setCourseForm({
-        title: d.title ?? "",
-        description: d.description ?? "",
-        price: d.price ?? 0,
-        discount_percent: d.discount_percent ?? 0,
-        level: d.level ?? "beginner",
-        status: d.status ?? "draft",
-        category: String(categoryId),
-        instructor: String(instructorId),
-        requirements: d.requirements ?? "",
-        what_you_learn: d.what_you_learn ?? "",
-        thumbnail: null,
-        is_featured: Boolean(d.is_featured),
-        published_at: d.published_at
-          ? new Date(d.published_at).toISOString().slice(0, 16)
-          : "",
-      });
-      setSelectedCourse(d);
-    } catch (e: any) {
-      setFormError(`Không thể tải thông tin khóa học: ${e.message}`);
-    }
-    setEditLoading(false);
-  };
-
-  const openDelete = (c: any) => {
-    setSelectedCourse(c);
-    setFormError("");
-    setCourseModal("delete");
-  };
-
   const closeModal = () => {
     setCourseModal(null);
     setSelectedCourse(null);
@@ -1091,29 +1050,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSaving(false);
   };
 
-  // ── Section CRUD ──────────────────────────────────────────────────────────────
-  const openAddSection = () => {
-    setSectionForm({ ...EMPTY_SECTION, course: filterSectionCourse });
-    setSectionError("");
-    setSelectedSection(null);
-    setSectionModal("add");
-  };
-  const openEditSection = (s: any) => {
-    setSectionError("");
-    setSelectedSection(s);
-    setSectionForm({
-      title: s.title ?? "",
-      description: s.description ?? "",
-      order_index: s.order_index ?? 0,
-      course: String(s.course?.id ?? s.course ?? ""),
-    });
-    setSectionModal("edit");
-  };
-  const openDeleteSection = (s: any) => {
-    setSelectedSection(s);
-    setSectionError("");
-    setSectionModal("delete");
-  };
   const closeSectionModal = () => {
     setSectionModal(null);
     setSelectedSection(null);
@@ -1182,40 +1118,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSavingSection(false);
   };
 
-  // ── Lesson CRUD ───────────────────────────────────────────────────────────────
-  const openAddLesson = (sectionId = "") => {
-    setLessonForm({ ...EMPTY_LESSON, section: sectionId });
-    setLessonError("");
-    setSelectedLesson(null);
-    setLessonModal("add");
-  };
-  const openEditLesson = (l: any) => {
-    const sec = sections.find((s) => s.id === (l.section?.id ?? l.section));
-    setModalFilterCourse(String(sec?.course?.id ?? sec?.course ?? ""));
-    setLessonError("");
-    setSelectedLesson(l);
-    setLessonForm({
-      title: l.title ?? "",
-      section: String(l.section?.id ?? l.section ?? ""),
-      video_url: l.video_url ?? "",
-      video_file: null,
-      content: l.content ?? "",
-      attachment: null,
-      attachment_name: l.attachment_name ?? "",
-      order_index: l.order_index ?? 0,
-      is_preview_video: Boolean(l.is_preview_video),
-      is_preview_article: Boolean(l.is_preview_article),
-      is_preview_resource: Boolean(l.is_preview_resource),
-      existing_video_url: l.video_file ?? "", // ← URL video đã upload
-      existing_attachment: l.attachment ?? "", // ← URL file đính kèm cũ
-    });
-    setLessonModal("edit");
-  };
-  const openDeleteLesson = (l: any) => {
-    setSelectedLesson(l);
-    setLessonError("");
-    setLessonModal("delete");
-  };
   const closeLessonModal = () => {
     setLessonModal(null);
     setSelectedLesson(null);
@@ -1332,31 +1234,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSavingLesson(false);
   };
 
-  // ── Quizze CRUD ───────────────────────────────────────────────────────────────
-  const openAddQuiz = () => {
-    setQuizForm({ ...EMPTY_QUIZ });
-    setQuizError("");
-    setSelectedQuiz(null);
-    setQuizModal("add");
-  };
-  const openEditQuiz = (q: any) => {
-    setSelectedQuiz(q);
-    setQuizForm({
-      lesson: String(q.lesson?.id ?? q.lesson ?? ""),
-      title: q.title ?? "",
-      description: q.description ?? "",
-      pass_score: q.pass_score ?? 70,
-      time_limit: q.time_limit ?? 0,
-      max_attempts: q.max_attempts ?? 0,
-    });
-    setQuizError("");
-    setQuizModal("edit");
-  };
-  const openDeleteQuiz = (q: any) => {
-    setSelectedQuiz(q);
-    setQuizError("");
-    setQuizModal("delete");
-  };
   const closeQuizModal = () => {
     setQuizModal(null);
     setSelectedQuiz(null);
@@ -1424,37 +1301,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSavingQuiz(false);
   };
 
-  // ── Question CRUD ──
-  const openAddQuestion = (quizId: string) => {
-    setQuestionForm({ ...EMPTY_QUESTION });
-    setQuestionError("");
-    setSelectedQ(null);
-    setQuestionModal("add");
-    setExpandedQuizId(quizId);
-  };
-  const openEditQuestion = (q: any) => {
-    setSelectedQ(q);
-    setQuestionForm({
-      content: q.content ?? "",
-      question_type: q.question_type ?? "single",
-      points: q.points ?? 1,
-      explanation: q.explanation ?? "",
-      order_index: q.order_index ?? 0,
-      answers:
-        q.answers?.map((a: any) => ({
-          content: a.content ?? "",
-          is_correct: a.is_correct ?? false,
-          order_index: a.order_index ?? 0,
-        })) ?? [],
-    });
-    setQuestionError("");
-    setQuestionModal("edit");
-  };
-  const openDeleteQuestion = (q: any) => {
-    setSelectedQ(q);
-    setQuestionError("");
-    setQuestionModal("delete");
-  };
   const closeQuestionModal = () => {
     setQuestionModal(null);
     setSelectedQ(null);
@@ -1812,10 +1658,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box cm-box--sm">
             <div className="cm-header">
-              <h2 className="cm-title">
-                <span className="cm-title-icon cm-title-icon--del">🗑</span>
-                Xác nhận xóa khóa học
-              </h2>
+              <h2 className="cm-title">Xác nhận xóa khóa học</h2>
               <button className="cm-close" onClick={closeModal}>
                 ✕
               </button>
@@ -2189,6 +2032,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
     );
   };
+
   // ── Section modals ────────────────────────────────────────────────────────────
   const renderSectionModal = () => {
     if (!sectionModal) return null;
@@ -2202,10 +2046,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box cm-box--sm">
             <div className="cm-header">
-              <h2 className="cm-title">
-                <span className="cm-title-icon cm-title-icon--del">🗑</span>Xác
-                nhận xóa chương
-              </h2>
+              <h2 className="cm-title">Xác nhận xóa chương</h2>
               <button className="cm-close" onClick={closeSectionModal}>
                 ✕
               </button>
@@ -2345,6 +2186,123 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
   };
 
+  const renderLessonViewModal = () => {
+    if (!lessonViewModal || !viewingLesson) return null;
+
+    return (
+      <div
+        className="cm-overlay"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setLessonViewModal(false);
+            setViewingLesson(null);
+          }
+        }}
+      >
+        <div className="cm-box">
+          <div className="cm-header">
+            <h2 className="cm-title">Chi tiết bài học</h2>
+            <button
+              className="cm-close"
+              onClick={() => {
+                setLessonViewModal(false);
+                setViewingLesson(null);
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div className="cm-body cm-body--scroll">
+            {[
+              { label: "Tên bài học", value: viewingLesson.title ?? "—" },
+              { label: "Thứ tự", value: viewingLesson.order_index ?? "—" },
+              {
+                label: "Chương",
+                value:
+                  sections.find(
+                    (s) =>
+                      s.id ===
+                      (viewingLesson.section?.id ?? viewingLesson.section),
+                  )?.title ?? "—",
+              },
+              { label: "URL Video", value: viewingLesson.video_url || "—" },
+              {
+                label: "Xem thử video",
+                value: viewingLesson.is_preview_video ? "Có" : "Không",
+              },
+              {
+                label: "Xem thử bài viết",
+                value: viewingLesson.is_preview_article ? "Có" : "Không",
+              },
+              {
+                label: "Xem thử tài liệu",
+                value: viewingLesson.is_preview_resource ? "Có" : "Không",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "8px 0",
+                  borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+                  fontSize: 13,
+                }}
+              >
+                <span style={{ color: "var(--color-text-secondary)" }}>
+                  {item.label}
+                </span>
+                <span style={{ color: "#e0e1dd", fontWeight: 500 }}>
+                  {item.value}
+                </span>
+              </div>
+            ))}
+            {viewingLesson.content && (
+              <div style={{ marginTop: 12 }}>
+                <p
+                  style={{
+                    fontSize: 11,
+                    color: "rgba(224,225,221,0.38)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.07em",
+                    marginBottom: 6,
+                  }}
+                >
+                  Nội dung Markdown
+                </p>
+                <pre
+                  style={{
+                    fontSize: 12,
+                    color: "rgba(224,225,221,0.6)",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "0.5px solid rgba(255,255,255,0.07)",
+                    borderRadius: 8,
+                    padding: "10px 12px",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {viewingLesson.content}
+                </pre>
+              </div>
+            )}
+          </div>
+          <div className="cm-footer">
+            <button
+              className="cm-btn cm-btn--cancel"
+              onClick={() => {
+                setLessonViewModal(false);
+                setViewingLesson(null);
+              }}
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderConfirmModal = () => {
     if (!confirmModal) return null;
     const isApprove = confirmModal.type === "approve-refund";
@@ -2415,7 +2373,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return (
       <div className="ad-edit-alert">
         <div className="ad-edit-alert__header">
-          <span className="ad-edit-alert__icon">⚠</span>
           <span className="ad-edit-alert__title">
             Khóa học vừa được chỉnh sửa sau khi xuất bản
           </span>
@@ -2500,10 +2457,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box cm-box--sm">
             <div className="cm-header">
-              <h2 className="cm-title">
-                <span className="cm-title-icon cm-title-icon--del">🗑</span>Xác
-                nhận xóa bài học
-              </h2>
+              <h2 className="cm-title">Xác nhận xóa bài học</h2>
               <button className="cm-close" onClick={closeLessonModal}>
                 ✕
               </button>
@@ -2656,7 +2610,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* ── VIDEO ── */}
             <div className="cm-section-block">
               <div className="cm-section-block__header">
-                <span>🎬 Video</span>
+                <span>Video</span>
                 <label className="cm-checkbox-label">
                   <input
                     type="checkbox"
@@ -2740,7 +2694,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* ── MARKDOWN ── */}
             <div className="cm-section-block">
               <div className="cm-section-block__header">
-                <span>📝 Bài viết (Markdown)</span>
+                <span>Bài viết (Markdown)</span>
                 <label className="cm-checkbox-label">
                   <input
                     type="checkbox"
@@ -2771,7 +2725,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* ── TÀI LIỆU ── */}
             <div className="cm-section-block">
               <div className="cm-section-block__header">
-                <span>📎 Tài liệu đính kèm</span>
+                <span>Tài liệu đính kèm</span>
                 <label className="cm-checkbox-label">
                   <input
                     type="checkbox"
@@ -2898,10 +2852,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box cm-box--sm">
             <div className="cm-header">
-              <h2 className="cm-title">
-                <span className="cm-title-icon cm-title-icon--del">🗑</span>Xác
-                nhận xóa bài kiểm tra
-              </h2>
+              <h2 className="cm-title">Xác nhận xóa bài kiểm tra</h2>
               <button className="cm-close" onClick={closeQuizModal}>
                 ✕
               </button>
@@ -3095,10 +3046,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box cm-box--sm">
             <div className="cm-header">
-              <h2 className="cm-title">
-                <span className="cm-title-icon cm-title-icon--del">🗑</span>Xóa
-                câu hỏi
-              </h2>
+              <h2 className="cm-title">Xóa câu hỏi</h2>
               <button className="cm-close" onClick={closeQuestionModal}>
                 ✕
               </button>
@@ -3363,10 +3311,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box cm-box--sm">
             <div className="cm-header">
-              <h2 className="cm-title">
-                <span className="cm-title-icon cm-title-icon--del">🗑</span>Xóa
-                danh mục
-              </h2>
+              <h2 className="cm-title">Xóa danh mục</h2>
               <button className="cm-close" onClick={closeCategoryModal}>
                 ✕
               </button>
@@ -3967,7 +3912,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               fontStyle: "italic",
                             }}
                           >
-                            💡 {q.explanation}
+                            {q.explanation}
                           </p>
                         )}
                       </div>
@@ -3998,9 +3943,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     return null;
   };
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="ad-page">
       {renderModal()}
@@ -4011,6 +3953,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {renderAttemptModal()}
       {renderCategoryModal()}
       {renderConfirmModal()}
+      {renderLessonViewModal()}
       {userViewModal && selectedUser && (
         <div className="ad-modal-overlay" onClick={closeViewUser}>
           <div
@@ -4184,7 +4127,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="ad-modal__cert-meta">
                               <span>🎓 {cert.cert_number}</span>
                               <span>
-                                📅{" "}
+                                {" "}
                                 {cert.issued_at
                                   ? new Date(cert.issued_at).toLocaleDateString(
                                       "vi-VN",
@@ -4424,12 +4367,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             ))}
           </nav>
           <button
-            className="ad-nav__item ad-nav__item--back"
-            onClick={() => onNavigate("home")}
-          >
-            Về trang chủ
-          </button>
-          <button
             className="ad-nav__item ad-nav__item--danger"
             onClick={onLogout}
           >
@@ -4438,9 +4375,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </aside>
 
         <main className="ad-main">
-          {renderEditAlert()}
           {activeTab === "overview" && (
             <div className="ad-content">
+              {renderEditAlert()}
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Tổng quan hệ thống</h1>
                 <p className="ad-page-sub">
@@ -4862,9 +4799,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                   )}
                 </div>
-                <button className="ad-btn-add-course" onClick={openAdd}>
-                  ＋ Thêm khóa học
-                </button>
               </div>
 
               <div className="ad-table-wrap">
@@ -4928,35 +4862,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <td>
                               <div className="ad-actions">
                                 <button
-                                  className="ad-btn-sm ad-btn-sm--edit"
-                                  onClick={() => openEdit(c)}
+                                  className="ad-btn-sm ad-btn-sm--view"
+                                  onClick={() => openViewCourse(c)}
                                 >
-                                  Sửa
+                                  Xem
                                 </button>
-                                {c.status === "review" && (
-                                  <>
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--approve"
-                                      onClick={() => approveCourse(c.id)}
-                                    >
-                                      Duyệt
-                                    </button>
+                                {c.status === "published" &&
+                                  (c.total_students ?? 0) === 0 && (
                                     <button
                                       className="ad-btn-sm ad-btn-sm--ban"
-                                      onClick={() => rejectCourse(c.id)}
+                                      onClick={() => archiveCourse(c.id)}
                                     >
-                                      Từ chối
+                                      Ẩn
                                     </button>
-                                  </>
-                                )}
-                                {c.status === "published" && (
-                                  <button
-                                    className="ad-btn-sm ad-btn-sm--ban"
-                                    onClick={() => archiveCourse(c.id)}
-                                  >
-                                    Ẩn
-                                  </button>
-                                )}
+                                  )}
                                 {c.status === "archived" && (
                                   <button
                                     className="ad-btn-sm ad-btn-sm--restore"
@@ -4965,12 +4884,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     Hiện
                                   </button>
                                 )}
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--delete"
-                                  onClick={() => openDelete(c)}
-                                >
-                                  Xóa
-                                </button>
                               </div>
                             </td>
                           </tr>
@@ -5015,9 +4928,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                   )}
                 </div>
-                <button className="ad-btn-add-course" onClick={openAddSection}>
-                  ＋ Thêm chương
-                </button>
               </div>
               <div className="ad-table-wrap">
                 <table className="ad-table ad-table--sections">
@@ -5083,29 +4993,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {s.description || "—"}
                             </td>
                             <td>
-                              <div className="ad-actions">
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--edit"
-                                  onClick={() => openEditSection(s)}
-                                >
-                                  Sửa
-                                </button>
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--approve"
-                                  onClick={() => {
-                                    setFilterLessonSection(s.id);
-                                    setActiveTab("lessons");
-                                  }}
-                                >
-                                  Bài học
-                                </button>
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--delete"
-                                  onClick={() => openDeleteSection(s)}
-                                >
-                                  Xóa
-                                </button>
-                              </div>
+                              <button
+                                className="ad-btn-sm ad-btn-sm--view"
+                                onClick={() => {
+                                  setFilterLessonSection(s.id);
+                                  setActiveTab("lessons");
+                                }}
+                              >
+                                Xem bài học
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -5175,12 +5071,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                   )}
                 </div>
-                <button
-                  className="ad-btn-add-course"
-                  onClick={() => openAddLesson()}
-                >
-                  ＋ Thêm bài học
-                </button>
               </div>
               <div className="ad-table-wrap">
                 <table className="ad-table ad-table--lessons">
@@ -5189,21 +5079,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th>STT</th>
                       <th>Tên bài học</th>
                       <th>Chương</th>
-                      <th>Xem thử</th>
                       <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingLessons ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center" }}>
+                        <td colSpan={4} style={{ textAlign: "center" }}>
                           Đang tải…
                         </td>
                       </tr>
                     ) : lessons.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={4}
                           style={{
                             textAlign: "center",
                             padding: "2rem",
@@ -5228,31 +5117,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 (s) => s.id === (l.section?.id ?? l.section),
                               )?.title ?? "—"}
                             </td>
-                            <td style={{ textAlign: "center" }}>
-                              {l.is_preview_video ? "🎬" : ""}
-                              {l.is_preview_article ? "📝" : ""}
-                              {l.is_preview_resource ? "📎" : ""}
-                              {!l.is_preview_video &&
-                              !l.is_preview_article &&
-                              !l.is_preview_resource
-                                ? "—"
-                                : ""}
-                            </td>
                             <td>
-                              <div className="ad-actions">
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--edit"
-                                  onClick={() => openEditLesson(l)}
-                                >
-                                  Sửa
-                                </button>
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--delete"
-                                  onClick={() => openDeleteLesson(l)}
-                                >
-                                  Xóa
-                                </button>
-                              </div>
+                              <button
+                                className="ad-btn-sm ad-btn-sm--view"
+                                onClick={() => openViewLesson(l)}
+                              >
+                                Xem
+                              </button>
                             </td>
                           </tr>
                         );
@@ -5298,9 +5169,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </button>
                   )}
                 </div>
-                <button className="ad-btn-add-course" onClick={openAddQuiz}>
-                  ＋ Thêm bài kiểm tra
-                </button>
               </div>
               <div className="ad-table-wrap">
                 <table className="ad-table ad-table--quizzes">
@@ -5317,9 +5185,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingQuizzes ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center" }}>
-                          Đang tải…
-                        </td>
+                        <td colSpan={6}>Đang tải…</td>
                       </tr>
                     ) : quizzes.filter(
                         (q) =>
@@ -5377,10 +5243,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 <td>
                                   <div className="ad-actions">
                                     <button
-                                      className="ad-btn-sm ad-btn-sm--edit"
-                                      onClick={() => openEditQuiz(q)}
+                                      className="viewhid-btn"
+                                      onClick={() => {
+                                        if (isExpanded) {
+                                          setExpandedQuizId(null);
+                                        } else {
+                                          setExpandedQuizId(q.id);
+                                          fetchQuestions(q.id);
+                                        }
+                                      }}
                                     >
-                                      Sửa
+                                      {isExpanded ? "Ẩn" : "Xem câu hỏi"}
                                     </button>
                                     <button
                                       className="ad-btn-sm"
@@ -5391,22 +5264,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                       onClick={() => openAttemptList(q)}
                                     >
                                       Lịch sử
-                                    </button>
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--approve"
-                                      onClick={() => {
-                                        setExpandedQuizId(q.id);
-                                        fetchQuestions(q.id);
-                                        openAddQuestion(q.id);
-                                      }}
-                                    >
-                                      ＋ Câu hỏi
-                                    </button>
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--delete"
-                                      onClick={() => openDeleteQuiz(q)}
-                                    >
-                                      Xóa
                                     </button>
                                   </div>
                                 </td>
@@ -5519,35 +5376,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                   )}
                                                 </div>
                                               </div>
-                                              <div className="ad-actions">
-                                                <button
-                                                  className="ad-btn-sm ad-btn-sm--edit"
-                                                  onClick={() =>
-                                                    openEditQuestion(ques)
-                                                  }
-                                                >
-                                                  Sửa
-                                                </button>
-                                                <button
-                                                  className="ad-btn-sm ad-btn-sm--delete"
-                                                  onClick={() =>
-                                                    openDeleteQuestion(ques)
-                                                  }
-                                                >
-                                                  Xóa
-                                                </button>
-                                              </div>
+                                              <div className="ad-actions"></div>
                                             </div>
                                           </div>
                                         ))
                                       )}
-                                      <button
-                                        className="ad-btn-sm ad-btn-sm--approve"
-                                        style={{ marginTop: 4 }}
-                                        onClick={() => openAddQuestion(q.id)}
-                                      >
-                                        ＋ Thêm câu hỏi
-                                      </button>
                                     </div>
                                   </td>
                                 </tr>

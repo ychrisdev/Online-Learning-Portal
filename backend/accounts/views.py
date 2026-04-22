@@ -81,7 +81,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         profile_data = request.data.get('student_profile') or request.data.get('instructor_profile')
 
         if profile_data:
-            if user.is_student:
+            if user.is_student: 
                 profile, _ = StudentProfile.objects.get_or_create(user=user)
                 profile_serializer = StudentProfileSerializer(
                     profile, data=profile_data, partial=partial
