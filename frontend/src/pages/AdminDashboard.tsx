@@ -121,11 +121,20 @@ const ActionMenu: React.FC<{
   const [menuPos, setMenuPos] = React.useState({ top: 0, left: 0 });
   const ref = React.useRef<HTMLDivElement>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
+      const target = e.target as Node;
+
+      if (
+        ref.current &&
+        !ref.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setOpen(false);
+      }
     };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
@@ -159,6 +168,7 @@ const ActionMenu: React.FC<{
       {open &&
         ReactDOM.createPortal(
           <div
+            ref={menuRef}
             className="am-menu"
             style={{ top: menuPos.top, left: menuPos.left }}
           >
@@ -168,6 +178,7 @@ const ActionMenu: React.FC<{
                 className={`am-item am-item--${item.variant ?? "default"}`}
                 onClick={(e) => {
                   e.stopPropagation();
+                  console.log("CLICK VIEW");
                   item.onClick();
                   setOpen(false);
                 }}
@@ -231,6 +242,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [viewingCourse, setViewingCourse] = useState<any>(null);
 
   const openViewCourse = async (c: any) => {
+    console.log("OPEN COURSE", c);
     setViewingCourse(c);
     setCourseViewModal(true);
     // Fetch chi tiết nếu cần
@@ -5743,20 +5755,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {cat.is_pinned ? cat.pin_order : "—"}
                           </td>
                           <td>
-                            <div className="ad-actions">
-                              <button
-                                className="ad-btn-sm ad-btn-sm--edit"
-                                onClick={() => openEditCategory(cat)}
-                              >
-                                Sửa
-                              </button>
-                              <button
-                                className="ad-btn-sm ad-btn-sm--ban"
-                                onClick={() => openDeleteCategory(cat)}
-                              >
-                                Xóa
-                              </button>
-                            </div>
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "Sửa",
+                                  onClick: () => openEditCategory(cat),
+                                  variant: "edit",
+                                },
+                                {
+                                  label: "Xóa",
+                                  onClick: () => openDeleteCategory(cat),
+                                  variant: "ban",
+                                },
+                              ]}
+                            />
                           </td>
                         </tr>
                       ))
@@ -6313,6 +6325,114 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {courseViewModal && viewingCourse && (
+            <div
+              className="ad-modal-overlay"
+              onClick={() => setCourseViewModal(false)}
+            >
+              <div
+                className="ad-modal ad-modal--payment"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="ad-modal__header">
+                  <h2 className="ad-modal__title">Chi tiết khóa học</h2>
+                  <button
+                    className="ad-modal__close"
+                    onClick={() => setCourseViewModal(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="ad-modal__body">
+                  {/* Thumbnail */}
+                  {viewingCourse.thumbnail && (
+                    <img
+                      src={viewingCourse.thumbnail}
+                      alt=""
+                      style={{
+                        width: "100%",
+                        height: 160,
+                        objectFit: "cover",
+                        borderRadius: 10,
+                        marginBottom: 12,
+                      }}
+                    />
+                  )}
+
+                  {/* Title */}
+                  <h3 style={{ marginBottom: 6 }}>
+                    {viewingCourse.title || "—"}
+                  </h3>
+
+                  {/* Instructor */}
+                  <div className="ad-modal__field">
+                    <span className="ad-modal__field-label">Giảng viên</span>
+                    <span className="ad-modal__field-value">
+                      {viewingCourse.instructor_name ||
+                        viewingCourse.instructor?.name ||
+                        "—"}
+                    </span>
+                  </div>
+
+                  {/* Price */}
+                  <div className="ad-modal__field">
+                    <span className="ad-modal__field-label">Học phí</span>
+                    <span
+                      className="ad-modal__field-value"
+                      style={{ color: "#4caf82", fontWeight: 600 }}
+                    >
+                      {viewingCourse.sale_price || viewingCourse.price
+                        ? formatPrice(
+                            viewingCourse.sale_price ?? viewingCourse.price,
+                            "VND",
+                          )
+                        : "Miễn phí"}
+                    </span>
+                  </div>
+
+                  {/* Students */}
+                  <div className="ad-modal__field">
+                    <span className="ad-modal__field-label">Học viên</span>
+                    <span className="ad-modal__field-value">
+                      {(viewingCourse.total_students ?? 0).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <div className="ad-modal__field">
+                    <span className="ad-modal__field-label">Trạng thái</span>
+                    <span
+                      className={`ad-badge ad-badge--${viewingCourse.status}`}
+                    >
+                      {STATUS_LABEL[viewingCourse.status] ??
+                        viewingCourse.status}
+                    </span>
+                  </div>
+
+                  {/* Description */}
+                  {viewingCourse.description && (
+                    <>
+                      <div className="ad-modal__section-title">Mô tả</div>
+                      <p className="ad-modal__field-value--comment">
+                        {viewingCourse.description}
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                <div className="ad-modal__footer">
+                  <button
+                    className="ad-modal__cancel"
+                    onClick={() => setCourseViewModal(false)}
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
