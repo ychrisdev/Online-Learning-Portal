@@ -2113,7 +2113,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   Hủy
                 </button>
                 <button
-                  className="btn btn--primary"
+                  className="ad-btn-sm"
                   onClick={requestRefund}
                   disabled={refundLoading || !refundReason.trim()}
                 >

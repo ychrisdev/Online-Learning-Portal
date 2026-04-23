@@ -271,8 +271,10 @@
 
 .ad-table-wrap {
   overflow-x: auto;
+  overflow-y: visible;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(119, 141, 169, 0.15);
+  position: static;
 }
 .ad-table {
   width: 100%;
@@ -602,6 +604,58 @@
 .ad-table .ad-actions {
   justify-content: center;
   flex-wrap: nowrap;
+}
+
+.ad-table--payments .ad-btn-sm {
+  width: 100%;
+  height: 32px;                 /* 🔥 chiều cao cố định */
+  box-sizing: border-box;
+
+  display: flex;                /* 🔥 quan trọng */
+  align-items: center;          /* căn giữa dọc */
+  justify-content: center;      /* căn giữa ngang */
+
+  padding: 0 6px;               /* ❗ bỏ padding dọc */
+  font-size: 12px;
+  line-height: 1;               /* 🔥 tránh lệch text */
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ad-table--payments .ad-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.ad-table--payments .ad-actions .ad-btn-sm {
+  min-width: 60px;
+  width: auto;
+}
+
+.ad-table--refunds .ad-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.ad-actions .ad-btn-sm {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* ── ad-role-select căn giữa ── */
@@ -1603,15 +1657,6 @@
   min-width: 0;
 }
 
-/* ── Fix bảng Chương học: cột Mô tả không đẩy hành động ── */
-.ad-table td:nth-child(4) {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Cột Tên bài học cho phép wrap, không để tràn */
 .ad-table .ad-table__title {
   display: flex;
   max-width: 200px;
@@ -2081,11 +2126,19 @@
   color: #c9d6e3;
 }
 .ad-action-group {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   align-items: stretch;
   flex-wrap: nowrap;
   justify-content: center;
+}
+
+.ad-table--users .ad-actions,
+.ad-table--courses .ad-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
 }
 
 .ad-action-group .ad-btn-sm {
@@ -2462,16 +2515,14 @@
   vertical-align: middle;
 }
 
-/* Cột đầu (tên/user) căn trái */
 .ad-table td:first-child {
   text-align: left;
 }
 
-/* Đồng đều kích thước nút */
 .ad-btn-sm {
   min-width: 72px;
   height: 30px;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 12px;
 }
 
@@ -2479,3 +2530,114 @@
   justify-content: center;
   flex-wrap: nowrap;
 }
+
+.ad-actions .ad-btn-sm,
+.ad-action-group .ad-btn-sm {
+  width: 100%;          /* full slot */
+  height: 32px;         /* 🔥 chiều cao cố định */
+  padding: 6px 8px;
+  font-size: 12px;
+  text-align: center;
+  display: flex;        /* căn giữa text */
+  align-items: center;
+  justify-content: center;
+}
+
+/* Khi chỉ có 1 button visible → đưa vào giữa */
+.ad-table--payments .ad-actions:has(.ad-btn-sm:not(.is-hidden):only-child) {
+  display: flex;
+  justify-content: center;
+}
+.ad-table--payments
+.ad-actions:has(.ad-btn-sm:not(.is-hidden):only-child)
+.ad-btn-sm {
+  width: 70px;   /* giữ size đẹp, không full */
+}
+.ad-table--payments .ad-actions .ad-btn-sm {
+  width: 100%;
+  min-width: 0;        /* 🔥 chặn overflow */
+}
+
+.ad-table--payments .ad-actions:has(.ad-btn-sm:only-child) {
+  display: flex;
+  justify-content: center;
+}
+
+.ad-table--payments .ad-actions:has(.ad-btn-sm:only-child) .ad-btn-sm {
+  width: auto;
+  min-width: 40px;
+}
+
+.ad-table--refunds .ad-actions {
+  display: flex !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.ad-table--refunds .ad-actions .ad-btn-sm {
+  width: auto !important;
+  min-width: 40px;
+  height: 30px;
+  padding: 0 8px;
+  flex: 0 0 auto;
+}
+
+.ad-table {
+  overflow: visible;
+}
+
+.ad-table tbody {
+  overflow: visible;
+}
+
+.am-wrap { position: relative; display: inline-block; }
+
+.am-trigger {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  border: 0.5px solid rgba(119,141,169,0.2);
+  background: rgba(65,90,119,0.15);
+  color: rgba(224,225,221,0.6);
+  font-size: 14px; letter-spacing: 1px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.am-trigger:hover {
+  background: rgba(65,90,119,0.35);
+  color: #e0e1dd;
+}
+
+.am-menu {
+  position: fixed;
+  background: #1a2638;
+  border: 0.5px solid rgba(119,141,169,0.25);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 9999;
+  min-width: 130px;
+  overflow: hidden;
+  animation: cm-slide-up 0.15s ease;
+}
+
+.am-item {
+  display: block; width: 100%;
+  padding: 9px 14px;
+  font-size: 13px; font-family: var(--font-body);
+  text-align: left; border: none; background: none;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.am-item--default  { color: rgba(224,225,221,0.7); }
+.am-item--view     { color: #9db8d2; }
+.am-item--edit     { color: #5ba4de; }
+.am-item--approve  { color: #4caf82; }
+.am-item--restore  { color: #4caf82; }
+.am-item--ban      { color: #e05c5c; }
+.am-item--delete   { color: #e07a5f; }
+.am-item--refund   { color: #f59e0b; }
+.am-item:hover     { background: rgba(65,90,119,0.2); }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
+import ReactDOM from "react-dom";
 
 interface AdminDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -33,7 +34,8 @@ type Tab =
   | "enrollments"
   | "categories"
   | "reviews"
-  | "payments";
+  | "payments"
+  | "refunds";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Tổng quan" },
@@ -46,6 +48,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "categories", label: "Danh mục" },
   { id: "reviews", label: "Đánh giá" },
   { id: "payments", label: "Thanh toán" },
+  { id: "refunds", label: "Hoàn tiền" },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
@@ -67,8 +70,8 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   pending: "Chờ xử lý",
   refunded: "Đã hoàn tiền",
   failed: "Thất bại",
-  refund_approved: "Đã duyệt hoàn",
-  refund_requested: "Yêu cầu hoàn",
+  refund_approved: "Đã duyệt",
+  refund_requested: "Yêu cầu",
 };
 
 // ── Course modal ──────────────────────────────────────────────────────────────
@@ -104,6 +107,79 @@ const EMPTY_FORM: CourseForm = {
   is_featured: false,
   thumbnail: null,
   published_at: "",
+};
+
+const ActionMenu: React.FC<{
+  items: {
+    label: string;
+    onClick: () => void;
+    variant?: string;
+    hidden?: boolean;
+  }[];
+}> = ({ items }) => {
+  const [open, setOpen] = React.useState(false);
+  const [menuPos, setMenuPos] = React.useState({ top: 0, left: 0 });
+  const ref = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
+
+  const handleOpen = () => {
+    if (!open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 6,
+        left: rect.right - 130,
+      });
+    }
+    setOpen((v) => !v);
+  };
+
+  const visible = items.filter((i) => !i.hidden);
+
+  return (
+    <div className="am-wrap" ref={ref}>
+      <button
+        className="am-trigger"
+        ref={triggerRef}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleOpen();
+        }}
+      >
+        •••
+      </button>
+      {open &&
+        ReactDOM.createPortal(
+          <div
+            className="am-menu"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
+            {visible.map((item, i) => (
+              <button
+                key={i}
+                className={`am-item am-item--${item.variant ?? "default"}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  item.onClick();
+                  setOpen(false);
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -345,8 +421,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [paymentDetail, setPaymentDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentModalContext, setPaymentModalContext] = useState<
+    "payment" | "refund"
+  >("payment");
+
+  const openRefundDetail = async (id: string) => {
+    setPaymentModalContext("refund");
+    setShowPaymentModal(true);
+    setLoadingDetail(true);
+    try {
+      const res = await fetch(`${API}/api/payments/admin/${id}/`, {
+        headers: authHeader(),
+      });
+      if (res.ok) setPaymentDetail(await res.json());
+      else setPaymentDetail(null);
+    } catch {
+      setPaymentDetail(null);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
 
   const openPaymentDetail = async (id: string) => {
+    setPaymentModalContext("payment");
     setShowPaymentModal(true);
     setLoadingDetail(true);
     try {
@@ -370,7 +467,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setPaymentDetail(null);
   };
 
-  // ── User view modal state
   const [userViewModal, setUserViewModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [addUserForm, setAddUserForm] = useState({
@@ -1639,11 +1735,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [courses, sessionDismissed]);
 
   // Khi login thành công, trước khi ghi login_at mới:
-  const currentLoginAt = localStorage.getItem("login_at");
-  if (currentLoginAt) {
-    localStorage.setItem("prev_login_at", currentLoginAt);
-  }
-  localStorage.setItem("login_at", new Date().toISOString());
+  useEffect(() => {
+    const currentLoginAt = localStorage.getItem("login_at");
+    if (currentLoginAt) {
+      localStorage.setItem("prev_login_at", currentLoginAt);
+    }
+    localStorage.setItem("login_at", new Date().toISOString());
+  }, []); // ← chỉ chạy khi mount
 
   const renderModal = () => {
     if (!courseModal) return null;
@@ -4421,7 +4519,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* ── Row 2: card hoàn tiền ── */}
               <div
                 className="ad-stats-grid"
                 style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
@@ -4702,24 +4799,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </td>
                             <td>
-                              <div className="ad-action-group">
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--view"
-                                  onClick={() => openViewUser(u)}
-                                >
-                                  Xem
-                                </button>
-                                {u.role !== "admin" && (
-                                  <button
-                                    className={`ad-btn-sm${status === "banned" ? " ad-btn-sm--restore" : " ad-btn-sm--ban"}`}
-                                    onClick={() => toggleUserStatus(u)}
-                                  >
-                                    {status === "banned"
-                                      ? "Mở khóa"
-                                      : "Khóa TK"}
-                                  </button>
-                                )}
-                              </div>
+                              <ActionMenu
+                                items={[
+                                  {
+                                    label: "Xem",
+                                    onClick: () => openViewUser(u),
+                                    variant: "view",
+                                  },
+                                  {
+                                    label:
+                                      status === "banned"
+                                        ? "Mở khóa"
+                                        : "Khóa TK",
+                                    onClick: () => toggleUserStatus(u),
+                                    variant:
+                                      status === "banned" ? "restore" : "ban",
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         );
@@ -4860,31 +4957,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </td>
                             <td>
-                              <div className="ad-actions">
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--view"
-                                  onClick={() => openViewCourse(c)}
-                                >
-                                  Xem
-                                </button>
-                                {c.status === "published" &&
-                                  (c.total_students ?? 0) === 0 && (
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--ban"
-                                      onClick={() => archiveCourse(c.id)}
-                                    >
-                                      Ẩn
-                                    </button>
-                                  )}
-                                {c.status === "archived" && (
-                                  <button
-                                    className="ad-btn-sm ad-btn-sm--restore"
-                                    onClick={() => unarchiveCourse(c.id)}
-                                  >
-                                    Hiện
-                                  </button>
-                                )}
-                              </div>
+                              <ActionMenu
+                                items={[
+                                  {
+                                    label: "Xem",
+                                    onClick: () => openViewCourse(c),
+                                    variant: "view",
+                                  },
+
+                                  ...(c.status === "published" &&
+                                  (c.total_students ?? 0) === 0
+                                    ? [
+                                        {
+                                          label: "Ẩn",
+                                          onClick: () => archiveCourse(c.id),
+                                          variant: "ban",
+                                        },
+                                      ]
+                                    : []),
+
+                                  ...(c.status === "archived"
+                                    ? [
+                                        {
+                                          label: "Hiện",
+                                          onClick: () => unarchiveCourse(c.id),
+                                          variant: "restore",
+                                        },
+                                      ]
+                                    : []),
+                                ]}
+                              />
                             </td>
                           </tr>
                         );
@@ -5255,6 +5357,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     >
                                       {isExpanded ? "Ẩn" : "Xem câu hỏi"}
                                     </button>
+
                                     <button
                                       className="ad-btn-sm"
                                       style={{
@@ -5499,9 +5602,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </span>
                               </div>
                             </td>
-                            <td className="ad-table__title">
-                              {e.course_title ?? e.course?.title ?? "—"}
-                            </td>
+                            <td>{e.course_title ?? e.course?.title ?? "—"}</td>
                             <td className="ad-table__muted">
                               {(e.enrolled_at ?? e.created_at)
                                 ? new Date(
@@ -5593,7 +5694,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th>Tên danh mục</th>
                       <th>Mô tả</th>
                       <th>Số khóa học</th>
-                      <th>Ghim</th>
                       <th>Thứ tự</th>
                       <th>thao tác</th>
                     </tr>
@@ -5638,9 +5738,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 return String(cid) === String(cat.id);
                               }).length
                             }
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            {cat.is_pinned ? "📌" : "—"}
                           </td>
                           <td style={{ textAlign: "center" }}>
                             {cat.is_pinned ? cat.pin_order : "—"}
@@ -5760,9 +5857,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 </span>
                               </div>
                             </td>
-                            <td className="ad-table__title">
-                              {p.course_title ?? p.course?.title ?? "—"}
-                            </td>
+                            <td>{p.course_title ?? p.course?.title ?? "—"}</td>
                             <td style={{ color: "#4caf82", fontWeight: 600 }}>
                               {formatPrice(p.amount ?? p.price ?? 0, "VND")}
                             </td>
@@ -5788,23 +5883,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 >
                                   Xem
                                 </button>
-
-                                {status === "refund_requested" && (
-                                  <>
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--approve"
-                                      onClick={() => openApproveRefund(p)}
-                                    >
-                                      Duyệt
-                                    </button>
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--ban"
-                                      onClick={() => openRejectRefund(p)}
-                                    >
-                                      Từ chối
-                                    </button>
-                                  </>
-                                )}
                               </div>
                             </td>
                           </tr>
@@ -5814,220 +5892,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </tbody>
                 </table>
               </div>
-              {/* Payment Detail Modal */}
-              {showPaymentModal && (
-                <div
-                  className="cm-overlay"
-                  onClick={(e) => {
-                    if (e.target === e.currentTarget) closePaymentDetail();
-                  }}
-                >
-                  <div className="cm-box cm-box--sm">
-                    <div className="cm-header">
-                      <h2 className="cm-title">Chi tiết giao dịch</h2>
-                      <button className="cm-close" onClick={closePaymentDetail}>
-                        ✕
-                      </button>
-                    </div>
-                    <div className="cm-body">
-                      {loadingDetail ? (
-                        <div className="cm-loading">
-                          <span className="cm-loading__spinner" />
-                          <span>Đang tải…</span>
-                        </div>
-                      ) : !paymentDetail ? (
-                        <p style={{ color: "var(--color-text-secondary)" }}>
-                          Không tìm thấy giao dịch.
-                        </p>
-                      ) : (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 12,
-                          }}
-                        >
-                          {[
-                            {
-                              label: "Học viên",
-                              value: paymentDetail.student_name ?? "—",
-                            },
-                            {
-                              label: "Email",
-                              value: paymentDetail.student_email ?? "—",
-                            },
-                            {
-                              label: "Khóa học",
-                              value: paymentDetail.course_title ?? "—",
-                            },
-                            {
-                              label: "Số tiền",
-                              value: formatPrice(
-                                paymentDetail.amount ?? 0,
-                                "VND",
-                              ),
-                            },
-                            {
-                              label: "Trạng thái",
-                              value:
-                                PAYMENT_STATUS_LABEL[paymentDetail.status] ??
-                                paymentDetail.status ??
-                                "—",
-                            },
-                            {
-                              label: "Ngày",
-                              value: paymentDetail.created_at
-                                ? new Date(
-                                    paymentDetail.created_at,
-                                  ).toLocaleString("vi-VN")
-                                : "—",
-                            },
-                            {
-                              label: "Phương thức",
-                              value: paymentDetail.method ?? "—",
-                            },
-                            {
-                              label: "Mã GD",
-                              value:
-                                paymentDetail.ref_code ??
-                                paymentDetail.id ??
-                                "—",
-                            },
-                          ].map((item) => (
-                            <div
-                              key={item.label}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                padding: "8px 0",
-                                borderBottom:
-                                  "0.5px solid rgba(255,255,255,0.06)",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: 13,
-                                  color: "var(--color-text-secondary)",
-                                }}
-                              >
-                                {item.label}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 500,
-                                  color: "var(--color-text-primary)",
-                                  textAlign: "right",
-                                }}
-                              >
-                                {item.value}
-                              </span>
-                            </div>
-                          ))}
-
-                          {/* LÝ DO HOÀN TIỀN — chỉ hiện khi refund_requested hoặc có refund_reason */}
-                          {(paymentDetail.status === "refund_requested" ||
-                            paymentDetail.refund_reason) && (
-                            <div
-                              style={{
-                                marginTop: 4,
-                                padding: "10px 12px",
-                                borderRadius: 8,
-                                background: "rgba(255, 193, 7, 0.07)",
-                                border: "1px solid rgba(255, 193, 7, 0.22)",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 6,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: 600,
-                                  color: "#f5c842",
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.5px",
-                                }}
-                              >
-                                Lý do hoàn tiền từ học viên
-                              </span>
-                              <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: 13,
-                                  color: "var(--color-text-primary)",
-                                  lineHeight: 1.6,
-                                }}
-                              >
-                                {paymentDetail.refund_reason?.trim() ? (
-                                  paymentDetail.refund_reason
-                                ) : (
-                                  <em
-                                    style={{
-                                      color: "var(--color-text-secondary)",
-                                    }}
-                                  >
-                                    Học viên không để lại lý do.
-                                  </em>
-                                )}
-                              </p>
-                              {paymentDetail.refund_requested_at && (
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    color: "var(--color-text-secondary)",
-                                  }}
-                                >
-                                  Gửi lúc:{" "}
-                                  {new Date(
-                                    paymentDetail.refund_requested_at,
-                                  ).toLocaleString("vi-VN")}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="cm-footer">
-                      {paymentDetail?.status === "refund_requested" && (
-                        <>
-                          <button
-                            className="cm-btn cm-btn--primary"
-                            style={{
-                              background: "#4caf82",
-                              borderColor: "#4caf82",
-                              marginRight: "auto",
-                            }}
-                            onClick={() => {
-                              closePaymentDetail();
-                              openApproveRefund(paymentDetail);
-                            }}
-                          >
-                            Duyệt hoàn tiền
-                          </button>
-                          <button
-                            className="cm-btn cm-btn--danger"
-                            onClick={() => {
-                              closePaymentDetail();
-                              openRejectRefund(paymentDetail);
-                            }}
-                          >
-                            ✘ Từ chối
-                          </button>
-                        </>
-                      )}
-                      <button
-                        className="cm-btn cm-btn--cancel"
-                        onClick={closePaymentDetail}
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -6161,9 +6025,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </div>
                           </td>
-                          <td className="ad-table__title">
-                            {r.course_title ?? r.course?.title ?? "—"}
-                          </td>
+                          <td>{r.course_title ?? r.course?.title ?? "—"}</td>
                           <td>
                             <div className="ad-star">
                               <span className="ad-star__icons">
@@ -6191,27 +6053,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             )}
                           </td>
                           <td>
-                            <div className="ad-actions">
-                              <button
-                                className="ad-btn-sm"
-                                onClick={() => openViewReview(r)}
-                              >
-                                Xem
-                              </button>
-                              <button
-                                className={`ad-btn-sm ${r.is_hidden ? "ad-btn-sm--restore" : "ad-btn-sm--refund"}`}
-                                onClick={() => handleToggleHide(r)}
-                                disabled={togglingReview}
-                              >
-                                {r.is_hidden ? "Hiện" : "Ẩn"}
-                              </button>
-                              <button
-                                className="ad-btn-sm ad-btn-sm--ban"
-                                onClick={() => openDeleteReview(r)}
-                              >
-                                Xóa
-                              </button>
-                            </div>
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "Xem chi tiết",
+                                  onClick: () => openViewReview(r),
+                                  variant: "view",
+                                },
+                                {
+                                  label: r.is_hidden ? "Hiện lại" : "Ẩn",
+                                  onClick: () => handleToggleHide(r),
+                                  variant: r.is_hidden ? "restore" : "refund",
+                                },
+                                {
+                                  label: "Xóa",
+                                  onClick: () => openDeleteReview(r),
+                                  variant: "ban",
+                                },
+                              ]}
+                            />
                           </td>
                         </tr>
                       ))
@@ -6471,7 +6331,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="ad-modal__header">
-                  <h2 className="ad-modal__title">Chi tiết giao dịch</h2>
+                  <h2 className="ad-modal__title">
+                    {paymentModalContext === "refund"
+                      ? "Chi tiết hoàn tiền"
+                      : "Chi tiết giao dịch"}
+                  </h2>
                   <button
                     className="ad-modal__close"
                     onClick={closePaymentDetail}
@@ -6482,57 +6346,88 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="ad-modal__body">
                   {loadingDetail ? (
-                    <p style={{ textAlign: "center" }}> Đang tải…</p>
+                    <p style={{ textAlign: "center" }}>Đang tải…</p>
                   ) : !paymentDetail ? (
                     <p style={{ textAlign: "center", color: "red" }}>
                       Không tải được dữ liệu.
                     </p>
-                  ) : (
+                  ) : paymentModalContext === "refund" ? (
                     <>
-                      {/* ── Trạng thái nổi bật ── */}
-                      <div
-                        style={{ textAlign: "center", marginBottom: "1rem" }}
-                      >
-                        <span
-                          className={`ad-badge ad-badge--pay-${paymentDetail.status}`}
-                        >
-                          {PAYMENT_STATUS_LABEL[paymentDetail.status] ??
-                            paymentDetail.status}
-                        </span>
-                      </div>
-
-                      {/* ── Mã giao dịch ── */}
                       <div className="ad-modal__section-title">
-                        Thông tin giao dịch
+                        Thông tin hoàn tiền
+                      </div>
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Học viên</span>
+                        <span className="ad-modal__field-value">
+                          {paymentDetail.student_name || "—"}
+                        </span>
+                      </div>
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Email</span>
+                        <span className="ad-modal__field-value">
+                          {paymentDetail.student_email || "—"}
+                        </span>
+                      </div>
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Khóa học</span>
+                        <span className="ad-modal__field-value">
+                          {paymentDetail.course_title || "—"}
+                        </span>
                       </div>
                       <div className="ad-modal__field">
                         <span className="ad-modal__field-label">
-                          Mã tham chiếu
+                          Số tiền hoàn
                         </span>
                         <span
                           className="ad-modal__field-value"
-                          style={{ fontFamily: "monospace" }}
+                          style={{ color: "#e07a5f", fontWeight: 600 }}
                         >
-                          {paymentDetail.ref_code ?? "—"}
+                          {formatPrice(paymentDetail.amount ?? 0, "VND")}
                         </span>
                       </div>
                       <div className="ad-modal__field">
                         <span className="ad-modal__field-label">
-                          Mã gateway
-                        </span>
-                        <span
-                          className="ad-modal__field-value"
-                          style={{ fontFamily: "monospace" }}
-                        >
-                          {paymentDetail.gateway_ref || "—"}
-                        </span>
-                      </div>
-                      <div className="ad-modal__field">
-                        <span className="ad-modal__field-label">
-                          Phương thức
+                          Ngày yêu cầu
                         </span>
                         <span className="ad-modal__field-value">
-                          {paymentDetail.method?.toUpperCase() ?? "—"}
+                          {paymentDetail.refund_requested_at
+                            ? new Date(
+                                paymentDetail.refund_requested_at,
+                              ).toLocaleString("vi-VN")
+                            : "—"}
+                        </span>
+                      </div>
+                      {paymentDetail.refund_reason && (
+                        <>
+                          <div className="ad-modal__section-title">
+                            Lý do hoàn tiền
+                          </div>
+                          <p className="ad-modal__field-value--comment">
+                            {paymentDetail.refund_reason}
+                          </p>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="ad-modal__section-title">Học viên</div>
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Họ tên</span>
+                        <span className="ad-modal__field-value">
+                          {paymentDetail.student_name || "—"}
+                        </span>
+                      </div>
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Email</span>
+                        <span className="ad-modal__field-value">
+                          {paymentDetail.student_email || "—"}
+                        </span>
+                      </div>
+                      <div className="ad-modal__section-title">Giao dịch</div>
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Khóa học</span>
+                        <span className="ad-modal__field-value">
+                          {paymentDetail.course_title || "—"}
                         </span>
                       </div>
                       <div className="ad-modal__field">
@@ -6545,13 +6440,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       </div>
                       <div className="ad-modal__field">
-                        <span className="ad-modal__field-label">Ngày tạo</span>
+                        <span className="ad-modal__field-label">
+                          Phương thức
+                        </span>
                         <span className="ad-modal__field-value">
-                          {paymentDetail.created_at
-                            ? new Date(paymentDetail.created_at).toLocaleString(
-                                "vi-VN",
-                              )
-                            : "—"}
+                          {paymentDetail.method?.toUpperCase() ?? "—"}
                         </span>
                       </div>
                       <div className="ad-modal__field">
@@ -6566,34 +6459,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             : "—"}
                         </span>
                       </div>
-
-                      {/* ── Học viên ── */}
-                      <div className="ad-modal__section-title">Học viên</div>
-                      <div className="ad-modal__field">
-                        <span className="ad-modal__field-label">Họ tên</span>
-                        <span className="ad-modal__field-value">
-                          {paymentDetail.student_name || "—"}
-                        </span>
-                      </div>
-                      <div className="ad-modal__field">
-                        <span className="ad-modal__field-label">Email</span>
-                        <span className="ad-modal__field-value">
-                          {paymentDetail.student_email || "—"}
-                        </span>
-                      </div>
-
-                      {/* ── Khóa học ── */}
-                      <div className="ad-modal__section-title">Khóa học</div>
-                      <div className="ad-modal__field">
-                        <span className="ad-modal__field-label">
-                          Tên khóa học
-                        </span>
-                        <span className="ad-modal__field-value">
-                          {paymentDetail.course_title || "—"}
-                        </span>
-                      </div>
-
-                      {/* ── Ghi chú / lý do hoàn tiền ── */}
                       {paymentDetail.note && (
                         <>
                           <div className="ad-modal__section-title">Ghi chú</div>
@@ -6602,21 +6467,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </p>
                         </>
                       )}
-                      {paymentDetail.refund_reason && (
-                        <>
-                          <div className="ad-modal__section-title">
-                            Lý do hoàn tiền
-                          </div>
-                          <p className="ad-modal__field-value--comment">
-                            {paymentDetail.refund_reason}
-                          </p>
-                        </>
-                      )}
                     </>
                   )}
                 </div>
 
                 <div className="ad-modal__footer">
+                  {paymentModalContext === "refund" &&
+                    paymentDetail?.status === "refund_requested" && (
+                      <>
+                        <button
+                          className="cm-btn cm-btn--save"
+                          style={{ marginRight: "auto" }}
+                          onClick={() => {
+                            closePaymentDetail();
+                            openApproveRefund(paymentDetail);
+                          }}
+                        >
+                          Duyệt hoàn tiền
+                        </button>
+
+                        <button
+                          className="cm-btn cm-btn--danger"
+                          onClick={() => {
+                            closePaymentDetail();
+                            openRejectRefund(paymentDetail);
+                          }}
+                        >
+                          Từ chối
+                        </button>
+                      </>
+                    )}
+
                   <button
                     className="ad-modal__cancel"
                     onClick={closePaymentDetail}
@@ -6624,6 +6505,120 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     Đóng
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+          {activeTab === "refunds" && (
+            <div className="ad-content">
+              <div className="ad-page-header">
+                <h1 className="ad-page-title">Quản lý hoàn tiền</h1>
+                <p className="ad-page-sub">
+                  {loadingPayments
+                    ? "Đang tải…"
+                    : `${payments.filter((p) => ["refund_requested", "refund_approved", "refunded"].includes(p.status)).length} yêu cầu`}
+                </p>
+              </div>
+
+              <div className="ad-filters">
+                <select
+                  className="ad-select"
+                  value={filterPayStatus}
+                  onChange={(e) => setFilterPayStatus(e.target.value)}
+                >
+                  <option value="">Tất cả</option>
+                  <option value="refund_requested">Chờ duyệt</option>
+                  <option value="refund_approved">Đã duyệt</option>
+                  <option value="refunded">Đã hoàn tiền</option>
+                </select>
+              </div>
+
+              <div className="ad-table-wrap">
+                <table className="ad-table ad-table--payments ad-table--refunds">
+                  <thead>
+                    <tr>
+                      <th>Học viên</th>
+                      <th>Khóa học</th>
+                      <th>Số tiền</th>
+                      <th>Ngày yêu cầu</th>
+                      <th>Trạng thái</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments
+                      .filter((p) => {
+                        const inRefundFlow = [
+                          "refund_requested",
+                          "refund_approved",
+                          "refunded",
+                        ].includes(p.status);
+                        const matchStatus =
+                          !filterPayStatus || p.status === filterPayStatus;
+                        return inRefundFlow && matchStatus;
+                      })
+                      .map((p) => (
+                        <tr key={p.id}>
+                          <td>
+                            <div className="ad-user-cell">
+                              <span className="ad-user-cell__name">
+                                {p.student_name ?? "—"}
+                              </span>
+                              <span className="ad-user-cell__email">
+                                {p.student_email ?? ""}
+                              </span>
+                            </div>
+                          </td>
+                          <td>{p.course_title ?? "—"}</td>
+                          <td style={{ color: "#4caf82", fontWeight: 600 }}>
+                            {formatPrice(p.amount ?? 0, "VND")}
+                          </td>
+                          <td className="ad-table__muted">
+                            {p.refund_requested_at
+                              ? new Date(
+                                  p.refund_requested_at,
+                                ).toLocaleDateString("vi-VN")
+                              : p.created_at
+                                ? new Date(p.created_at).toLocaleDateString(
+                                    "vi-VN",
+                                  )
+                                : "—"}
+                          </td>
+                          <td>
+                            <span
+                              className={`ad-badge ad-badge--pay-${p.status}`}
+                            >
+                              {PAYMENT_STATUS_LABEL[p.status] ?? p.status}
+                            </span>
+                          </td>
+                          <td>
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "Xem chi tiết",
+                                  onClick: () => openRefundDetail(p.id),
+                                  variant: "view",
+                                },
+                                ...(p.status === "refund_requested"
+                                  ? [
+                                      {
+                                        label: "Duyệt",
+                                        onClick: () => openApproveRefund(p),
+                                        variant: "approve",
+                                      },
+                                      {
+                                        label: "Từ chối",
+                                        onClick: () => openRejectRefund(p),
+                                        variant: "ban",
+                                      },
+                                    ]
+                                  : []),
+                              ]}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
