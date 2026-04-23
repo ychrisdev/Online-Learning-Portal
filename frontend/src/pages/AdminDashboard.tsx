@@ -5818,7 +5818,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th>Khóa học</th>
                       <th>Số tiền</th>
                       <th>Ngày trả</th>
-                      <th>Trạng thái</th>
                       <th>thao tác</th>
                     </tr>
                   </thead>
@@ -5867,13 +5866,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     "vi-VN",
                                   )
                                 : "—"}
-                            </td>
-                            <td>
-                              <span
-                                className={`ad-badge ad-badge--pay-${status}`}
-                              >
-                                {PAYMENT_STATUS_LABEL[status] ?? status}
-                              </span>
                             </td>
                             <td>
                               <div className="ad-actions">
