@@ -13,6 +13,8 @@ import {
 } from "recharts";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
+import ActionMenu from "../components/ui/ActionMenu";
+
 interface InstructorDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
   onLogout: () => void;
@@ -85,7 +87,6 @@ const toList = (data: any): any[] =>
 const thumbSrc = (t: string | null) =>
   !t ? null : t.startsWith("http") ? t : `${API}${t}`;
 
-// ── Chart tooltip ─────────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -107,7 +108,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// ══════════════════════════════════════════════════════════════════════════
 const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   onNavigate,
   onLogout,
@@ -125,7 +125,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Profile ───────────────────────────────────────────────────────────
   const [user, setUser] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({
@@ -171,7 +170,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     } catch (_) {}
   };
 
-  // ── Course modal states ───────────────────────────────────────────────
   const [categories, setCategories] = useState<any[]>([]);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [editCourseForm, setEditCourseForm] = useState({
@@ -190,7 +188,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [editCourseError, setEditCourseError] = useState("");
   const [showCourseModal, setShowCourseModal] = useState(false);
 
-  // ── Real data ─────────────────────────────────────────────────────────
   const [courses, setCourses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
@@ -198,13 +195,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(true);
 
-  // ── Course filter states ──────────────────────────────────────────────
   const [courseSearch, setCourseSearch] = useState("");
   const [courseStatusFilter, setCourseStatusFilter] = useState<
     "all" | "draft" | "review" | "published" | "archived"
   >("all");
 
-  // ── Admin-edit alert state ─────────────────────────────────────────────────
   const [adminEditAlerts, setAdminEditAlerts] = useState<any[]>([]);
   const INSTRUCTOR_DISMISS_KEY = `instructor_admin_edit_dismissed_${getUserId()}`;
   const [sessionDismissedInstructor, setSessionDismissedInstructor] = useState<
@@ -222,7 +217,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setAdminEditAlerts([]);
   };
 
-  // ── Section states ────────────────────────────────────────────────────
   const [sections, setSections] = useState<any[]>([]);
   const [loadingSections, setLoadingSections] = useState(false);
   const [filterSectionCourse, setFilterSectionCourse] = useState("");
@@ -237,7 +231,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [sectionLoading, setSectionLoading] = useState(false);
   const [sectionError, setSectionError] = useState("");
 
-  // ── Lesson states ─────────────────────────────────────────────────────
   type LessonModalType = "add" | "edit" | "delete" | null;
   interface LessonForm {
     title: string;
@@ -280,7 +273,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [filterLessonCourse, setFilterLessonCourse] = useState("");
   const [modalFilterCourse, setModalFilterCourse] = useState("");
 
-  // ── Quiz states ───────────────────────────────────────────────────────
   type QuizModalType = "add" | "edit" | "delete" | null;
   interface QuizForm {
     lesson: string;
@@ -346,7 +338,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [selectedAttempt, setSelectedAttempt] = useState<any>(null);
   const [loadingAttemptDetail, setLoadingAttemptDetail] = useState(false);
 
-  // ── Enrollment states ─────────────────────────────────────────────────────
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(false);
   const [searchEnrollment, setSearchEnrollment] = useState("");
@@ -367,7 +358,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [alertExpanded, setAlertExpanded] = useState(false);
   const PREVIEW_COUNT = 3;
 
-  // ── Payment states ────────────────────────────────────────────────────────
   const [payments, setPayments] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [searchPayment, setSearchPayment] = useState("");
@@ -390,7 +380,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     [payments, searchPayment, filterPayStatus],
   );
 
-  // ── Review states ──────────────────────────────────────────────────────────
   const [reviews, setReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [searchReview, setSearchReview] = useState("");
@@ -439,7 +428,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     [reviews, searchReview, filterReviewRating, filterReviewCourse],
   );
 
-  // ── State wallet ─────────────────────────────────────────────────────
   const [wallet, setWallet] = useState<any>(null);
   const [walletTxs, setWalletTxs] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -465,7 +453,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     null,
   );
 
-  // ── Fetch profile ─────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       const res = await fetch(`${API}/api/auth/me/`, {
@@ -524,7 +511,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         });
         if (res.ok) setCourses(toList(await res.json()));
       } catch (_) {}
-    }, 60_000); // 60 giây
+    }, 60_000);
 
     return () => clearInterval(interval);
   }, []);
@@ -541,41 +528,40 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   }, []);
 
   useEffect(() => {
-  if (courses.length === 0) return;
+    if (courses.length === 0) return;
 
-  const prevLoginAt = localStorage.getItem('prev_login_at');
-  const selfEdited: Record<string, string> = JSON.parse(
-    localStorage.getItem('instructor_self_edited') || '{}'
-  );
+    const prevLoginAt = localStorage.getItem("prev_login_at");
+    const selfEdited: Record<string, string> = JSON.parse(
+      localStorage.getItem("instructor_self_edited") || "{}",
+    );
 
-  const edited = courses.filter(c => {
-    if (c.status !== 'published') return false;
-    if (!c.updated_at || !c.published_at) return false;
+    const edited = courses.filter((c) => {
+      if (c.status !== "published") return false;
+      if (!c.updated_at || !c.published_at) return false;
 
-    const diff = new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
-    if (diff <= 5000) return false;
+      const diff =
+        new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
+      if (diff <= 5000) return false;
 
-    if (sessionDismissedInstructor.has(c.id)) return false;
+      if (sessionDismissedInstructor.has(c.id)) return false;
 
-    // Instructor tự sửa → không hiện
-    if (selfEdited[c.id]) {
-      const selfTime = new Date(selfEdited[c.id]).getTime();
-      const courseTime = new Date(c.updated_at).getTime();
-      if (Math.abs(selfTime - courseTime) < 10_000) return false;
-    }
+      if (selfEdited[c.id]) {
+        const selfTime = new Date(selfEdited[c.id]).getTime();
+        const courseTime = new Date(c.updated_at).getTime();
+        if (Math.abs(selfTime - courseTime) < 10_000) return false;
+      }
 
-    // Chỉ hiện nếu updated_at xảy ra sau lần login trước
-    if (prevLoginAt) {
-      const prevTime = new Date(prevLoginAt).getTime();
-      const updatedTime = new Date(c.updated_at).getTime();
-      if (updatedTime <= prevTime) return false;
-    }
+      if (prevLoginAt) {
+        const prevTime = new Date(prevLoginAt).getTime();
+        const updatedTime = new Date(c.updated_at).getTime();
+        if (updatedTime <= prevTime) return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
 
-  setAdminEditAlerts(edited);
-}, [courses, sessionDismissedInstructor]);
+    setAdminEditAlerts(edited);
+  }, [courses, sessionDismissedInstructor]);
 
   useEffect(() => {
     if (courses.length === 0) return;
@@ -616,6 +602,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   }, []);
 
   useEffect(() => {
+    (async () => {
+      setLoadingSections(true);
+      try {
+        const res = await fetch(`${API}/api/courses/mine/sections/`, {
+          headers: authHeaders(),
+        });
+        if (res.ok) setSections(toList(await res.json()));
+      } catch (_) {}
+      setLoadingSections(false);
+    })();
+  }, []);
+
+  useEffect(() => {
     if (activeTab !== "sections") return;
     (async () => {
       setLoadingSections(true);
@@ -628,6 +627,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       setLoadingSections(false);
     })();
   }, [activeTab]);
+
+  useEffect(() => {
+    (async () => {
+      setLoadingLessons(true);
+      try {
+        const res = await fetch(`${API}/api/courses/mine/lessons/`, {
+          headers: authHeaders(),
+        });
+        if (res.ok) setLessons(toList(await res.json()));
+      } catch (_) {}
+      setLoadingLessons(false);
+    })();
+  }, []);
 
   useEffect(() => {
     if (activeTab !== "lessons" && activeTab !== "quizzes") return;
@@ -719,7 +731,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== "refunds") return; // ← đổi thành "refunds"
+    if (activeTab !== "refunds") return;
     (async () => {
       setLoadingRefunds(true);
       try {
@@ -737,7 +749,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     })();
   }, [activeTab]);
 
-  //=======
   const handleWithdraw = async () => {
     const amount = parseInt(withdrawForm.amount);
     if (!amount || amount < 50000) {
@@ -773,7 +784,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
           bank_account: "",
           account_name: "",
         });
-        // Refresh
         const [walletRes, txRes, wdRes] = await Promise.all([
           fetch(`${API}/api/wallet/`, { headers: authHeaders() }),
           fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
@@ -801,19 +811,17 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setSelectedReview(null);
   };
 
-  // Mở modal báo cáo
   const openReportModal = (review: Review) => {
     setReportingReview(review);
     setReportReason("");
     setReportModal(true);
   };
 
-  // Gửi báo cáo lên API
   const handleSubmitReport = async () => {
     if (!reportingReview) return;
     setSubmittingReport(true);
     try {
-      const token = localStorage.getItem("access"); // hoặc tên key bạn đang dùng
+      const token = localStorage.getItem("access");
       console.log("Token:", token);
       const res = await fetch(
         `${API}/api/courses/reviews/report/${reportingReview.id}/`,
@@ -865,7 +873,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               className="ad-edit-alert__toggle"
               onClick={() => setAlertExpanded((v) => !v)}
             >
-              {alertExpanded ? "Thu gọn ▲" : "Xem tất cả ▼"}
+              {alertExpanded ? "Thu gọn" : "Xem tất cả"}
             </button>
           )}
         </div>
@@ -961,7 +969,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setPaymentDetail(null);
   };
 
-  // ── Derived stats ─────────────────────────────────────────────────────
   const totalRevenue = courses.reduce((a, c) => {
     const price = Number(c.sale_price) || Number(c.price) || 0;
     const studs = Number(c.total_students) || 0;
@@ -972,7 +979,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     ? Number(user.instructor_profile.avg_rating).toFixed(1)
     : "—";
 
-  // ── Filtered courses ──────────────────────────────────────────────────
   const filteredCourses = useMemo(
     () =>
       courses.filter((c) => {
@@ -986,7 +992,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     [courses, courseSearch, courseStatusFilter],
   );
 
-  // ── Chart data ────────────────────────────────────────────────────────
   const chartData = useMemo(() => {
     if (monthlyData.length === 0) return [];
     if (chartRange === "3m") return monthlyData.slice(-3);
@@ -1003,7 +1008,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     0,
   );
 
-  // ── Thumb preview URL ─────────────────────────────────────────────────
   const thumbPreviewUrl = useMemo(
     () =>
       editCourseForm.thumbnail
@@ -1012,7 +1016,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     [editCourseForm.thumbnail],
   );
 
-  // ── Preview sale price ────────────────────────────────────────────────
   const previewSalePrice = () => {
     const price = Number(editCourseForm.price) || 0;
     const discount = Number(editCourseForm.discount_percent) || 0;
@@ -1021,7 +1024,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     return formatPrice(Math.round(price * (1 - discount / 100)), "VND");
   };
 
-  // ── Open edit modal ───────────────────────────────────────────────────
   const openEditCourse = async (c: any) => {
     setEditCourseError("");
     setEditingCourseId(c.id);
@@ -1054,7 +1056,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setEditCourseLoading(false);
   };
 
-  // ── Save course ───────────────────────────────────────────────────────
   const handleSaveCourse = async () => {
     if (!editCourseForm.title.trim()) {
       setEditCourseError("Vui lòng nhập tên khóa học.");
@@ -1114,16 +1115,13 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       });
 
       if (res.ok) {
-        // Fetch lại course đầy đủ từ list serializer
         const refreshed = await fetch(`${API}/api/courses/mine/`, {
           headers: authHeaders(),
         });
-        // MỚI
         if (refreshed.ok) {
           const data = await refreshed.json();
           setCourses(data.results ?? data);
         }
-        // Lưu lại thời điểm instructor tự sửa
         if (editingCourseId) {
           const selfEdited: Record<string, string> = JSON.parse(
             localStorage.getItem("instructor_self_edited") || "{}",
@@ -1156,7 +1154,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setEditCourseError("");
   };
 
-  // ── Profile save ──────────────────────────────────────────────────────
   const handleProfileSave = async () => {
     setProfileSaving(true);
     try {
@@ -1231,7 +1228,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setPasswordSaving(false);
   };
 
-  //Section
   const openAddSection = () => {
     setEditingSectionId(null);
     setSectionForm({
@@ -1440,7 +1436,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         body,
       });
       if (res.ok) {
-        // Refresh lessons
         const refreshUrl = filterLessonSection
           ? `${API}/api/courses/mine/lessons/?section=${filterLessonSection}`
           : `${API}/api/courses/mine/lessons/`;
@@ -1480,7 +1475,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setSavingLesson(false);
   };
 
-  // ── Quiz fetch ────────────────────────────────────────────────────────
   const fetchQuizzes = async () => {
     setLoadingQuizzes(true);
     try {
@@ -1517,7 +1511,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setLoadingAttempts(false);
   };
 
-  // ── Attempt ───────────────────────────────────────────────────────────
   const openAttemptList = (quiz: any) => {
     setSelectedQuizForAttempt(quiz);
     setAttempts([]);
@@ -1557,7 +1550,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setAttemptModal("list");
   };
 
-  // ── Quiz CRUD ─────────────────────────────────────────────────────────
   const openAddQuiz = () => {
     setQuizForm({ ...EMPTY_QUIZ });
     setQuizError("");
@@ -1635,7 +1627,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     if (!selectedQuiz) return;
     setSavingQuiz(true);
     try {
-      const res = await fetch(`${API}/api/quizzes/mine/${selectedQuiz.id}/`, {
+      const res = await fetch(`${API}/api/quizzes/${selectedQuiz.id}/`, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -1649,7 +1641,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     setSavingQuiz(false);
   };
 
-  // ── Question CRUD ─────────────────────────────────────────────────────
   const openAddQuestion = (quizId: string) => {
     setQuestionForm({ ...EMPTY_QUESTION });
     setQuestionError("");
@@ -1805,14 +1796,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
           headers: authHeaders(),
         });
         if (walletRes.ok) setWallet(await walletRes.json());
-        showToast("✓ Hoàn tiền thành công!", "success"); // ← thêm
+        showToast("✓ Hoàn tiền thành công!", "success");
       } else {
         const err = await res.json();
         setRefundShortage({ id, ...err });
-        showToast("⚠ " + (err.detail ?? "Hoàn tiền thất bại."), "error"); // ← thêm
+        showToast("⚠ " + (err.detail ?? "Hoàn tiền thất bại."), "error");
       }
     } catch (_) {
-      showToast("⚠ Lỗi kết nối, thử lại sau.", "error"); // ← thêm
+      showToast("⚠ Lỗi kết nối, thử lại sau.", "error");
     }
     setConfirmingRefund(null);
   };
@@ -1820,7 +1811,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const renderAttemptModal = () => {
     if (!attemptModal) return null;
 
-    // ── Danh sách các lần làm bài ────────────────────────────────────────────
     if (attemptModal === "list") {
       return (
         <div
@@ -1981,7 +1971,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       );
     }
 
-    // ── Chi tiết 1 lần làm bài ───────────────────────────────────────────────
     if (attemptModal === "detail" && selectedAttempt) {
       const start = selectedAttempt.started_at
         ? new Date(selectedAttempt.started_at)
@@ -1996,7 +1985,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       const snapshot: Record<string, string[]> =
         selectedAttempt.answers_snapshot ?? {};
 
-      // Dùng questions từ QuizAttemptResultSerializer (nếu có) hoặc fallback từ _questions
       const questions: any[] =
         selectedAttempt.questions ?? selectedAttempt._questions ?? [];
 
@@ -2201,7 +2189,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           {q.answers?.map((ans: any) => {
                             const isChosen = chosenIds.includes(String(ans.id));
                             const isCorrect = ans.is_correct;
-                            // màu: đúng+chọn=xanh, sai+chọn=đỏ, đúng+không chọn=viền xanh nhạt, còn lại=mờ
                             let bg = "rgba(255,255,255,0.02)";
                             let border = "0.5px solid rgba(255,255,255,0.06)";
                             let color = "rgba(224,225,221,0.45)";
@@ -2280,11 +2267,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     return null;
   };
 
-  // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="id-page">
       <div className="container id-layout">
-        {/* ── Sidebar ── */}
         <aside className="id-sidebar">
           <div className="id-profile">
             <div className="id-profile__avatar">
@@ -2502,9 +2487,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               </div>
 
               <div className="id-form-card">
-                <div
-                  className="id-form-card__title-row"
-                >
+                <div className="id-form-card__title-row">
                   <h3 className="id-form-card__title">Thông tin cơ bản</h3>
                   {!profileEditing ? (
                     <button
@@ -2970,7 +2953,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ COURSES ════ */}
           {activeTab === "courses" && (
             <div className="id-content">
               <div className="id-page-header id-page-header--row">
@@ -3177,61 +3159,59 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </select>
                             </td>
                             <td>
-                              <div className="id-course-row__actions">
-                                <button
-                                  className="id-btn-sm"
-                                  onClick={() => openEditCourse(c)}
-                                >
-                                  Sửa
-                                </button>
-
-                                {c.status === "published" &&
-                                  Number(c.total_students) === 0 && (
-                                    <button
-                                      className="id-btn-sm id-btn-sm--warning"
-                                      onClick={async () => {
-                                        if (!confirm(`Lưu trữ "${c.title}"?`))
-                                          return;
-                                        try {
-                                          const res = await fetch(
-                                            `${API}/api/courses/mine/${c.id}/archive/`,
+                              <ActionMenu
+                                items={[
+                                  {
+                                    label: "Sửa",
+                                    onClick: () => openEditCourse(c),
+                                    variant: "edit",
+                                  },
+                                  {
+                                    label: "Lưu trữ",
+                                    onClick: async () => {
+                                      if (!confirm(`Lưu trữ "${c.title}"?`))
+                                        return;
+                                      try {
+                                        const res = await fetch(
+                                          `${API}/api/courses/mine/${c.id}/archive/`,
+                                          {
+                                            method: "POST",
+                                            headers: authHeaders(),
+                                          },
+                                        );
+                                        if (res.ok) {
+                                          const refreshed = await fetch(
+                                            `${API}/api/courses/mine/`,
                                             {
-                                              method: "POST",
                                               headers: authHeaders(),
                                             },
                                           );
-                                          if (res.ok) {
-                                            const refreshed = await fetch(
-                                              `${API}/api/courses/mine/`,
-                                              { headers: authHeaders() },
+                                          if (refreshed.ok)
+                                            setCourses(
+                                              (await refreshed.json())
+                                                .results ?? [],
                                             );
-                                            if (refreshed.ok)
-                                              setCourses(
-                                                (await refreshed.json())
-                                                  .results ?? [],
-                                              );
-                                          } else {
-                                            const err = await res
-                                              .json()
-                                              .catch(() => ({}));
-                                            alert(
-                                              err?.detail ||
-                                                "Không thể lưu trữ.",
-                                            );
-                                          }
-                                        } catch (_) {
-                                          alert("Lỗi kết nối.");
+                                        } else {
+                                          const err = await res
+                                            .json()
+                                            .catch(() => ({}));
+                                          alert(
+                                            err?.detail || "Không thể lưu trữ.",
+                                          );
                                         }
-                                      }}
-                                    >
-                                      Lưu trữ
-                                    </button>
-                                  )}
-
-                                {c.status === "archived" && c.published_at && (
-                                  <button
-                                    className="id-btn-sm id-btn-sm--success"
-                                    onClick={async () => {
+                                      } catch (_) {
+                                        alert("Lỗi kết nối.");
+                                      }
+                                    },
+                                    variant: "ban",
+                                    hidden: !(
+                                      c.status === "published" &&
+                                      Number(c.total_students) === 0
+                                    ),
+                                  },
+                                  {
+                                    label: "Đăng lại",
+                                    onClick: async () => {
                                       if (!confirm(`Đăng lại "${c.title}"?`))
                                         return;
                                       try {
@@ -3245,7 +3225,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                         if (res.ok) {
                                           const refreshed = await fetch(
                                             `${API}/api/courses/mine/`,
-                                            { headers: authHeaders() },
+                                            {
+                                              headers: authHeaders(),
+                                            },
                                           );
                                           if (refreshed.ok)
                                             setCourses(
@@ -3264,17 +3246,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                       } catch (_) {
                                         alert("Lỗi kết nối.");
                                       }
-                                    }}
-                                  >
-                                    Đăng lại
-                                  </button>
-                                )}
-
-                                {(c.status === "draft" ||
-                                  c.status === "review") && (
-                                  <button
-                                    className="id-btn-sm id-btn-sm--danger"
-                                    onClick={async () => {
+                                    },
+                                    variant: "restore",
+                                    hidden: !(
+                                      c.status === "archived" && c.published_at
+                                    ),
+                                  },
+                                  {
+                                    label: "Xóa",
+                                    onClick: async () => {
                                       if (!confirm(`Xóa "${c.title}"?`)) return;
                                       try {
                                         const res = await fetch(
@@ -3289,12 +3269,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                             prev.filter((x) => x.id !== c.id),
                                           );
                                       } catch (_) {}
-                                    }}
-                                  >
-                                    Xóa
-                                  </button>
-                                )}
-                              </div>
+                                    },
+                                    variant: "ban",
+                                    hidden: !(
+                                      c.status === "draft" ||
+                                      c.status === "review"
+                                    ),
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         );
@@ -3359,7 +3342,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     {loadingSections ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : sections
@@ -3381,7 +3364,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không có chương nào.
+                          Không có chương nào.
                         </td>
                       </tr>
                     ) : (
@@ -3412,29 +3395,28 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               {s.description || "—"}
                             </td>
                             <td>
-                              <div className="ad-actions">
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--edit"
-                                  onClick={() => openEditSection(s)}
-                                >
-                                  Sửa
-                                </button>
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--approve"
-                                  onClick={() => {
-                                    setFilterLessonSection(s.id);
-                                    setActiveTab("lessons" as Tab);
-                                  }}
-                                >
-                                  Bài học
-                                </button>
-                                <button
-                                  className="ad-btn-sm ad-btn-sm--delete"
-                                  onClick={() => handleDeleteSection(s)}
-                                >
-                                  Xóa
-                                </button>
-                              </div>
+                              <ActionMenu
+                                items={[
+                                  {
+                                    label: "Sửa",
+                                    onClick: () => openEditSection(s),
+                                    variant: "edit",
+                                  },
+                                  {
+                                    label: "Xem bài học",
+                                    onClick: () => {
+                                      setFilterLessonSection(s.id);
+                                      setActiveTab("lessons" as Tab);
+                                    },
+                                    variant: "approve",
+                                  },
+                                  {
+                                    label: "Xóa",
+                                    onClick: () => handleDeleteSection(s),
+                                    variant: "ban",
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         ))
@@ -3544,7 +3526,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         disabled={sectionLoading}
                       >
                         {sectionLoading
-                          ? "⏳ Đang lưu…"
+                          ? "Đang lưu…"
                           : editingSectionId
                             ? "Lưu thay đổi"
                             : "Thêm chương"}
@@ -3642,7 +3624,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     {loadingLessons ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : lessons.length === 0 ? (
@@ -3655,7 +3637,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không có bài học nào.
+                          Không có bài học nào.
                         </td>
                       </tr>
                     ) : (
@@ -3683,24 +3665,24 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               : ""}
                           </td>
                           <td>
-                            <div className="ad-actions">
-                              <button
-                                className="ad-btn-sm ad-btn-sm--edit"
-                                onClick={() => openEditLesson(l)}
-                              >
-                                Sửa
-                              </button>
-                              <button
-                                className="ad-btn-sm ad-btn-sm--delete"
-                                onClick={() => {
-                                  setSelectedLesson(l);
-                                  setLessonError("");
-                                  setLessonModal("delete");
-                                }}
-                              >
-                                Xóa
-                              </button>
-                            </div>
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "Sửa",
+                                  onClick: () => openEditLesson(l),
+                                  variant: "edit",
+                                },
+                                {
+                                  label: "Xóa",
+                                  onClick: () => {
+                                    setSelectedLesson(l);
+                                    setLessonError("");
+                                    setLessonModal("delete");
+                                  },
+                                  variant: "ban",
+                                },
+                              ]}
+                            />
                           </td>
                         </tr>
                       ))
@@ -3755,7 +3737,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               onClick={handleDeleteLesson}
                               disabled={savingLesson}
                             >
-                              {savingLesson ? "⏳ Đang xóa…" : "Xóa bài học"}
+                              {savingLesson ? "Đang xóa…" : "Xóa bài học"}
                             </button>
                             <button
                               className="cm-btn cm-btn--cancel"
@@ -4103,7 +4085,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             disabled={savingLesson}
                           >
                             {savingLesson
-                              ? "⏳ Đang lưu…"
+                              ? "Đang lưu…"
                               : isEdit
                                 ? "Lưu thay đổi"
                                 : "Tạo bài học"}
@@ -4169,7 +4151,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <th>Bài học</th>
                       <th>Điểm đạt</th>
                       <th>Thời gian</th>
-                      <th>Câu hỏi</th>
                       <th>thao tác</th>
                     </tr>
                   </thead>
@@ -4177,7 +4158,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     {loadingQuizzes ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : quizzes.filter(
@@ -4194,7 +4175,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không có bài kiểm tra nào.
+                          Không có bài kiểm tra nào.
                         </td>
                       </tr>
                     ) : (
@@ -4228,64 +4209,37 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                     : "Không giới hạn"}
                                 </td>
                                 <td>
-                                  <button
-                                    style={{
-                                      background: "none",
-                                      border: "none",
-                                      color: "#5ba4de",
-                                      cursor: "pointer",
-                                      fontSize: 13,
-                                    }}
-                                    onClick={() => {
-                                      if (isExpanded) {
-                                        setExpandedQuizId(null);
-                                      } else {
-                                        setExpandedQuizId(q.id);
-                                        fetchQuestions(q.id);
-                                      }
-                                    }}
-                                  >
-                                    {isExpanded ? "▾ Ẩn" : "▸ Xem câu hỏi"}
-                                  </button>
-                                </td>
-                                <td>
-                                  <div className="ad-actions">
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--edit"
-                                      onClick={() => openEditQuiz(q)}
-                                    >
-                                      Sửa
-                                    </button>
-                                    <button
-                                      className="ad-btn-sm"
-                                      style={{
-                                        color: "#5ba4de",
-                                        borderColor: "rgba(91,164,222,0.3)",
-                                      }}
-                                      onClick={() => openAttemptList(q)}
-                                    >
-                                      Lịch sử
-                                    </button>
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--approve"
-                                      onClick={() => {
-                                        setExpandedQuizId(
-                                          isExpanded ? null : q.id,
-                                        );
-                                        if (!isExpanded) fetchQuestions(q.id);
-                                      }}
-                                    >
-                                      {isExpanded
-                                        ? "▾ Ẩn câu hỏi"
-                                        : "▸ Câu hỏi"}
-                                    </button>
-                                    <button
-                                      className="ad-btn-sm ad-btn-sm--delete"
-                                      onClick={() => openDeleteQuiz(q)}
-                                    >
-                                      Xóa
-                                    </button>
-                                  </div>
+                                  <ActionMenu
+                                    items={[
+                                      {
+                                        label: "Sửa",
+                                        onClick: () => openEditQuiz(q),
+                                        variant: "edit",
+                                      },
+                                      {
+                                        label: "Lịch sử làm bài",
+                                        onClick: () => openAttemptList(q),
+                                        variant: "view",
+                                      },
+                                      {
+                                        label: isExpanded
+                                          ? "Ẩn câu hỏi"
+                                          : "Xem câu hỏi",
+                                        onClick: () => {
+                                          setExpandedQuizId(
+                                            isExpanded ? null : q.id,
+                                          );
+                                          if (!isExpanded) fetchQuestions(q.id);
+                                        },
+                                        variant: "approve",
+                                      },
+                                      {
+                                        label: "Xóa",
+                                        onClick: () => openDeleteQuiz(q),
+                                        variant: "ban",
+                                      },
+                                    ]}
+                                  />
                                 </td>
                               </tr>
                               {isExpanded && (
@@ -4395,24 +4349,22 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                                   )}
                                                 </div>
                                               </div>
-                                              <div className="ad-actions">
-                                                <button
-                                                  className="ad-btn-sm ad-btn-sm--edit"
-                                                  onClick={() =>
-                                                    openEditQuestion(ques)
-                                                  }
-                                                >
-                                                  Sửa
-                                                </button>
-                                                <button
-                                                  className="ad-btn-sm ad-btn-sm--delete"
-                                                  onClick={() =>
-                                                    openDeleteQuestion(ques)
-                                                  }
-                                                >
-                                                  Xóa
-                                                </button>
-                                              </div>
+                                              <ActionMenu
+                                                items={[
+                                                  {
+                                                    label: "Sửa",
+                                                    onClick: () =>
+                                                      openEditQuestion(ques),
+                                                    variant: "edit",
+                                                  },
+                                                  {
+                                                    label: "Xóa",
+                                                    onClick: () =>
+                                                      openDeleteQuestion(ques),
+                                                    variant: "ban",
+                                                  },
+                                                ]}
+                                              />
                                             </div>
                                           </div>
                                         ))
@@ -4531,7 +4483,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               onChange={(e) =>
                                 setQuizForm((f) => ({
                                   ...f,
-                                  lesson: toPositiveInt(e.target.value),
+                                  lesson: e.target.value,
                                 }))
                               }
                             >
@@ -5040,7 +4992,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     {loadingEnrollments ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredEnrollments.length === 0 ? (
@@ -5053,7 +5005,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không tìm thấy lượt đăng ký phù hợp.
+                          Không tìm thấy lượt đăng ký phù hợp.
                         </td>
                       </tr>
                     ) : (
@@ -5087,9 +5039,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 </span>
                               </div>
                             </td>
-                            <td className="ad-table__title">
-                              {e.course_title ?? e.course?.title ?? "—"}
-                            </td>
+                            <td>{e.course_title ?? e.course?.title ?? "—"}</td>
                             <td className="ad-table__muted">
                               {e.enrolled_at
                                 ? new Date(e.enrolled_at).toLocaleDateString(
@@ -5212,7 +5162,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không có giao dịch nào.
+                          Không có giao dịch nào.
                         </td>
                       </tr>
                     ) : (
@@ -5230,9 +5180,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 </span>
                               </div>
                             </td>
-                            <td className="ad-table__title">
-                              {p.course_title ?? "—"}
-                            </td>
+                            <td>{p.course_title ?? "—"}</td>
                             <td style={{ color: "#4caf82", fontWeight: 600 }}>
                               {formatPrice(p.amount ?? p.price ?? 0, "VND")}
                             </td>
@@ -5613,7 +5561,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     {loadingReviews ? (
                       <tr>
                         <td colSpan={6} style={{ textAlign: "center" }}>
-                          ⏳ Đang tải…
+                          Đang tải…
                         </td>
                       </tr>
                     ) : filteredReviews.length === 0 ? (
@@ -5626,7 +5574,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             color: "var(--color-text-secondary)",
                           }}
                         >
-                          🔍 Không tìm thấy đánh giá nào.
+                          Không tìm thấy đánh giá nào.
                         </td>
                       </tr>
                     ) : (
@@ -5645,9 +5593,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </span>
                             </div>
                           </td>
-                          <td className="ad-table__title">
-                            {r.course_title ?? "—"}
-                          </td>
+                          <td>{r.course_title ?? "—"}</td>
                           <td>
                             <span style={{ color: "#f5a623" }}>
                               {"★".repeat(r.rating)}
@@ -5666,7 +5612,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </span>
                             ) : r.is_reported ? (
                               <span className="ad-badge ad-review-badge--reported">
-                                🚩 Đã báo cáo
+                                Đã báo cáo
                               </span>
                             ) : (
                               <span className="ad-badge ad-review-badge--visible">
@@ -5675,14 +5621,25 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             )}
                           </td>
                           <td>
-                            <div className="ad-actions">
-                              <button
-                                className="ad-btn-sm"
-                                onClick={() => openViewReview(r)}
-                              >
-                                Xem
-                              </button>
-                            </div>
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: "Xem",
+                                  onClick: () => openViewReview(r),
+                                  variant: "view",
+                                },
+
+                                {
+                                  label: "Báo cáo",
+                                  hidden:
+                                    r.is_hidden ||
+                                    r.is_reported ||
+                                    r.report_dismissed,
+                                  onClick: () => openReportModal(r),
+                                  variant: "ban",
+                                },
+                              ]}
+                            />
                           </td>
                         </tr>
                       ))
@@ -5776,26 +5733,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             <span className="ad-badge ad-review-badge--visible">
                               Đang hiển thị
                             </span>
-                          )}
-                          {!selectedReview.is_hidden && (
-                            <button
-                              className="ad-btn-sm ad-btn-sm--refund"
-                              onClick={() => {
-                                if (
-                                  selectedReview.is_reported ||
-                                  selectedReview.report_dismissed
-                                ) {
-                                  alert(
-                                    "Đánh giá này đã đạt giới hạn báo cáo, không thể báo cáo thêm.",
-                                  );
-                                  return;
-                                }
-                                closeReviewModal();
-                                openReportModal(selectedReview);
-                              }}
-                            >
-                              Báo cáo
-                            </button>
                           )}
                         </div>
                       </div>
@@ -5915,7 +5852,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         onClick={handleSubmitReport}
                         disabled={submittingReport || !reportReason.trim()}
                       >
-                        {submittingReport ? "Đang gửi…" : "🚩 Gửi báo cáo"}
+                        {submittingReport ? "Đang gửi…" : "Gửi báo cáo"}
                       </button>
                       <button
                         className="ad-modal__cancel"
@@ -6202,7 +6139,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     disabled={editCourseLoading}
                   >
                     {editCourseLoading
-                      ? "⏳ Đang lưu…"
+                      ? "Đang lưu…"
                       : editingCourseId
                         ? "Lưu thay đổi"
                         : "Tạo khóa học"}
@@ -6265,7 +6202,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           )
                         }
                       >
-                        💳 Nạp tiền
+                        Nạp tiền
                       </button>
                       <button
                         className={
@@ -6279,7 +6216,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           )
                         }
                       >
-                        🏦 Rút tiền
+                        Rút tiền
                       </button>
                     </div>
                   </div>
@@ -6671,12 +6608,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 </button>
                               </td>
                             </tr>
-                            {/* Cảnh báo thiếu tiền */}
                             {refundShortage?.id === r.id && (
                               <tr>
                                 <td colSpan={5}>
-                                  <div 
-                                    className="id-refund-warning">
+                                  <div className="id-refund-warning">
                                     <p className="id-refund-warning__text">
                                       Hạn chót:{" "}
                                       {refundShortage.deadline
@@ -6708,7 +6643,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ── Toast ── */}
           {toast && (
             <div className={`id-toast id-toast--${toast.type}`}>
               {toast.msg}

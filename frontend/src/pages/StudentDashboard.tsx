@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { formatPrice, formatDate } from "../utils/format";
 import "../styles/pages/StudentDashboard.css";
+import ActionMenu from "../components/ui/ActionMenu";
 
 interface StudentDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -955,7 +956,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               {loadingCourses ? (
                 <div className="id-form-card">
-                  <p className="table-loading-text">⏳ Đang tải…</p>
+                  <p className="table-loading-text">Đang tải…</p>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -973,7 +974,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         <tr>
                           <td colSpan={4} className="ad-table__empty-cell">
                             <span className="ad-table__empty-text">
-                              🔍 Bạn chưa đăng ký khóa học nào.
+                              Bạn chưa đăng ký khóa học nào.
                             </span>
                           </td>
                         </tr>
@@ -1067,7 +1068,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     ) : payments.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="ad-table__empty-cell">
-                          🔍 Chưa có giao dịch nào.
+                          Chưa có giao dịch nào.
                         </td>
                       </tr>
                     ) : (
@@ -1546,7 +1547,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                 className="ad-table__empty-cell"
                               >
                                 {quizAttempts.length === 0
-                                  ? "🔍 Chưa có lần kiểm tra nào."
+                                  ? "Chưa có lần kiểm tra nào."
                                   : "Không có kết quả phù hợp."}
                               </td>
                             </tr>
@@ -1745,7 +1746,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               {loadingCerts ? (
                 <div className="id-form-card">
-                  <p className="table-loading-text">⏳ Đang tải…</p>
+                  <p className="table-loading-text">Đang tải…</p>
                 </div>
               ) : (
                 <div className="ad-table-wrap">
@@ -1763,7 +1764,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         <tr>
                           <td colSpan={4} className="ad-table__empty-cell">
                             <span className="ad-table__empty-text">
-                              🔍 Bạn chưa có chứng chỉ nào.
+                              Bạn chưa có chứng chỉ nào.
                             </span>
                           </td>
                         </tr>
@@ -1831,7 +1832,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                           )
                         }
                       >
-                        💳 Nạp tiền
+                        Nạp tiền
                       </button>
                       <button
                         className={
@@ -1845,7 +1846,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                           )
                         }
                       >
-                        🏦 Rút tiền
+                        Rút tiền
                       </button>
                     </div>
                   </div>

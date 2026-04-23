@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
 import ReactDOM from "react-dom";
+import ActionMenu from "../components/ui/ActionMenu";
 
 interface AdminDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -23,7 +24,6 @@ const jsonH = (): Record<string, string> => ({
 const toList = (data: any): any[] =>
   Array.isArray(data) ? data : (data?.results ?? []);
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 type Tab =
   | "overview"
   | "users"
@@ -74,7 +74,6 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refund_requested: "Yêu cầu",
 };
 
-// ── Course modal ──────────────────────────────────────────────────────────────
 type CourseModalType = "add" | "edit" | "delete" | null;
 
 interface CourseForm {
@@ -109,98 +108,12 @@ const EMPTY_FORM: CourseForm = {
   published_at: "",
 };
 
-const ActionMenu: React.FC<{
-  items: {
-    label: string;
-    onClick: () => void;
-    variant?: string;
-    hidden?: boolean;
-  }[];
-}> = ({ items }) => {
-  const [open, setOpen] = React.useState(false);
-  const [menuPos, setMenuPos] = React.useState({ top: 0, left: 0 });
-  const ref = React.useRef<HTMLDivElement>(null);
-  const triggerRef = React.useRef<HTMLButtonElement>(null);
-  const menuRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-
-      if (
-        ref.current &&
-        !ref.current.contains(target) &&
-        menuRef.current &&
-        !menuRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  }, []);
-
-  const handleOpen = () => {
-    if (!open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setMenuPos({
-        top: rect.bottom + 6,
-        left: rect.right - 130,
-      });
-    }
-    setOpen((v) => !v);
-  };
-
-  const visible = items.filter((i) => !i.hidden);
-
-  return (
-    <div className="am-wrap" ref={ref}>
-      <button
-        className="am-trigger"
-        ref={triggerRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleOpen();
-        }}
-      >
-        •••
-      </button>
-      {open &&
-        ReactDOM.createPortal(
-          <div
-            ref={menuRef}
-            className="am-menu"
-            style={{ top: menuPos.top, left: menuPos.left }}
-          >
-            {visible.map((item, i) => (
-              <button
-                key={i}
-                className={`am-item am-item--${item.variant ?? "default"}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log("CLICK VIEW");
-                  item.onClick();
-                  setOpen(false);
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>,
-          document.body,
-        )}
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigate,
   onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
-  // ── Data ────────────────────────────────────────────────────────────────────
   const [users, setUsers] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [revenueStats, setRevenueStats] = useState<any>(null);
@@ -213,7 +126,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingPayments, setLoadingPayments] = useState(false);
 
-  // ── Enrollment state ─────────────────────────────────────────────────────────
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(false);
   const [searchEnrollment, setSearchEnrollment] = useState("");
@@ -221,7 +133,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [certificates, setCertificates] = useState<any[]>([]);
   const [loadingCerts, setLoadingCerts] = useState(false);
 
-  // ── Filters ─────────────────────────────────────────────────────────────────
   const [searchUser, setSearchUser] = useState("");
   const [searchCourse, setSearchCourse] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -230,7 +141,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [filterPayStatus, setFilterPayStatus] = useState("");
   const [filterReported, setFilterReported] = useState("");
 
-  // ── Course modal state ───────────────────────────────────────────────────────
   const [courseModal, setCourseModal] = useState<CourseModalType>(null);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [courseForm, setCourseForm] = useState<CourseForm>(EMPTY_FORM);
@@ -245,7 +155,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     console.log("OPEN COURSE", c);
     setViewingCourse(c);
     setCourseViewModal(true);
-    // Fetch chi tiết nếu cần
     try {
       const res = await fetch(`${API}/api/courses/admin/${c.id}/`, {
         headers: authHeader(),
@@ -254,7 +163,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } catch {}
   };
 
-  // ── Section state ────────────────────────────────────────────────────────────
   type SectionModalType = "add" | "edit" | "delete" | null;
   interface SectionForm {
     title: string;
@@ -278,7 +186,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [savingSection, setSavingSection] = useState(false);
   const [filterSectionCourse, setFilterSectionCourse] = useState("");
 
-  // ── Lesson state ──────────────────────────────────────────────────────────────
   type LessonModalType = "add" | "edit" | "delete" | null;
   interface LessonForm {
     title: string;
@@ -329,7 +236,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setLessonViewModal(true);
   };
 
-  // ── Quiz state ────────────────────────────────────────────────────────────────
   type QuizModalType = "add" | "edit" | "delete" | null;
   interface QuizForm {
     lesson: string;
@@ -376,7 +282,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [savingQuiz, setSavingQuiz] = useState(false);
   const [filterQuizLesson, setFilterQuizLesson] = useState("");
 
-  // Câu hỏi trong quiz đang chọn
   const [questions, setQuestions] = useState<any[]>([]);
   const [loadingQ, setLoadingQ] = useState(false);
   const [questionModal, setQuestionModal] = useState<
@@ -389,7 +294,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [savingQ, setSavingQ] = useState(false);
   const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
 
-  // ── Quiz Attempt (lịch sử làm bài) state ─────────────────────────────────────
   const [attemptModal, setAttemptModal] = useState<"list" | "detail" | null>(
     null,
   );
@@ -400,7 +304,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedAttempt, setSelectedAttempt] = useState<any>(null);
   const [loadingAttemptDetail, setLoadingAttemptDetail] = useState(false);
 
-  // ── Category state ────────────────────────────────────────────────────────────
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [searchCategory, setSearchCategory] = useState("");
   const [categoryModal, setCategoryModal] = useState<
@@ -416,7 +319,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [categoryError, setCategoryError] = useState("");
   const [savingCategory, setSavingCategory] = useState(false);
 
-  // ── Review state ──────────────────────────────────────────────────────────────
   const [reviews, setReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [searchReview, setSearchReview] = useState("");
@@ -429,7 +331,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [deletingReview, setDeletingReview] = useState(false);
   const [togglingReview, setTogglingReview] = useState(false);
 
-  // Payment
   const [paymentDetail, setPaymentDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -544,7 +445,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSelectedUser(null);
   };
 
-  // ── Fetch ────────────────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
@@ -590,8 +490,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const fetchAttempts = useCallback(async (quizId: string) => {
     setLoadingAttempts(true);
     try {
-      // Gọi với token admin — backend lọc theo student của request.user
-      // Nếu backend có endpoint admin riêng thì đổi URL ở đây
       const res = await fetch(`${API}/api/quizzes/${quizId}/attempts/all/`, {
         headers: authHeader(),
       });
@@ -614,12 +512,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const openAttemptDetail = async (attempt: any) => {
     setSelectedAttempt(attempt);
     setAttemptModal("detail");
-    // Nếu attempt chưa có questions thì gọi thêm — dùng lại QuizAttemptResultSerializer
     if (!attempt.questions) {
       setLoadingAttemptDetail(true);
       try {
-        // Endpoint submit trả về result — ta dùng endpoint riêng nếu có,
-        // hoặc lấy questions từ quiz hiện tại để map với answers_snapshot
         const res = await fetch(
           `${API}/api/quizzes/${selectedQuizForAttempt?.id ?? attempt.quiz_id}/questions/`,
           { headers: authHeader() },
@@ -890,7 +785,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetchReviews();
   }, []);
 
-  // ── User actions ──────────────────────────────────────────────────────────
   const toggleUserStatus = async (user: any) => {
     const isBanned = user.is_active === false || user.status === "banned";
     try {
@@ -971,7 +865,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSavingUser(false);
   };
 
-  // ── Course status actions ─────────────────────────────────────────────────
   const approveCourse = async (id: string) => {
     try {
       await fetch(`${API}/api/courses/admin/${id}/approve/`, {
@@ -1478,8 +1371,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSavingQ(false);
   };
 
-  // XÓA hai hàm cũ và thay bằng:
-
   const openApproveRefund = (p: any) => {
     setConfirmModal({
       type: "approve-refund",
@@ -1547,12 +1438,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setReviews((prev) =>
           prev.map((r) => (r.id === updated.id ? updated : r)),
         );
-        setSelectedReview(updated); // cập nhật modal
+        setSelectedReview(updated);
       }
     } catch {}
   };
 
-  // ── Derived / helpers ─────────────────────────────────────────────────────
   const normalize = (s: string) =>
     s
       .toLowerCase()
@@ -1717,23 +1607,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (courses.length === 0) return;
 
-    // Lấy thời điểm login của session TRƯỚC (lưu trước khi ghi đè)
     const prevLoginAt = localStorage.getItem("prev_login_at");
 
     const edited = courses.filter((c) => {
       if (c.status !== "published") return false;
       if (!c.updated_at || !c.published_at) return false;
 
-      // Chỉ tính là "đã sửa" nếu updated_at > published_at + 5 giây
       const diff =
         new Date(c.updated_at).getTime() - new Date(c.published_at).getTime();
       if (diff <= 5000) return false;
 
-      // Đã dismiss trong session này rồi → không hiện
       if (sessionDismissed.has(c.id)) return false;
 
-      // Nếu có prev_login_at: chỉ hiện nếu updated_at xảy ra SAU lần login trước
-      // (tức là người kia sửa trong lúc mình không đăng nhập)
       if (prevLoginAt) {
         const prevTime = new Date(prevLoginAt).getTime();
         const updatedTime = new Date(c.updated_at).getTime();
@@ -1746,14 +1631,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setCourseEditAlerts(edited);
   }, [courses, sessionDismissed]);
 
-  // Khi login thành công, trước khi ghi login_at mới:
   useEffect(() => {
     const currentLoginAt = localStorage.getItem("login_at");
     if (currentLoginAt) {
       localStorage.setItem("prev_login_at", currentLoginAt);
     }
     localStorage.setItem("login_at", new Date().toISOString());
-  }, []); // ← chỉ chạy khi mount
+  }, []);
 
   const renderModal = () => {
     if (!courseModal) return null;
@@ -2143,7 +2027,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
   };
 
-  // ── Section modals ────────────────────────────────────────────────────────────
   const renderSectionModal = () => {
     if (!sectionModal) return null;
     if (sectionModal === "delete") {
@@ -2479,7 +2362,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       isCollapsible && !alertExpanded
         ? courseEditAlerts.slice(0, PREVIEW_COUNT)
         : courseEditAlerts;
-    //adminEditAlerts
     return (
       <div className="ad-edit-alert">
         <div className="ad-edit-alert__header">
@@ -2608,13 +2490,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )
       : sections;
 
-    // Có video không? (file mới HOẶC URL HOẶC file cũ trên server)
     const hasVideo =
       !!lessonForm.video_url.trim() ||
       !!lessonForm.video_file ||
       !!lessonForm.existing_video_url;
 
-    // Có tài liệu không?
     const hasAttachment =
       !!lessonForm.attachment ||
       !!lessonForm.attachment_name.trim() ||
@@ -3594,7 +3474,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const renderAttemptModal = () => {
     if (!attemptModal) return null;
 
-    // ── Danh sách các lần làm bài ────────────────────────────────────────────
     if (attemptModal === "list") {
       return (
         <div
@@ -3755,7 +3634,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       );
     }
 
-    // ── Chi tiết 1 lần làm bài ───────────────────────────────────────────────
     if (attemptModal === "detail" && selectedAttempt) {
       const start = selectedAttempt.started_at
         ? new Date(selectedAttempt.started_at)
@@ -3770,7 +3648,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const snapshot: Record<string, string[]> =
         selectedAttempt.answers_snapshot ?? {};
 
-      // Dùng questions từ QuizAttemptResultSerializer (nếu có) hoặc fallback từ _questions
       const questions: any[] =
         selectedAttempt.questions ?? selectedAttempt._questions ?? [];
 
@@ -3809,7 +3686,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="cm-body cm-body--scroll">
-              {/* ── Thông tin tổng quan ── */}
               <div
                 style={{
                   display: "grid",
@@ -3975,7 +3851,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {q.answers?.map((ans: any) => {
                             const isChosen = chosenIds.includes(String(ans.id));
                             const isCorrect = ans.is_correct;
-                            // màu: đúng+chọn=xanh, sai+chọn=đỏ, đúng+không chọn=viền xanh nhạt, còn lại=mờ
                             let bg = "rgba(255,255,255,0.02)";
                             let border = "0.5px solid rgba(255,255,255,0.06)";
                             let color = "rgba(224,225,221,0.45)";
@@ -5292,7 +5167,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th>Bài học</th>
                       <th>Điểm đạt</th>
                       <th>Thời gian</th>
-                      <th>Câu hỏi</th>
                       <th>thao tác</th>
                     </tr>
                   </thead>
@@ -5340,47 +5214,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     : "Không giới hạn"}
                                 </td>
                                 <td>
-                                  <button
-                                    className="viewhid-btn"
-                                    onClick={() => {
-                                      if (isExpanded) {
-                                        setExpandedQuizId(null);
-                                      } else {
-                                        setExpandedQuizId(q.id);
-                                        fetchQuestions(q.id);
-                                      }
-                                    }}
-                                  >
-                                    {isExpanded ? "Ẩn" : "Xem"}
-                                  </button>
-                                </td>
-                                <td>
-                                  <div className="ad-actions">
-                                    <button
-                                      className="viewhid-btn"
-                                      onClick={() => {
-                                        if (isExpanded) {
-                                          setExpandedQuizId(null);
-                                        } else {
-                                          setExpandedQuizId(q.id);
-                                          fetchQuestions(q.id);
-                                        }
-                                      }}
-                                    >
-                                      {isExpanded ? "Ẩn" : "Xem câu hỏi"}
-                                    </button>
-
-                                    <button
-                                      className="ad-btn-sm"
-                                      style={{
-                                        color: "#5ba4de",
-                                        borderColor: "rgba(91,164,222,0.3)",
-                                      }}
-                                      onClick={() => openAttemptList(q)}
-                                    >
-                                      Lịch sử
-                                    </button>
-                                  </div>
+                                  <ActionMenu
+                                    items={[
+                                      {
+                                        label: isExpanded
+                                          ? "Ẩn"
+                                          : "Xem câu hỏi",
+                                        onClick: () => {
+                                          if (isExpanded) {
+                                            setExpandedQuizId(null);
+                                          } else {
+                                            setExpandedQuizId(q.id);
+                                            fetchQuestions(q.id);
+                                          }
+                                        },
+                                        variant: "view",
+                                      },
+                                      {
+                                        label: "Lịch sử",
+                                        onClick: () => openAttemptList(q),
+                                        variant: "edit",
+                                      },
+                                    ]}
+                                  />
                                 </td>
                               </tr>
                               {isExpanded && (
