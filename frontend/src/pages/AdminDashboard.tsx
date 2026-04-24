@@ -139,6 +139,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [sortPrice, setSortPrice] = useState("");
   const [searchPayment, setSearchPayment] = useState("");
   const [filterPayStatus, setFilterPayStatus] = useState("");
+  const [filterRefundStatus, setFilterRefundStatus] = useState("");
   const [filterReported, setFilterReported] = useState("");
 
   const [courseModal, setCourseModal] = useState<CourseModalType>(null);
@@ -1497,12 +1498,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const q = normalize(searchPayment);
     const matchSearch =
       !q ||
-      normalize(p.user_name ?? p.user?.name ?? p.user?.email ?? "").includes(
-        q,
-      ) ||
+      normalize(p.student_name ?? p.student_email ?? "").includes(q) ||
       normalize(p.course_title ?? p.course?.title ?? "").includes(q);
+
+    const isRefundFlow = [
+      "refund_requested",
+      "refund_approved",
+      "refunded",
+    ].includes(p.status);
+
     const matchStatus = !filterPayStatus || p.status === filterPayStatus;
-    return matchSearch && matchStatus;
+    return matchSearch && matchStatus && !isRefundFlow;
   });
 
   const filteredReviews = reviews.filter((r) => {
@@ -1721,7 +1727,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             {!editLoading && (
               <>
-                {/* ── Tên khóa học ── */}
                 <div className="cm-field">
                   <label className="cm-label">
                     Tên khóa học <span className="cm-required">*</span>
@@ -1737,7 +1742,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
-                {/* ── Mô tả ── */}
                 <div className="cm-field">
                   <label className="cm-label">Mô tả chi tiết</label>
                   <textarea
@@ -1754,7 +1758,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
-                {/* ── Ảnh bìa ── */}
                 <div className="cm-field">
                   <label className="cm-label">Ảnh bìa (thumbnail)</label>
                   {isEdit &&
@@ -1799,7 +1802,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   )}
                 </div>
 
-                {/* ── Học phí + Giảm giá ── */}
                 <div className="cm-row">
                   <div className="cm-field">
                     <label className="cm-label">Học phí gốc (VNĐ)</label>
@@ -1834,7 +1836,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   Giá bán: <strong>{previewSalePrice()}</strong>
                 </p>
 
-                {/* ── Trình độ + Trạng thái ── */}
                 <div className="cm-row">
                   <div className="cm-field">
                     <label className="cm-label">Trình độ</label>
@@ -1867,7 +1868,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* ── Danh mục + Giảng viên ── */}
                 <div className="cm-row">
                   <div className="cm-field">
                     <label className="cm-label">Danh mục</label>
@@ -1911,7 +1911,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* ── Ngày xuất bản ── */}
                 <div className="cm-field">
                   <label className="cm-label">
                     Ngày xuất bản
@@ -1943,7 +1942,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   )}
                 </div>
 
-                {/* ── Nổi bật (Course.is_featured — BooleanField) ── */}
                 <div className="cm-field cm-field--checkbox">
                   <label className="cm-checkbox-label">
                     <input
@@ -1967,7 +1965,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </label>
                 </div>
 
-                {/* ── Yêu cầu đầu vào ── */}
                 <div className="cm-field">
                   <label className="cm-label">Yêu cầu đầu vào</label>
                   <textarea
@@ -1984,7 +1981,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
-                {/* ── Học được gì ── */}
                 <div className="cm-field">
                   <label className="cm-label">Học được gì</label>
                   <textarea
@@ -2232,49 +2228,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 value: viewingLesson.is_preview_resource ? "Có" : "Không",
               },
             ].map((item) => (
-              <div
-                key={item.label}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "8px 0",
-                  borderBottom: "0.5px solid rgba(255,255,255,0.06)",
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "var(--color-text-secondary)" }}>
-                  {item.label}
-                </span>
-                <span style={{ color: "#e0e1dd", fontWeight: 500 }}>
-                  {item.value}
-                </span>
+              <div key={item.label} className="cm-detail-row">
+                <span className="cm-detail-row__label">{item.label}</span>
+                <span className="cm-detail-row__value">{item.value}</span>
               </div>
             ))}
             {viewingLesson.content && (
-              <div style={{ marginTop: 12 }}>
-                <p
-                  style={{
-                    fontSize: 11,
-                    color: "rgba(224,225,221,0.38)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.07em",
-                    marginBottom: 6,
-                  }}
-                >
-                  Nội dung Markdown
-                </p>
-                <pre
-                  style={{
-                    fontSize: 12,
-                    color: "rgba(224,225,221,0.6)",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "0.5px solid rgba(255,255,255,0.07)",
-                    borderRadius: 8,
-                    padding: "10px 12px",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
+              <div className="cm-markdown-block">
+                <p className="cm-markdown-block__label">Nội dung Markdown</p>
+                <pre className="cm-markdown-block__pre">
                   {viewingLesson.content}
                 </pre>
               </div>
@@ -2414,7 +2376,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           ))}
 
-          {/* Collapsed preview footer */}
           {isCollapsible && !alertExpanded && (
             <div className="ad-edit-alert__more-hint">
               +{courseEditAlerts.length - PREVIEW_COUNT} khóa khác —{" "}
@@ -2523,7 +2484,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="cm-body cm-body--scroll">
-            {/* Chọn khóa học → lọc chương */}
             <div className="cm-row">
               <div className="cm-field">
                 <label className="cm-label">Khóa học</label>
@@ -2564,7 +2524,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Tên + Thứ tự */}
             <div className="cm-row">
               <div className="cm-field">
                 <label className="cm-label">
@@ -2597,7 +2556,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* ── VIDEO ── */}
             <div className="cm-section-block">
               <div className="cm-section-block__header">
                 <span>Video</span>
@@ -2642,13 +2600,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     }))
                   }
                 />
-                {/*  Hiện file mới nếu vừa chọn */}
                 {lessonForm.video_file && (
-                  <span className="cm-hint">
-                    📎 {lessonForm.video_file.name}
-                  </span>
+                  <span className="cm-hint">{lessonForm.video_file.name}</span>
                 )}
-                {/*  Hiện file cũ nếu chưa chọn file mới */}
                 {isEdit &&
                   !lessonForm.video_file &&
                   lessonForm.existing_video_url && (
@@ -2681,7 +2635,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* ── MARKDOWN ── */}
             <div className="cm-section-block">
               <div className="cm-section-block__header">
                 <span>Bài viết (Markdown)</span>
@@ -2712,7 +2665,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               />
             </div>
 
-            {/* ── TÀI LIỆU ── */}
             <div className="cm-section-block">
               <div className="cm-section-block__header">
                 <span>Tài liệu đính kèm</span>
@@ -2760,13 +2712,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }))
                     }
                   />
-                  {/*  Hiện file mới nếu vừa chọn */}
                   {lessonForm.attachment && (
                     <span className="cm-hint">
-                      📎 {lessonForm.attachment.name}
+                      {lessonForm.attachment.name}
                     </span>
                   )}
-                  {/*  Hiện file cũ nếu chưa chọn file mới */}
                   {isEdit &&
                     !lessonForm.attachment &&
                     lessonForm.existing_attachment && (
@@ -3165,21 +3115,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }
               />
             </div>
-            {/* Đáp án */}
             <div className="cm-field">
               <label className="cm-label">
                 Đáp án <span className="cm-required">*</span>
               </label>
               {questionForm.answers.map((ans, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
+                <div key={idx} className="cm-answer-row">
                   <input
                     type={
                       questionForm.question_type === "multiple"
@@ -3200,10 +3141,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       };
                       setQuestionForm((f) => ({ ...f, answers: next }));
                     }}
-                    style={{ flexShrink: 0, accentColor: "#4caf82" }}
+                    className="cm-answer-row__radio"
                   />
                   <input
-                    className="cm-input"
+                    className="cm-input cm-answer-row__input"
                     type="text"
                     placeholder={`Đáp án ${idx + 1}`}
                     value={ans.content}
@@ -3212,7 +3153,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       next[idx] = { ...next[idx], content: e.target.value };
                       setQuestionForm((f) => ({ ...f, answers: next }));
                     }}
-                    style={{ flex: 1 }}
                   />
                   {questionForm.answers.length > 2 && (
                     <button
@@ -3222,14 +3162,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           answers: f.answers.filter((_, i) => i !== idx),
                         }));
                       }}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#e07a5f",
-                        cursor: "pointer",
-                        fontSize: 16,
-                        padding: "0 4px",
-                      }}
+                      className="cm-answer-row__delete"
                     >
                       ✕
                     </button>
@@ -3250,14 +3183,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     ],
                   }))
                 }
-                style={{
-                  fontSize: 12,
-                  color: "#5ba4de",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "4px 0",
-                }}
+                className="cm-add-answer-btn"
               >
                 ＋ Thêm đáp án
               </button>
@@ -3385,17 +3311,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 }
               />
             </div>
-            <div className="cm-row" style={{ alignItems: "center", gap: 16 }}>
-              <div className="cm-field" style={{ flex: "none" }}>
-                <label
-                  className="cm-label"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                  }}
-                >
+            <div className="cm-row cm-row--center">
+              <div className="cm-field cm-field--shrink">
+                <label className="cm-label cm-label--checkbox">
                   <input
                     type="checkbox"
                     checked={categoryForm.is_pinned}
@@ -3405,28 +3323,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         is_pinned: e.target.checked,
                       }))
                     }
-                    style={{
-                      width: 16,
-                      height: 16,
-                      accentColor: "#4caf82",
-                      cursor: "pointer",
-                    }}
+                    className="cm-checkbox cm-checkbox--green"
                   />
                   Ghim ra trang chủ
                 </label>
               </div>
               {categoryForm.is_pinned && (
-                <div className="cm-field" style={{ flex: 1 }}>
+                <div className="cm-field cm-field--grow">
                   <label className="cm-label">
-                    Thứ tự ghim{" "}
-                    <span
-                      style={{
-                        color: "rgba(224,225,221,0.4)",
-                        fontWeight: 400,
-                      }}
-                    >
-                      (1 – 6)
-                    </span>
+                    Thứ tự ghim <span className="cm-hint-muted">(1 – 6)</span>
                   </label>
                   <input
                     className="cm-input"
@@ -3497,17 +3402,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>Đang tải lịch sử…</span>
                 </div>
               ) : attempts.length === 0 ? (
-                <p
-                  style={{
-                    textAlign: "center",
-                    color: "var(--color-text-secondary)",
-                    padding: "2rem 0",
-                  }}
-                >
+                <p className="ad-empty ad-table__empty-cell">
                   Chưa có học viên nào làm bài kiểm tra này.
                 </p>
               ) : (
-                <table className="ad-table" style={{ marginTop: 0 }}>
+                <table className="ad-table ad-table--no-margin">
                   <thead>
                     <tr>
                       <th>STT</th>
@@ -3539,13 +3438,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const ss = duration !== null ? duration % 60 : null;
                       return (
                         <tr key={a.id}>
-                          <td
-                            style={{
-                              textAlign: "center",
-                              color: "var(--color-text-secondary)",
-                              fontSize: 12,
-                            }}
-                          >
+                          <td className="ad-table__center ad-table__muted ad-table__stt">
                             {idx + 1}
                           </td>
                           <td>
@@ -3562,45 +3455,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </td>
                           <td
-                            style={{
-                              fontWeight: 600,
-                              color: a.passed ? "#4caf82" : "#e07a5f",
-                            }}
+                            className={`ad-attempt__score ${a.passed ? "ad-attempt__score--pass" : "ad-attempt__score--fail"}`}
                           >
                             {(Number(a.score) / 10).toFixed(1)}
                           </td>
                           <td>
                             <span
-                              style={{
-                                fontSize: 12,
-                                padding: "2px 8px",
-                                borderRadius: 5,
-                                background: a.passed
-                                  ? "rgba(76,175,130,0.15)"
-                                  : "rgba(224,122,95,0.15)",
-                                color: a.passed ? "#4caf82" : "#e07a5f",
-                                border: `0.5px solid ${a.passed ? "rgba(76,175,130,0.3)" : "rgba(224,122,95,0.3)"}`,
-                              }}
+                              className={`ad-badge ${a.passed ? "ad-badge--pay-success" : "ad-attempt__badge--fail"}`}
                             >
                               {a.passed ? "Đạt" : "Chưa đạt"}
                             </span>
                           </td>
-                          <td
-                            className="ad-table__muted"
-                            style={{ fontSize: 12 }}
-                          >
+                          <td className="ad-table__muted ad-table__sm">
                             {start ? start.toLocaleString("vi-VN") : "—"}
                           </td>
-                          <td
-                            className="ad-table__muted"
-                            style={{ fontSize: 12 }}
-                          >
+                          <td className="ad-table__muted ad-table__sm">
                             {submit ? submit.toLocaleString("vi-VN") : "—"}
                           </td>
-                          <td
-                            className="ad-table__muted"
-                            style={{ fontSize: 12 }}
-                          >
+                          <td className="ad-table__muted ad-table__sm">
                             {mm !== null && ss !== null
                               ? `${mm} phút ${ss} giây`
                               : "—"}
@@ -3660,23 +3532,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box">
             <div className="cm-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="cm-header__back-row">
                 <button
+                  className="cm-back-btn"
                   onClick={backToAttemptList}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--color-text-secondary)",
-                    fontSize: 18,
-                    lineHeight: 1,
-                    padding: "0 4px",
-                  }}
                   title="Quay lại danh sách"
                 >
                   ←
                 </button>
-                <h2 className="cm-title" style={{ margin: 0 }}>
+                <h2 className="cm-title cm-title--no-margin">
                   Chi tiết bài làm
                 </h2>
               </div>
@@ -3686,14 +3550,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="cm-body cm-body--scroll">
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                  gap: 10,
-                  marginBottom: 20,
-                }}
-              >
+              <div className="cm-attempt-stats">
                 {[
                   {
                     label: "Điểm số",
@@ -3724,30 +3581,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     color: undefined,
                   },
                 ].map((item) => (
-                  <div
-                    key={item.label}
-                    style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "0.5px solid rgba(255,255,255,0.07)",
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                    }}
-                  >
+                  <div key={item.label} className="cm-attempt-stat">
+                    <div className="cm-attempt-stat__label">{item.label}</div>
                     <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--color-text-secondary)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      {item.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: item.color ?? "var(--color-text-primary)",
-                      }}
+                      className="cm-attempt-stat__value"
+                      style={item.color ? { color: item.color } : undefined}
                     >
                       {item.value}
                     </div>
@@ -3755,7 +3593,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ))}
               </div>
 
-              {/* ── Đáp án từng câu ── */}
               {loadingAttemptDetail ? (
                 <div className="cm-loading">
                   <span className="cm-loading__spinner" />
@@ -3763,31 +3600,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               ) : questions.length === 0 ? (
                 <div>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--color-text-secondary)",
-                      marginBottom: 12,
-                    }}
-                  >
+                  <p className="cm-snapshot__hint">
                     Đáp án học viên đã chọn (theo ID):
                   </p>
                   {Object.entries(snapshot).length === 0 ? (
-                    <p
-                      style={{
-                        color: "var(--color-text-secondary)",
-                        fontSize: 13,
-                      }}
-                    >
+                    <p className="cm-snapshot__hint">
                       Không có dữ liệu đáp án.
                     </p>
                   ) : (
                     Object.entries(snapshot).map(([qId, aIds]) => (
-                      <div key={qId} style={{ marginBottom: 8, fontSize: 13 }}>
-                        <span style={{ color: "var(--color-text-secondary)" }}>
+                      <div key={qId} className="cm-snapshot__row">
+                        <span className="cm-snapshot__key">
                           Câu {qId.slice(0, 8)}…:
                         </span>{" "}
-                        <span style={{ color: "var(--color-text-primary)" }}>
+                        <span className="cm-snapshot__val">
                           {aIds.join(", ")}
                         </span>
                       </div>
@@ -3796,91 +3622,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               ) : (
                 <div>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "var(--color-text-secondary)",
-                      marginBottom: 12,
-                    }}
-                  >
+                  <p className="cm-snapshot__hint cm-snapshot__hint--sm">
                     {questions.length} câu hỏi — đáp án học viên chọn được tô
                     màu
                   </p>
                   {questions.map((q: any, idx: number) => {
                     const chosenIds: string[] = snapshot[q.id] ?? [];
                     return (
-                      <div
-                        key={q.id}
-                        style={{
-                          marginBottom: 14,
-                          padding: "12px 14px",
-                          background: "rgba(255,255,255,0.03)",
-                          border: "0.5px solid rgba(255,255,255,0.07)",
-                          borderRadius: 8,
-                        }}
-                      >
-                        <div
-                          style={{ display: "flex", gap: 8, marginBottom: 8 }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--color-text-secondary)",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                      <div key={q.id} className="cm-question-card">
+                        <div className="cm-question-card__header">
+                          <span className="cm-question-card__meta">
                             Câu {idx + 1} · {q.points} điểm
                           </span>
                         </div>
-                        <p
-                          style={{
-                            fontSize: 13,
-                            color: "var(--color-text-primary)",
-                            margin: "0 0 10px",
-                          }}
-                        >
-                          {q.content}
-                        </p>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                          }}
-                        >
+                        <p className="cm-question-card__text">{q.content}</p>
+                        <div className="cm-question-card__answers">
                           {q.answers?.map((ans: any) => {
                             const isChosen = chosenIds.includes(String(ans.id));
                             const isCorrect = ans.is_correct;
-                            let bg = "rgba(255,255,255,0.02)";
-                            let border = "0.5px solid rgba(255,255,255,0.06)";
-                            let color = "rgba(224,225,221,0.45)";
+                            let modifier = "";
                             let prefix = "";
                             if (isCorrect && isChosen) {
-                              bg = "rgba(76,175,130,0.18)";
-                              border = "0.5px solid rgba(76,175,130,0.4)";
-                              color = "#4caf82";
+                              modifier = "cm-answer--correct";
                               prefix = "✓ ";
                             } else if (!isCorrect && isChosen) {
-                              bg = "rgba(224,122,95,0.18)";
-                              border = "0.5px solid rgba(224,122,95,0.4)";
-                              color = "#e07a5f";
+                              modifier = "cm-answer--wrong";
                               prefix = "✗ ";
                             } else if (isCorrect && !isChosen) {
-                              border = "0.5px solid rgba(76,175,130,0.25)";
-                              color = "rgba(76,175,130,0.6)";
+                              modifier = "cm-answer--missed";
                               prefix = "◎ ";
                             }
                             return (
                               <div
                                 key={ans.id}
-                                style={{
-                                  fontSize: 13,
-                                  padding: "6px 10px",
-                                  borderRadius: 6,
-                                  background: bg,
-                                  border,
-                                  color,
-                                }}
+                                className={`cm-answer ${modifier}`}
                               >
                                 {prefix}
                                 {ans.content}
@@ -3889,14 +3664,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           })}
                         </div>
                         {q.explanation && (
-                          <p
-                            style={{
-                              fontSize: 12,
-                              color: "rgba(224,225,221,0.4)",
-                              margin: "8px 0 0",
-                              fontStyle: "italic",
-                            }}
-                          >
+                          <p className="cm-question-card__explain">
                             {q.explanation}
                           </p>
                         )}
@@ -3971,7 +3739,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </span>
                 </div>
               </div>
-              {/* ── Thông tin chung ── */}
               <div className="ad-modal__field">
                 <span className="ad-modal__field-label">Email</span>
                 <span className="ad-modal__field-value">
@@ -4010,7 +3777,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               )}
 
-              {/* ── Học viên ── */}
               {selectedUser.role === "student" &&
                 (() => {
                   const sp = selectedUser.student_profile ?? selectedUser;
@@ -4090,17 +3856,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         Chứng chỉ hoàn thành
                       </div>
                       {loadingCerts ? (
-                        <p
-                          className="ad-modal__field-value"
-                          style={{ opacity: 0.5 }}
-                        >
+                        <p className="ad-modal__field-value ad-modal__field-value--dim">
                           Đang tải...
                         </p>
                       ) : certificates.length === 0 ? (
-                        <p
-                          className="ad-modal__field-value"
-                          style={{ opacity: 0.5 }}
-                        >
+                        <p className="ad-modal__field-value ad-modal__field-value--dim">
                           Chưa có chứng chỉ nào
                         </p>
                       ) : (
@@ -4127,7 +3887,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   );
                 })()}
 
-              {/* ── Giảng viên ── */}
               {selectedUser.role === "instructor" &&
                 (() => {
                   const ip = selectedUser.instructor_profile ?? selectedUser;
@@ -4331,7 +4090,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
       <div className="container ad-layout">
-        {/* ── Sidebar ── */}
         <aside className="ad-sidebar">
           <div className="ad-brand">
             <span className="ad-brand__logo">E</span>
@@ -4370,7 +4128,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
               </div>
 
-              {/* ── Row 1: stats chính ── */}
               <div className="ad-stats-grid">
                 <div className="ad-stat-card">
                   <span className="ad-stat-card__value">
@@ -4406,10 +4163,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              <div
-                className="ad-stats-grid"
-                style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-              >
+              <div className="ad-stats-grid ad-stats-grid--3col">
                 <div className="ad-stat-card">
                   <span className="ad-stat-card__value">
                     {loadingPayments
@@ -4435,7 +4189,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* ── Row 3: danh sách ── */}
               <div className="ad-overview-grid">
                 <div>
                   <h2 className="ad-section-title">
@@ -4494,9 +4247,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 {formatPrice(p.amount ?? 0, "VND")}
                               </span>
                             </div>
-                            <div
-                              style={{ display: "flex", gap: 6, flexShrink: 0 }}
-                            >
+                            <div className="ad-refund-actions">
                               <button
                                 className="ad-btn-sm ad-btn-sm--approve"
                                 onClick={() => openApproveRefund(p)}
@@ -4517,7 +4268,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* ── Biểu đồ doanh thu theo danh mục ── */}
               <div className="ad-stats-breakdown">
                 <h2 className="ad-section-title">Doanh thu theo danh mục</h2>
                 {catRevenueEntries.length === 0 || maxCatRevenue === 0 ? (
@@ -4554,30 +4304,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {toast && (
-            <div
-              style={{
-                position: "fixed",
-                bottom: 24,
-                right: 24,
-                zIndex: 9999,
-                padding: "12px 20px",
-                borderRadius: 10,
-                background:
-                  toast.type === "success"
-                    ? "rgba(76,175,130,0.95)"
-                    : "rgba(224,92,92,0.95)",
-                color: "#fff",
-                fontSize: 13,
-                fontWeight: 600,
-                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-                animation: "cm-slide-up 0.2s ease",
-              }}
-            >
+            <div className={`ad-toast ad-toast--${toast.type}`}>
               {toast.msg}
             </div>
           )}
 
-          {/* ══ Users ═════════════════════════════════════════════════════════ */}
           {activeTab === "users" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -4627,7 +4358,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingUsers ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
@@ -4635,11 +4366,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="ad-empty ad-table__empty-cell"
                         >
                           Không tìm thấy người dùng phù hợp.
                         </td>
@@ -4715,7 +4442,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Courses ═══════════════════════════════════════════════════════ */}
           {activeTab === "courses" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -4727,7 +4453,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
               </div>
 
-              {/* Toolbar */}
               <div className="ad-toolbar">
                 <div className="ad-filters">
                   <input
@@ -4748,14 +4473,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <option value="published">Đã xuất bản</option>
                     <option value="archived">Đã lưu trữ</option>
                   </select>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span
-                      style={{ fontSize: 13, color: "rgba(224,225,221,0.4)" }}
-                    >
-                      Học phí:
-                    </span>
+                  <div className="ad-sort-row">
+                    <span className="ad-sort-row__label">Học phí:</span>
                     {[
                       { value: "", label: "Tất cả" },
                       { value: "asc", label: "Thấp → Cao" },
@@ -4800,7 +4519,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingCourses ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center" }}>
+                        <td colSpan={6} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
@@ -4808,11 +4527,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={6}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="ad-empty ad-table__empty-cell"
                         >
                           Không tìm thấy khóa học phù hợp.
                         </td>
@@ -4885,7 +4600,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Sections ════════════════════════════════════════════════════════ */}
           {activeTab === "sections" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -4932,7 +4646,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingSections ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
@@ -4945,11 +4659,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="ad-empty ad-table__empty-cell"
                         >
                           Không có chương nào.
                         </td>
@@ -4967,7 +4677,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )
                         .map((s) => (
                           <tr key={s.id}>
-                            <td style={{ textAlign: "center" }}>
+                            <td className="ad-table__center">
                               {s.order_index ?? "—"}
                             </td>
                             <td>
@@ -5001,7 +4711,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Lessons ══════════════════════════════════════════════════════════ */}
           {activeTab === "lessons" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5012,7 +4721,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
               <div className="ad-toolbar">
                 <div className="ad-filters">
-                  {/* Lọc theo khóa học */}
                   <select
                     className="ad-select"
                     value={filterLessonCourse}
@@ -5028,7 +4736,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </option>
                     ))}
                   </select>
-                  {/* Lọc theo chương */}
                   <select
                     className="ad-select"
                     value={filterLessonSection}
@@ -5074,7 +4781,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingLessons ? (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: "center" }}>
+                        <td colSpan={4} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
@@ -5082,11 +4789,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={4}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="ad-empty ad-table__empty-cell"
                         >
                           Không có bài học nào.
                         </td>
@@ -5095,7 +4798,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       lessons.map((l) => {
                         return (
                           <tr key={l.id}>
-                            <td style={{ textAlign: "center" }}>
+                            <td className="ad-table__center">
                               {l.order_index ?? "—"}
                             </td>
                             <td>
@@ -5124,7 +4827,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Quizzes ══════════════════════════════════════════════════════════ */}
           {activeTab === "quizzes" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5181,7 +4883,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           String(q.lesson?.id ?? q.lesson) === filterQuizLesson,
                       ).length === 0 ? (
                       <tr>
-                        <td>Không có bài kiểm tra nào.</td>
+                        <td
+                          colSpan={6}
+                          className="ad-empty ad-table__empty-cell"
+                        >
+                          Không có bài kiểm tra nào.
+                        </td>
                       </tr>
                     ) : (
                       quizzes
@@ -5241,15 +4948,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </tr>
                               {isExpanded && (
                                 <tr>
-                                  <td colSpan={6} style={{ padding: 0 }}>
-                                    <div
-                                      style={{
-                                        background: "rgba(27,38,59,0.6)",
-                                        padding: "12px 20px",
-                                        borderTop:
-                                          "1px solid rgba(119,141,169,0.1)",
-                                      }}
-                                    >
+                                  <td
+                                    colSpan={6}
+                                    className="ad-quiz-expand-cell"
+                                  >
+                                    <div className="ad-quiz-expand">
                                       {loadingQ ? (
                                         <p className="ad-empty">
                                           Đang tải câu hỏi…
@@ -5263,32 +4966,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         questions.map((ques, idx) => (
                                           <div
                                             key={ques.id}
-                                            style={{
-                                              marginBottom: 10,
-                                              padding: "10px 12px",
-                                              background:
-                                                "rgba(255,255,255,0.03)",
-                                              borderRadius: 8,
-                                              border:
-                                                "0.5px solid rgba(255,255,255,0.07)",
-                                            }}
+                                            className="ad-quiz-question"
                                           >
-                                            <div
-                                              style={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "flex-start",
-                                                gap: 12,
-                                              }}
-                                            >
-                                              <div style={{ flex: 1 }}>
-                                                <span
-                                                  style={{
-                                                    fontSize: 12,
-                                                    color:
-                                                      "rgba(224,225,221,0.4)",
-                                                  }}
-                                                >
+                                            <div className="ad-quiz-question__inner">
+                                              <div className="ad-quiz-question__body">
+                                                <span className="ad-quiz-question__meta">
                                                   Câu {idx + 1} ·{" "}
                                                   {
                                                     (
@@ -5304,39 +4986,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                   }{" "}
                                                   · {ques.points} điểm
                                                 </span>
-                                                <p
-                                                  style={{
-                                                    fontSize: 13,
-                                                    color: "#e0e1dd",
-                                                    margin: "4px 0 6px",
-                                                  }}
-                                                >
+                                                <p className="ad-quiz-question__text">
                                                   {ques.content}
                                                 </p>
-                                                <div
-                                                  style={{
-                                                    display: "flex",
-                                                    flexWrap: "wrap",
-                                                    gap: 6,
-                                                  }}
-                                                >
+                                                <div className="ad-quiz-answers">
                                                   {ques.answers?.map(
                                                     (a: any) => (
                                                       <span
                                                         key={a.id}
-                                                        style={{
-                                                          fontSize: 12,
-                                                          padding: "2px 8px",
-                                                          borderRadius: 5,
-                                                          background:
-                                                            a.is_correct
-                                                              ? "rgba(76,175,130,0.15)"
-                                                              : "rgba(255,255,255,0.04)",
-                                                          color: a.is_correct
-                                                            ? "#4caf82"
-                                                            : "rgba(224,225,221,0.5)",
-                                                          border: `0.5px solid ${a.is_correct ? "rgba(76,175,130,0.3)" : "rgba(255,255,255,0.08)"}`,
-                                                        }}
+                                                        className={`ad-quiz-answer${a.is_correct ? " ad-quiz-answer--correct" : ""}`}
                                                       >
                                                         {a.is_correct
                                                           ? "✓ "
@@ -5347,7 +5005,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                   )}
                                                 </div>
                                               </div>
-                                              <div className="ad-actions"></div>
                                             </div>
                                           </div>
                                         ))
@@ -5366,7 +5023,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Enrollments ══════════════════════════════════════════════════ */}
           {activeTab === "enrollments" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5421,7 +5077,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingEnrollments ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
@@ -5429,11 +5085,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="ad-empty ad-table__empty-cell"
                         >
                           Không tìm thấy lượt đăng ký phù hợp.
                         </td>
@@ -5494,12 +5146,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   </span>
                                 </div>
                               ) : (
-                                <span
-                                  style={{
-                                    color: "var(--color-text-secondary)",
-                                    fontSize: 12,
-                                  }}
-                                >
+                                <span className="ad-table__muted ad-table__sm">
                                   —
                                 </span>
                               )}
@@ -5521,7 +5168,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Categories ════════════════════════════════════════════════════ */}
           {activeTab === "categories" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5569,7 +5215,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingCategories ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
@@ -5577,11 +5223,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="ad-empty ad-table__empty-cell"
                         >
                           Không tìm thấy danh mục phù hợp.
                         </td>
@@ -5607,7 +5249,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               }).length
                             }
                           </td>
-                          <td style={{ textAlign: "center" }}>
+                          <td className="ad-table__center">
                             {cat.is_pinned ? cat.pin_order : "—"}
                           </td>
                           <td>
@@ -5635,7 +5277,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Payments ══════════════════════════════════════════════════════ */}
           {activeTab === "payments" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5643,7 +5284,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="ad-page-sub">
                   {loadingPayments
                     ? "Đang tải…"
-                    : `${filteredPayments.length} / ${payments.length} giao dịch`}
+                    : `${filteredPayments.length} / ${payments.filter((p) => !["refund_requested", "refund_approved", "refunded"].includes(p.status)).length} giao dịch`}
                 </p>
               </div>
               <div className="ad-filters">
@@ -5662,8 +5303,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <option value="">Tất cả trạng thái</option>
                   <option value="success">Thành công</option>
                   <option value="pending">Chờ xử lý</option>
-                  <option value="refund_requested">Yêu cầu hoàn</option>
-                  <option value="refunded">Đã hoàn tiền</option>
                   <option value="failed">Thất bại</option>
                 </select>
                 {(searchPayment || filterPayStatus) && (
@@ -5686,13 +5325,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <th>Khóa học</th>
                       <th>Số tiền</th>
                       <th>Ngày trả</th>
+                      <th>Trạng thái</th>
                       <th>thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loadingPayments ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center" }}>
+                        <td colSpan={6} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
@@ -5700,11 +5340,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={6}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="ad-empty ad-table__empty-cell"
                         >
                           Không tìm thấy giao dịch phù hợp.
                         </td>
@@ -5725,7 +5361,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </div>
                             </td>
                             <td>{p.course_title ?? p.course?.title ?? "—"}</td>
-                            <td style={{ color: "#4caf82", fontWeight: 600 }}>
+                            <td className="ad-amount--positive">
                               {formatPrice(p.amount ?? p.price ?? 0, "VND")}
                             </td>
                             <td className="ad-table__muted">
@@ -5734,6 +5370,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     "vi-VN",
                                   )
                                 : "—"}
+                            </td>
+                            <td>
+                              <span
+                                className={`ad-badge ad-badge--pay-${status}`}
+                              >
+                                {PAYMENT_STATUS_LABEL[status] ?? status}
+                              </span>
                             </td>
                             <td>
                               <div className="ad-actions">
@@ -5755,7 +5398,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           )}
 
-          {/* ══ Reviews ═══════════════════════════════════════════════════════ */}
           {activeTab === "reviews" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5767,7 +5409,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </p>
               </div>
 
-              {/* ── Filters ── */}
               <div className="ad-filters">
                 <input
                   className="ad-search"
@@ -5833,7 +5474,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </div>
 
-              {/* ── Table ── */}
               <div className="ad-table-wrap">
                 <table className="ad-table ad-table--reviews">
                   <thead>
@@ -5849,20 +5489,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody>
                     {loadingReviews ? (
                       <tr>
-                        <td
-                          colSpan={6}
-                          style={{ textAlign: "center", padding: "2rem" }}
-                        >
+                        <td colSpan={6} className="ad-table__center">
                           Đang tải…
                         </td>
                       </tr>
                     ) : filteredReviews.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={6}
-                          className="ad-empty"
-                          style={{ textAlign: "center", padding: "2rem" }}
-                        >
+                        <td colSpan={6} className="ad-table__empty-cell">
                           Không tìm thấy đánh giá phù hợp.
                         </td>
                       </tr>
@@ -5870,7 +5503,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       filteredReviews.map((r) => (
                         <tr
                           key={r.id}
-                          style={{ opacity: r.is_hidden ? 0.5 : 1 }}
+                          className={r.is_hidden ? "ad-row--hidden" : ""}
                         >
                           <td>
                             <div className="ad-user-cell">
@@ -5940,13 +5573,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </table>
               </div>
 
-              {/* ── Modal xem chi tiết ── */}
               {reviewModal === "view" && selectedReview && (
                 <div className="ad-modal-overlay" onClick={closeReviewModal}>
                   <div
-                    className="ad-modal"
+                    className="ad-modal ad-modal--review"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ maxWidth: 500 }}
                   >
                     <h2 className="ad-modal__title">Chi tiết đánh giá</h2>
                     <div className="ad-modal__body">
@@ -5958,14 +5589,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             "—"}
                           {(selectedReview.student_email ??
                             selectedReview.student?.email) && (
-                            <span
-                              style={{
-                                fontWeight: 400,
-                                marginLeft: 6,
-                                fontSize: 12,
-                                opacity: 0.5,
-                              }}
-                            >
+                            <span className="ad-modal__sub-email">
                               (
                               {selectedReview.student_email ??
                                 selectedReview.student?.email}
@@ -6012,14 +5636,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span className="ad-modal__field-label">
                           Trạng thái hiển thị
                         </span>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            marginTop: 4,
-                          }}
-                        >
+                        <div className="ad-modal__toggle-row">
                           {selectedReview.is_hidden ? (
                             <span className="ad-badge ad-review-badge--hidden">
                               Đang ẩn
@@ -6052,21 +5669,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                       </div>
                       {selectedReview.is_reported && (
-                        <div
-                          className="ad-modal__field"
-                          style={{ borderRadius: 8, padding: "10px 14px" }}
-                        >
+                        <div className="ad-modal__field ad-modal__field--report">
                           <span className="ad-modal__field-label">
                             Báo cáo vi phạm
                           </span>
-                          <div
-                            style={{
-                              marginTop: 6,
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 8,
-                            }}
-                          >
+                          <div className="ad-modal__report-body">
                             <span className="ad-modal__field-value">
                               <strong>Lý do:</strong>{" "}
                               {selectedReview.report_reason ||
@@ -6135,13 +5742,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               )}
 
-              {/* ── Modal xác nhận xóa ── */}
               {reviewModal === "delete" && selectedReview && (
                 <div className="ad-modal-overlay" onClick={closeReviewModal}>
                   <div
-                    className="ad-modal"
+                    className="ad-modal ad-modal--review-delete"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ maxWidth: 420 }}
                   >
                     <h2 className="ad-modal__title">Xóa đánh giá</h2>
                     <p className="ad-modal__delete-desc">
@@ -6160,7 +5765,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </strong>
                       ?
                     </p>
-                    <p className="ad-modal__warn" style={{ margin: "0 22px" }}>
+                    <p className="ad-modal__warn ad-modal__warn--indented">
                       Hành động này không thể hoàn tác.
                     </p>
                     <div className="ad-modal__footer">
@@ -6204,27 +5809,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="ad-modal__body">
-                  {/* Thumbnail */}
                   {viewingCourse.thumbnail && (
                     <img
                       src={viewingCourse.thumbnail}
                       alt=""
-                      style={{
-                        width: "100%",
-                        height: 160,
-                        objectFit: "cover",
-                        borderRadius: 10,
-                        marginBottom: 12,
-                      }}
+                      className="ad-modal__course-thumb"
                     />
                   )}
 
-                  {/* Title */}
-                  <h3 style={{ marginBottom: 6 }}>
+                  <h3 className="ad-modal__course-title">
                     {viewingCourse.title || "—"}
                   </h3>
 
-                  {/* Instructor */}
                   <div className="ad-modal__field">
                     <span className="ad-modal__field-label">Giảng viên</span>
                     <span className="ad-modal__field-value">
@@ -6234,13 +5830,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </span>
                   </div>
 
-                  {/* Price */}
                   <div className="ad-modal__field">
                     <span className="ad-modal__field-label">Học phí</span>
-                    <span
-                      className="ad-modal__field-value"
-                      style={{ color: "#4caf82", fontWeight: 600 }}
-                    >
+                    <span className="ad-modal__field-value ad-modal__field-value--price">
                       {viewingCourse.sale_price || viewingCourse.price
                         ? formatPrice(
                             viewingCourse.sale_price ?? viewingCourse.price,
@@ -6250,7 +5842,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </span>
                   </div>
 
-                  {/* Students */}
                   <div className="ad-modal__field">
                     <span className="ad-modal__field-label">Học viên</span>
                     <span className="ad-modal__field-value">
@@ -6258,7 +5849,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </span>
                   </div>
 
-                  {/* Status */}
                   <div className="ad-modal__field">
                     <span className="ad-modal__field-label">Trạng thái</span>
                     <span
@@ -6269,7 +5859,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </span>
                   </div>
 
-                  {/* Description */}
                   {viewingCourse.description && (
                     <>
                       <div className="ad-modal__section-title">Mô tả</div>
@@ -6314,9 +5903,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                 <div className="ad-modal__body">
                   {loadingDetail ? (
-                    <p style={{ textAlign: "center" }}>Đang tải…</p>
+                    <p className="ad-modal__loading-text">Đang tải…</p>
                   ) : !paymentDetail ? (
-                    <p style={{ textAlign: "center", color: "red" }}>
+                    <p className="ad-modal__error-text">
                       Không tải được dữ liệu.
                     </p>
                   ) : paymentModalContext === "refund" ? (
@@ -6346,10 +5935,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span className="ad-modal__field-label">
                           Số tiền hoàn
                         </span>
-                        <span
-                          className="ad-modal__field-value"
-                          style={{ color: "#e07a5f", fontWeight: 600 }}
-                        >
+                        <span className="ad-modal__field-value ad-modal__field-value--refund">
                           {formatPrice(paymentDetail.amount ?? 0, "VND")}
                         </span>
                       </div>
@@ -6400,10 +5986,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                       <div className="ad-modal__field">
                         <span className="ad-modal__field-label">Số tiền</span>
-                        <span
-                          className="ad-modal__field-value"
-                          style={{ color: "#4caf82", fontWeight: 600 }}
-                        >
+                        <span className="ad-modal__field-value ad-modal__field-value--price">
                           {formatPrice(paymentDetail.amount ?? 0, "VND")}
                         </span>
                       </div>
@@ -6444,8 +6027,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     paymentDetail?.status === "refund_requested" && (
                       <>
                         <button
-                          className="cm-btn cm-btn--save"
-                          style={{ marginRight: "auto" }}
+                          className="cm-btn cm-btn--save cm-btn--push-right"
                           onClick={() => {
                             closePaymentDetail();
                             openApproveRefund(paymentDetail);
@@ -6490,14 +6072,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="ad-filters">
                 <select
                   className="ad-select"
-                  value={filterPayStatus}
-                  onChange={(e) => setFilterPayStatus(e.target.value)}
+                  value={filterRefundStatus}
+                  onChange={(e) => setFilterRefundStatus(e.target.value)}
                 >
                   <option value="">Tất cả</option>
                   <option value="refund_requested">Chờ duyệt</option>
                   <option value="refund_approved">Đã duyệt</option>
                   <option value="refunded">Đã hoàn tiền</option>
                 </select>
+                {filterRefundStatus && (
+                  <button
+                    className="filter-clear"
+                    onClick={() => setFilterRefundStatus("")}
+                  >
+                    ✕ Xoá lọc
+                  </button>
+                )}
               </div>
 
               <div className="ad-table-wrap">
@@ -6513,18 +6103,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {payments
-                      .filter((p) => {
+                    {(() => {
+                      const refunds = payments.filter((p) => {
                         const inRefundFlow = [
                           "refund_requested",
                           "refund_approved",
                           "refunded",
                         ].includes(p.status);
                         const matchStatus =
-                          !filterPayStatus || p.status === filterPayStatus;
+                          !filterRefundStatus ||
+                          p.status === filterRefundStatus;
                         return inRefundFlow && matchStatus;
-                      })
-                      .map((p) => (
+                      });
+
+                      if (loadingPayments) {
+                        return (
+                          <tr>
+                            <td colSpan={6} className="ad-table__center">
+                              Đang tải…
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      if (refunds.length === 0) {
+                        return (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="ad-empty ad-table__empty-cell"
+                            >
+                              Không tìm thấy yêu cầu hoàn tiền phù hợp.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return refunds.map((p) => (
                         <tr key={p.id}>
                           <td>
                             <div className="ad-user-cell">
@@ -6537,7 +6152,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                           </td>
                           <td>{p.course_title ?? "—"}</td>
-                          <td style={{ color: "#4caf82", fontWeight: 600 }}>
+                          <td className="ad-amount--positive">
                             {formatPrice(p.amount ?? 0, "VND")}
                           </td>
                           <td className="ad-table__muted">
@@ -6584,7 +6199,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             />
                           </td>
                         </tr>
-                      ))}
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>

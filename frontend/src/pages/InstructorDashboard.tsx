@@ -2023,7 +2023,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
 
             <div className="cm-body cm-body--scroll">
-              {/* ── Thông tin tổng quan ── */}
               <div
                 style={{
                   display: "grid",
@@ -2093,7 +2092,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 ))}
               </div>
 
-              {/* ── Đáp án từng câu ── */}
               {loadingAttemptDetail ? (
                 <div className="cm-loading">
                   <span className="cm-loading__spinner" />
@@ -2318,10 +2316,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
           </button>
         </aside>
 
-        {/* ── Main ── */}
         <main className="id-main">
           {renderAdminEditAlert()}
-          {/* ════ OVERVIEW ════ */}
           {activeTab === "overview" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -2422,7 +2418,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ PROFILE ════ */}
           {activeTab === "profile" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -2721,7 +2716,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ REVENUE ════ */}
           {activeTab === "revenue" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -2966,7 +2960,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </div>
               </div>
 
-              {/* ── Search + filter bar ── */}
               <div className="ad-filters">
                 <input
                   className="ad-search"
@@ -3289,7 +3282,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ SECTIONS ════ */}
           {activeTab === "sections" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -3425,7 +3417,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </table>
               </div>
 
-              {/* Modal */}
               {showSectionModal && (
                 <div
                   className="cm-overlay"
@@ -3545,7 +3536,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ LESSONS ════ */}
           {activeTab === "lessons" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -3691,7 +3681,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </table>
               </div>
 
-              {/* Modal */}
               {lessonModal &&
                 (() => {
                   if (lessonModal === "delete")
@@ -4105,7 +4094,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ QUIZZES ════ */}
           {activeTab === "quizzes" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -4388,7 +4376,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </table>
               </div>
 
-              {/* Quiz Modal */}
               {quizModal &&
                 (() => {
                   if (quizModal === "delete")
@@ -4626,7 +4613,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   );
                 })()}
 
-              {/* Question Modal */}
               {questionModal &&
                 (() => {
                   if (questionModal === "delete")
@@ -4936,7 +4922,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ ENROLLMENTS ════ */}
           {activeTab === "enrollments" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5090,7 +5075,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ PAYMENTS ════ */}
           {activeTab === "payments" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5214,7 +5198,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </table>
               </div>
 
-              {/* Payment Detail Modal */}
               {showPaymentModal && (
                 <div
                   className="cm-overlay"
@@ -5321,7 +5304,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </span>
                             </div>
                           ))}
-                          {/* LÝ DO HOÀN TIỀN — thêm sau phần .map(item => ...) */}
                           {(paymentDetail.status === "refund_requested" ||
                             paymentDetail.status === "refund_approved" ||
                             paymentDetail.status === "refunded") && (
@@ -5375,7 +5357,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </div>
               )}
 
-              {/* Yêu cầu hoàn tiền cần xác nhận */}
               {refundRequests.length > 0 && (
                 <div className="id-form-card" style={{ marginTop: 20 }}>
                   <h3
@@ -5430,7 +5411,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 </button>
                               </td>
                             </tr>
-                            {/* Cảnh báo thiếu tiền */}
                             {refundShortage?.id === r.id && (
                               <tr>
                                 <td colSpan={4}>
@@ -5489,7 +5469,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ REVIEWS ════ */}
           {activeTab === "reviews" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -5648,7 +5627,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </table>
               </div>
 
-              {/* Modal xem chi tiết */}
               {reviewModal === "view" && selectedReview && (
                 <div className="ad-modal-overlay" onClick={closeReviewModal}>
                   <div
@@ -5749,7 +5727,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </div>
               )}
 
-              {/* Modal báo cáo đánh giá */}
               {reportModal && reportingReview && (
                 <div
                   className="ad-modal-overlay"
@@ -5762,7 +5739,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   >
                     <h2 className="ad-modal__title">Báo cáo đánh giá</h2>
                     <div className="ad-modal__body">
-                      {/* Tóm tắt review bị báo cáo */}
                       <div
                         style={{
                           padding: "10px 12px",
@@ -5804,7 +5780,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         )}
                       </div>
 
-                      {/* Ô nhập lý do */}
                       <label
                         style={{
                           fontSize: 13,
@@ -5868,7 +5843,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ COURSE MODAL (cm-* styles, giống Admin) ════ */}
           {showCourseModal && (
             <div
               className="cm-overlay"
@@ -5877,7 +5851,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               }}
             >
               <div className="cm-box">
-                {/* Header */}
                 <div className="cm-header">
                   <h2 className="cm-title">
                     {editingCourseId
@@ -5889,7 +5862,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   </button>
                 </div>
 
-                {/* Body */}
                 <div className="cm-body cm-body--scroll">
                   {editCourseLoading && !editCourseForm.title ? (
                     <div className="cm-loading">
@@ -5898,7 +5870,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     </div>
                   ) : (
                     <>
-                      {/* Tên khóa học */}
                       <div className="cm-field">
                         <label className="cm-label">
                           Tên khóa học <span className="cm-required">*</span>
@@ -5916,7 +5887,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         />
                       </div>
 
-                      {/* Mô tả */}
                       <div className="cm-field">
                         <label className="cm-label">Mô tả chi tiết</label>
                         <textarea
@@ -5933,7 +5903,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         />
                       </div>
 
-                      {/* Ảnh bìa */}
                       <div className="cm-field">
                         <label className="cm-label">Ảnh bìa (thumbnail)</label>
                         {editingCourseId &&
@@ -5990,7 +5959,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         )}
                       </div>
 
-                      {/* Học phí + Giảm giá */}
                       <div className="cm-row">
                         <div className="cm-field">
                           <label className="cm-label">Học phí gốc (VNĐ)</label>
@@ -6030,7 +5998,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         Giá bán: <strong>{previewSalePrice()}</strong>
                       </p>
 
-                      {/* Trình độ + Trạng thái */}
                       <div className="cm-row">
                         <div className="cm-field">
                           <label className="cm-label">Trình độ</label>
@@ -6068,7 +6035,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </div>
                       </div>
 
-                      {/* Danh mục */}
                       <div className="cm-field">
                         <label className="cm-label">Danh mục</label>
                         <select
@@ -6090,7 +6056,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </select>
                       </div>
 
-                      {/* Yêu cầu đầu vào */}
                       <div className="cm-field">
                         <label className="cm-label">Yêu cầu đầu vào</label>
                         <textarea
@@ -6107,7 +6072,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         />
                       </div>
 
-                      {/* Học được gì */}
                       <div className="cm-field">
                         <label className="cm-label">Học được gì</label>
                         <textarea
@@ -6131,7 +6095,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   )}
                 </div>
 
-                {/* Footer */}
                 <div className="cm-footer">
                   <button
                     className="cm-btn cm-btn--save"
@@ -6156,7 +6119,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ WALLET ════ */}
           {activeTab === "wallet" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -6168,7 +6130,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <p className="id-muted">Đang tải…</p>
               ) : (
                 <>
-                  {/* Số dư + nút toggle */}
                   <div className="id-form-card" style={{ marginBottom: 16 }}>
                     <p
                       style={{
@@ -6221,7 +6182,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Panel Nạp tiền */}
                   {walletPanel === "deposit" && (
                     <div className="id-form-card" style={{ marginBottom: 16 }}>
                       <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
@@ -6308,7 +6268,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     </div>
                   )}
 
-                  {/* Panel Rút tiền */}
                   {walletPanel === "withdraw" && (
                     <div className="id-form-card" style={{ marginBottom: 16 }}>
                       <h3 className="id-form-card__title">Yêu cầu rút tiền</h3>
@@ -6416,7 +6375,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     </div>
                   )}
 
-                  {/* Lịch sử giao dịch (gộp ví + thanh toán) */}
                   <div className="id-form-card">
                     <h3 className="id-form-card__title">Lịch sử giao dịch</h3>
                     {walletTxs.length === 0 ? (
@@ -6437,7 +6395,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             </tr>
                           </thead>
                           <tbody>
-                            {/* Giao dịch ví */}
                             {walletTxs.map((tx) => (
                               <tr key={`tx-${tx.id}`}>
                                 <td>
@@ -6480,7 +6437,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 </td>
                               </tr>
                             ))}
-                            {/* Lịch sử thanh toán khóa học */}
                             {payments.map((p) => (
                               <tr key={`pay-${p.id}`}>
                                 <td>
@@ -6525,7 +6481,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ REFUNDS ════ */}
           {activeTab === "refunds" && (
             <div className="id-content">
               <div className="id-page-header">

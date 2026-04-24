@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { TESTIMONIALS } from "../data/mockData";
 import CourseListCard from '../components/ui/CourseListCard';
 
-// ── Types ──────────────────────────────────────────────────────────────────
 interface Category {
   id: string;
   name: string;
@@ -18,7 +17,7 @@ interface Course {
   slug: string;
   description: string;
   thumbnail: string;
-  level: string;          // e.g. "A1", "B2"
+  level: string;
   lesson_count?: number;
   enrolled_count?: number;
   rating?: number;
@@ -30,7 +29,6 @@ interface HomePageProps {
   onNavigate: (page: string, courseId?: string, searchQuery?: string) => void;
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
 const LEVEL_COLORS = [
   "#4CAF82",
   "#5BA4CF",
@@ -63,14 +61,12 @@ const WHY_FEATURES = [
   },
 ];
 
-// ── HomePage Component ─────────────────────────────────────────────────────
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   const [pinnedCategories, setPinnedCategories] = useState<Category[]>([]);
   const [featured, setFeatured] = useState<Course[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [featuredError, setFeaturedError] = useState(false);
 
-  // Fetch pinned categories
   useEffect(() => {
     fetch("/api/courses/categories/?pinned=true")
       .then((r) => r.json())
@@ -81,7 +77,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       .catch((err) => console.error("fetch categories error:", err));
   }, []);
 
-  // Fetch featured courses
   useEffect(() => {
     setFeaturedLoading(true);
     setFeaturedError(false);
@@ -212,7 +207,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             </div>
           )}
 
-          {/* Error state */}
           {!featuredLoading && featuredError && (
             <div className="featured-error">
               <p>Không thể tải khóa học. Vui lòng thử lại sau.</p>
@@ -233,18 +227,15 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             </div>
           )}
 
-          {/* Empty state */}
           {!featuredLoading && !featuredError && featured.length === 0 && (
             <div className="featured-empty">
               <p>Chưa có khóa học nổi bật nào.</p>
             </div>
           )}
 
-          {/* Courses grid */}
           {!featuredLoading && !featuredError && featured.length > 0 && (
             <div className="grid-courses">
               {featured.map((course) => (
-                // ✅ ĐÚNG
                 <CourseListCard
                   key={course.id}
                   course={course}
@@ -256,7 +247,6 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* ── Tại sao chọn EnglishHub ───────────────────────────── */}
       <section className="section why-section">
         <div className="container">
           <div className="why-inner">

@@ -81,7 +81,7 @@ const CourseListCard: React.FC<CardProps> = ({ course, onSelect }) => {
               </>
             )}
           </div>
-          <span className="course-card__cta">Xem ngay →</span>
+          <span className="course-card__cta">Xem ngay</span>
         </div>
       </div>
     </button>

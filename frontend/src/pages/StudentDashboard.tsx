@@ -28,8 +28,6 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const API = "http://127.0.0.1:8000";
-
-// ── Interfaces ───────────────────────────────────────────────────────────────
 interface EnrolledCourse {
   id: string;
   course_id: string;
@@ -86,7 +84,6 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const authHeaders = (extra: Record<string, string> = {}) => ({
   Authorization: `Bearer ${localStorage.getItem("access")}`,
   ...extra,
@@ -117,7 +114,6 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refund_requested: "Chờ hoàn tiền",
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
 const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onNavigate,
   onLogout,
@@ -181,13 +177,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [profileEditing, setProfileEditing] = useState(false);
   const [studentEditing, setStudentEditing] = useState(false);
 
-  // ── Payment modal — moved to TOP LEVEL so it works from any tab ──
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentDetail, setPaymentDetail] = useState<Payment | null>(null);
   const [attemptDetail, setAttemptDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // state wallet
   const [wallet, setWallet] = useState<any>(null);
   const [walletTxs, setWalletTxs] = useState<any[]>([]);
   const [loadingWallet, setLoadingWallet] = useState(false);
@@ -208,7 +202,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     null,
   );
 
-  // ── Fetch profile ─────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       const res = await fetch(`${API}/api/auth/profile/`, {
@@ -253,7 +246,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     })();
   }, []);
 
-  // ── Fetch enrolled courses + payments ────────────────────────────────────
   useEffect(() => {
     (async () => {
       setLoadingCourses(true);
@@ -361,7 +353,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     return () => clearTimeout(timer);
   }, [activeTab, enrolledCourses]);
 
-  // ── Avatar ────────────────────────────────────────────────────────────────
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -379,7 +370,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     } catch (_) {}
   };
 
-  // ── Save handlers ─────────────────────────────────────────────────────────
   const saveUserForm = async () => {
     setSaving(true);
     const res = await fetch(`${API}/api/auth/profile/`, {
@@ -510,7 +500,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     setLoadingDetail(false);
   };
 
-  // ── openPaymentDetail works from ANY tab ──────────────────────────────────
   const openPaymentDetail = (id: string) => {
     const p = payments.find((p) => p.id === id) ?? null;
     setPaymentDetail(p);
@@ -522,7 +511,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     setPaymentDetail(null);
   };
 
-  // nạp tiền
   const handleDeposit = async () => {
     const amount = parseInt(depositAmount);
     if (!amount || amount < 10000) {
@@ -608,7 +596,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     setWithdrawing(false);
   };
 
-  // ── Derived stats ─────────────────────────────────────────────────────────
   const activeCourses = enrolledCourses.filter(
     (c) => c.status === "active" || c.status === "completed",
   );
@@ -630,10 +617,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const thumbnailSrc = (t: string | null) =>
     !t ? null : t.startsWith("http") ? t : `${API}${t}`;
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="db-page">
-      {/* Toast */}
       {toast && (
         <div
           className={`db-toast ${toast.ok ? "db-toast--ok" : "db-toast--err"}`}
@@ -642,7 +627,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* ── Payment Detail Modal — GLOBAL (works from any tab) ── */}
       {showPaymentModal && (
         <div
           className="cm-overlay"
@@ -739,7 +723,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
       )}
 
       <div className="container db-layout">
-        {/* ══ Sidebar ══════════════════════════════════════════════ */}
         <aside className="db-sidebar">
           <div className="db-profile">
             <div className="db-profile__avatar-wrap">
@@ -783,9 +766,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
           </button>
         </aside>
 
-        {/* ══ Main ═════════════════════════════════════════════════ */}
         <main className="db-main">
-          {/* ════ OVERVIEW ════ */}
           {activeTab === "overview" && (
             <div className="db-content">
               <div className="db-page-header">
@@ -797,7 +778,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </p>
               </div>
 
-              {/* Stats */}
               <div className="db-stats-grid">
                 <div className="db-stat-card">
                   <span className="db-stat-card__value">
@@ -829,7 +809,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Khóa học đang học */}
               {!loadingCourses && inProgressCourses.length > 0 && (
                 <div className="id-form-card overview-courses-card">
                   <h3 className="id-form-card__title">
@@ -881,7 +860,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </div>
               )}
 
-              {/* Thanh toán gần đây */}
               {!loadingPayments && payments.filter((p) => p.status === "success").length > 0 && (
                 <div className="payment-card">
                   <div className="payment-card-header">
@@ -926,7 +904,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </div>
               )}
 
-              {/* Không có khóa học */}
               {!loadingCourses && activeCourses.length === 0 && (
                 <div className="id-form-card overview-empty-card">
                   <p className="overview-empty-card__text">
@@ -943,7 +920,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ COURSES ════ */}
           {activeTab === "courses" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -1036,7 +1012,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ PAYMENTS ════ */}
           {activeTab === "payments" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -1138,7 +1113,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ PROFILE ════ */}
           {activeTab === "profile" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -1148,7 +1122,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </p>
               </div>
 
-              {/* Avatar card */}
               <div className="id-profile-card">
                 <div className="id-profile-card__avatar-section">
                   <div className="id-profile-card__avatar-col">
@@ -1201,7 +1174,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Thông tin cơ bản */}
               <div className="id-form-card">
                 <div className="id-form-card__title-row">
                   <h3 className="id-form-card__title">Thông tin cơ bản</h3>
@@ -1392,7 +1364,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Bảo mật tài khoản */}
               <div className="id-form-card">
                 <h3 className="id-form-card__title">Bảo mật tài khoản</h3>
                 <div className="id-form-grid">
@@ -1466,7 +1437,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ QUIZZES ════ */}
           {activeTab === "quizzes" && (
             <div className="db-content">
               <div className="id-page-header">
@@ -1733,7 +1703,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ CERTIFICATES ════ */}
           {activeTab === "certificates" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -1799,7 +1768,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           )}
 
-          {/* ════ WALLET ════ */}
           {activeTab === "wallet" && (
             <div className="id-content">
               <div className="id-page-header">
@@ -1813,7 +1781,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <p className="db-muted">Đang tải…</p>
               ) : (
                 <>
-                  {/* Số dư + nút toggle */}
                   <div className="id-form-card wallet-balance-card">
                     <p className="wallet-balance-label">Số dư hiện tại</p>
                     <p className="wallet-balance-amount">
@@ -1851,7 +1818,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     </div>
                   </div>
 
-                  {/* Panel Nạp tiền */}
                   {walletPanel === "deposit" && (
                     <div className="id-form-card wallet-panel-card">
                       <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
@@ -1909,7 +1875,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     </div>
                   )}
 
-                  {/* Panel Rút tiền */}
                   {walletPanel === "withdraw" && (
                     <div className="id-form-card wallet-panel-card">
                       <h3 className="id-form-card__title">Rút tiền</h3>
@@ -2005,7 +1970,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     </div>
                   )}
 
-                  {/* Lịch sử giao dịch */}
                   <div className="id-form-card">
                     <h3 className="id-form-card__title">Lịch sử giao dịch</h3>
                     {walletTxs.length === 0 ? (
@@ -2067,7 +2031,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </main>
       </div>
 
-      {/* ── Refund Modal ── */}
       {refundTarget && (
         <div
           className="modal-overlay"
@@ -2129,7 +2092,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   );
 };
 
-// ── Field wrapper ─────────────────────────────────────────────────────────────
 interface FieldProps {
   label: string;
   error?: string;
