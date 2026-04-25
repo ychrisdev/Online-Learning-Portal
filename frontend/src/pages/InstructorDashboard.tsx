@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-
 import {
   BarChart,
   Bar,
@@ -54,6 +53,7 @@ const STATUS_LABEL: Record<string, string> = {
   success: "Thành công",
   pending: "Chờ xử lý",
   refund_requested: "Yêu cầu hoàn",
+  refund_approved: "Đã duyệt hoàn tiền",
   refunded: "Đã hoàn",
   failed: "Thất bại",
 };

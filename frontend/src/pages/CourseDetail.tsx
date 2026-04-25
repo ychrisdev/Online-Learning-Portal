@@ -1885,7 +1885,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
               {isEnrolled && (
                 <button
                   className="cd-btn-enroll"
-                  onClick={() => setActiveTab("curriculum")}
+                  onClick={() => setActiveTab("overview")}
                 >
                   Đã đăng ký
                 </button>
