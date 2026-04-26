@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
-import ReactDOM from "react-dom";
+import { usePagination } from "../../src/hooks/usePagination";
+import Pagination from "../components/ui/Pagination";
 
 interface AdminDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -9,6 +10,7 @@ interface AdminDashboardProps {
 }
 
 const API = "http://127.0.0.1:8000";
+const PAGE_SIZE = 10;
 
 const authHeader = (): Record<string, string> => {
   const token = localStorage.getItem("access");
@@ -1571,6 +1573,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   );
   const maxCatRevenue = catRevenueEntries[0]?.[1] ?? 1;
 
+  const pgUsers = usePagination(filteredUsers, PAGE_SIZE);
+  const pgCourses = usePagination(filteredCourses, PAGE_SIZE);
+  const pgSections = usePagination(
+    sections
+      .filter(
+        (s) =>
+          !filterSectionCourse ||
+          String(s.course?.id ?? s.course) === filterSectionCourse,
+      )
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
+    PAGE_SIZE,
+  );
+  const pgLessons = usePagination(lessons, PAGE_SIZE);
+  const pgQuizzes = usePagination(
+    quizzes.filter(
+      (q) =>
+        !filterQuizLesson ||
+        String(q.lesson?.id ?? q.lesson) === filterQuizLesson,
+    ),
+    PAGE_SIZE,
+  );
+  const pgEnrollments = usePagination(filteredEnrollments, PAGE_SIZE);
+  const pgCategories = usePagination(filteredCategories, PAGE_SIZE);
+  const pgReviews = usePagination(filteredReviews, PAGE_SIZE);
+  const pgPayments = usePagination(filteredPayments, PAGE_SIZE);
+  const pgRefunds = usePagination(
+    payments.filter((p) => {
+      const inFlow = [
+        "refund_requested",
+        "refund_approved",
+        "refunded",
+      ].includes(p.status);
+      const match = !filterRefundStatus || p.status === filterRefundStatus;
+      return inFlow && match;
+    }),
+    PAGE_SIZE,
+  );
+
   const CAT_COLORS: Record<string, string> = {
     A1: "#4CAF82",
     A2: "#5BA4CF",
@@ -2376,7 +2416,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
                 <button
                   className="ad-edit-alert__dismiss-single"
-                  onClick={() => dismissCourse(c.id, c.updated_at)}
+                  onClick={() => dismissCourse(c.id)}
                   title="Bỏ qua"
                 >
                   ✕
@@ -4494,7 +4534,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Quản lý người dùng</h1>
                 <p className="ad-page-sub">
-                  {loadingUsers ? "Đang tải…" : `${users.length} người dùng`}
+                  {loadingUsers ? "Đang tải…" : `${pgUsers.total} người dùng`}
                 </p>
               </div>
               <div className="ad-toolbar">
@@ -4552,7 +4592,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredUsers.map((u) => {
+                      pgUsers.pageItems.map((u) => {
                         const status = getUserStatus(u);
                         return (
                           <tr key={u.id}>
@@ -4616,6 +4656,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgUsers.page}
+                  totalPages={pgUsers.totalPages}
+                  total={pgUsers.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgUsers.goTo}
+                />
               </div>
             </div>
           )}
@@ -4627,7 +4674,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="ad-page-sub">
                   {loadingCourses
                     ? "Đang tải…"
-                    : `${filteredCourses.length} / ${courses.length} khóa học`}
+                    : `${pgCourses.total} / ${courses.length} khóa học`}
                 </p>
               </div>
 
@@ -4711,7 +4758,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredCourses.map((c) => {
+                      pgCourses.pageItems.map((c) => {
                         const price = c.sale_price ?? c.price ?? 0;
                         const students =
                           c.total_students ?? c.enrolled_count ?? 0;
@@ -4769,6 +4816,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgCourses.page}
+                  totalPages={pgCourses.totalPages}
+                  total={pgCourses.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgCourses.goTo}
+                />
               </div>
             </div>
           )}
@@ -4778,7 +4832,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Quản lý chương học</h1>
                 <p className="ad-page-sub">
-                  {loadingSections ? "Đang tải…" : `${sections.length} chương`}
+                  {loadingSections ? "Đang tải…" : `${pgSections.total} chương`}
                 </p>
               </div>
               <div className="ad-toolbar">
@@ -4823,12 +4877,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           Đang tải…
                         </td>
                       </tr>
-                    ) : sections.filter(
-                        (s) =>
-                          !filterSectionCourse ||
-                          String(s.course?.id ?? s.course) ===
-                            filterSectionCourse,
-                      ).length === 0 ? (
+                    ) : pgSections.total === 0 ? (
                       <tr>
                         <td
                           colSpan={5}
@@ -4838,48 +4887,45 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      sections
-                        .filter(
-                          (s) =>
-                            !filterSectionCourse ||
-                            String(s.course?.id ?? s.course) ===
-                              filterSectionCourse,
-                        )
-                        .sort(
-                          (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0),
-                        )
-                        .map((s) => (
-                          <tr key={s.id}>
-                            <td className="ad-table__center">
-                              {s.order_index ?? "—"}
-                            </td>
-                            <td>
-                              <span className="ad-table__title">{s.title}</span>
-                            </td>
-                            <td>
-                              {courses.find(
-                                (c) => c.id === (s.course?.id ?? s.course),
-                              )?.title ?? "—"}
-                            </td>
-                            <td className="ad-table__muted">
-                              {s.description || "—"}
-                            </td>
-                            <td>
-                              <button
-                                className="ad-btn-sm ad-btn-sm--view"
-                                onClick={() => {
-                                  setFilterLessonSection(s.id);
-                                  setActiveTab("lessons");
-                                }}
-                              >
-                                Xem bài học
-                              </button>
-                            </td>
-                          </tr>
-                        ))
+                      pgSections.pageItems.map((s) => (
+                        <tr key={s.id}>
+                          <td className="ad-table__center">
+                            {s.order_index ?? "—"}
+                          </td>
+                          <td>
+                            <span className="ad-table__title">{s.title}</span>
+                          </td>
+                          <td>
+                            {courses.find(
+                              (c) => c.id === (s.course?.id ?? s.course),
+                            )?.title ?? "—"}
+                          </td>
+                          <td className="ad-table__muted">
+                            {s.description || "—"}
+                          </td>
+                          <td>
+                            <button
+                              className="ad-btn-sm ad-btn-sm--view"
+                              onClick={() => {
+                                setFilterLessonSection(s.id);
+                                setActiveTab("lessons");
+                              }}
+                            >
+                              Xem bài học
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgSections.page}
+                  totalPages={pgSections.totalPages}
+                  total={pgSections.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgSections.goTo}
+                />
               </div>
             </div>
           )}
@@ -4889,7 +4935,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Quản lý bài học</h1>
                 <p className="ad-page-sub">
-                  {loadingLessons ? "Đang tải…" : `${lessons.length} bài học`}
+                  {loadingLessons ? "Đang tải…" : `${pgLessons.total} bài học`}
                 </p>
               </div>
               <div className="ad-toolbar">
@@ -4968,7 +5014,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      lessons.map((l) => {
+                      pgLessons.pageItems.map((l) => {
                         return (
                           <tr key={l.id}>
                             <td className="ad-table__center">
@@ -4996,6 +5042,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgLessons.page}
+                  totalPages={pgLessons.totalPages}
+                  total={pgLessons.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgLessons.goTo}
+                />
               </div>
             </div>
           )}
@@ -5007,7 +5060,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="ad-page-sub">
                   {loadingQuizzes
                     ? "Đang tải…"
-                    : `${quizzes.length} bài kiểm tra`}
+                    : `${pgQuizzes.total} bài kiểm tra`}
                 </p>
               </div>
               <div className="ad-toolbar">
@@ -5050,11 +5103,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <tr>
                         <td colSpan={6}>Đang tải…</td>
                       </tr>
-                    ) : quizzes.filter(
-                        (q) =>
-                          !filterQuizLesson ||
-                          String(q.lesson?.id ?? q.lesson) === filterQuizLesson,
-                      ).length === 0 ? (
+                    ) : pgQuizzes.total === 0 ? (
                       <tr>
                         <td
                           colSpan={6}
@@ -5064,132 +5113,122 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      quizzes
-                        .filter(
-                          (q) =>
-                            !filterQuizLesson ||
-                            String(q.lesson?.id ?? q.lesson) ===
-                              filterQuizLesson,
-                        )
-                        .map((q) => {
-                          const lesson = lessons.find(
-                            (l) => l.id === (q.lesson?.id ?? q.lesson),
-                          );
-                          const isExpanded = expandedQuizId === q.id;
-                          return (
-                            <React.Fragment key={q.id}>
-                              <tr>
-                                <td>
-                                  <span className="ad-table__title">
-                                    {q.title}
-                                  </span>
-                                </td>
-                                <td className="ad-table__muted">
-                                  {lesson?.title ?? "—"}
-                                </td>
-                                <td>{q.pass_score}%</td>
-                                <td>
-                                  {q.time_limit > 0
-                                    ? `${q.time_limit} phút`
-                                    : "Không giới hạn"}
-                                </td>
-                                <td>
-                                  <div className="tbl-actions">
-                                    <button
-                                      className="tbl-btn tbl-btn--view"
-                                      onClick={() => {
-                                        if (isExpanded) {
-                                          setExpandedQuizId(null);
-                                        } else {
-                                          setExpandedQuizId(q.id);
-                                          fetchQuestions(q.id);
-                                        }
-                                      }}
-                                    >
-                                      {isExpanded ? "Ẩn" : "Câu hỏi"}
-                                    </button>
-                                    <button
-                                      className="tbl-btn tbl-btn--neutral"
-                                      onClick={() => openAttemptList(q)}
-                                    >
-                                      Lịch sử
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                              {isExpanded && (
-                                <tr>
-                                  <td
-                                    colSpan={6}
-                                    className="ad-quiz-expand-cell"
+                      pgQuizzes.pageItems.map((q) => {
+                        const lesson = lessons.find(
+                          (l) => l.id === (q.lesson?.id ?? q.lesson),
+                        );
+                        const isExpanded = expandedQuizId === q.id;
+                        return (
+                          <React.Fragment key={q.id}>
+                            <tr>
+                              <td>
+                                <span className="ad-table__title">
+                                  {q.title}
+                                </span>
+                              </td>
+                              <td className="ad-table__muted">
+                                {lesson?.title ?? "—"}
+                              </td>
+                              <td>{q.pass_score}%</td>
+                              <td>
+                                {q.time_limit > 0
+                                  ? `${q.time_limit} phút`
+                                  : "Không giới hạn"}
+                              </td>
+                              <td>
+                                <div className="tbl-actions">
+                                  <button
+                                    className="tbl-btn tbl-btn--view"
+                                    onClick={() => {
+                                      if (isExpanded) {
+                                        setExpandedQuizId(null);
+                                      } else {
+                                        setExpandedQuizId(q.id);
+                                        fetchQuestions(q.id);
+                                      }
+                                    }}
                                   >
-                                    <div className="ad-quiz-expand">
-                                      {loadingQ ? (
-                                        <p className="ad-empty">
-                                          Đang tải câu hỏi…
-                                        </p>
-                                      ) : questions.length === 0 ? (
-                                        <p className="ad-empty">
-                                          Chưa có câu hỏi nào. Nhấn "＋ Câu hỏi"
-                                          để thêm.
-                                        </p>
-                                      ) : (
-                                        questions.map((ques, idx) => (
-                                          <div
-                                            key={ques.id}
-                                            className="ad-quiz-question"
-                                          >
-                                            <div className="ad-quiz-question__inner">
-                                              <div className="ad-quiz-question__body">
-                                                <span className="ad-quiz-question__meta">
-                                                  Câu {idx + 1} ·{" "}
-                                                  {
-                                                    (
-                                                      {
-                                                        single: "Chọn 1",
-                                                        multiple: "Chọn nhiều",
-                                                        true_false: "Đúng/Sai",
-                                                      } as Record<
-                                                        string,
-                                                        string
-                                                      >
-                                                    )[ques.question_type]
-                                                  }{" "}
-                                                  · {ques.points} điểm
-                                                </span>
-                                                <p className="ad-quiz-question__text">
-                                                  {ques.content}
-                                                </p>
-                                                <div className="ad-quiz-answers">
-                                                  {ques.answers?.map(
-                                                    (a: any) => (
-                                                      <span
-                                                        key={a.id}
-                                                        className={`ad-quiz-answer${a.is_correct ? " ad-quiz-answer--correct" : ""}`}
-                                                      >
-                                                        {a.is_correct
-                                                          ? "✓ "
-                                                          : ""}
-                                                        {a.content}
-                                                      </span>
-                                                    ),
-                                                  )}
-                                                </div>
+                                    {isExpanded ? "Ẩn" : "Câu hỏi"}
+                                  </button>
+                                  <button
+                                    className="tbl-btn tbl-btn--neutral"
+                                    onClick={() => openAttemptList(q)}
+                                  >
+                                    Lịch sử
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr>
+                                <td colSpan={6} className="ad-quiz-expand-cell">
+                                  <div className="ad-quiz-expand">
+                                    {loadingQ ? (
+                                      <p className="ad-empty">
+                                        Đang tải câu hỏi…
+                                      </p>
+                                    ) : questions.length === 0 ? (
+                                      <p className="ad-empty">
+                                        Chưa có câu hỏi nào. Nhấn "＋ Câu hỏi"
+                                        để thêm.
+                                      </p>
+                                    ) : (
+                                      questions.map((ques, idx) => (
+                                        <div
+                                          key={ques.id}
+                                          className="ad-quiz-question"
+                                        >
+                                          <div className="ad-quiz-question__inner">
+                                            <div className="ad-quiz-question__body">
+                                              <span className="ad-quiz-question__meta">
+                                                Câu {idx + 1} ·{" "}
+                                                {
+                                                  (
+                                                    {
+                                                      single: "Chọn 1",
+                                                      multiple: "Chọn nhiều",
+                                                      true_false: "Đúng/Sai",
+                                                    } as Record<string, string>
+                                                  )[ques.question_type]
+                                                }{" "}
+                                                · {ques.points} điểm
+                                              </span>
+                                              <p className="ad-quiz-question__text">
+                                                {ques.content}
+                                              </p>
+                                              <div className="ad-quiz-answers">
+                                                {ques.answers?.map((a: any) => (
+                                                  <span
+                                                    key={a.id}
+                                                    className={`ad-quiz-answer${a.is_correct ? " ad-quiz-answer--correct" : ""}`}
+                                                  >
+                                                    {a.is_correct ? "✓ " : ""}
+                                                    {a.content}
+                                                  </span>
+                                                ))}
                                               </div>
                                             </div>
                                           </div>
-                                        ))
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgQuizzes.page}
+                  totalPages={pgQuizzes.totalPages}
+                  total={pgQuizzes.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgQuizzes.goTo}
+                />
               </div>
             </div>
           )}
@@ -5201,7 +5240,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="ad-page-sub">
                   {loadingEnrollments
                     ? "Đang tải…"
-                    : `${filteredEnrollments.length} / ${enrollments.length} lượt đăng ký`}
+                    : `${pgEnrollments.total} / ${enrollments.length} lượt đăng ký`}
                 </p>
               </div>
               <div className="ad-filters">
@@ -5262,7 +5301,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredEnrollments.map((e) => {
+                      pgEnrollments.pageItems.map((e) => {
                         const status = e.status ?? "active";
                         const progress =
                           e.progress_pct ?? e.progress_percent ?? null;
@@ -5335,6 +5374,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgEnrollments.page}
+                  totalPages={pgEnrollments.totalPages}
+                  total={pgEnrollments.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgEnrollments.goTo}
+                />
               </div>
             </div>
           )}
@@ -5346,7 +5392,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="ad-page-sub">
                   {loadingCategories
                     ? "Đang tải…"
-                    : `${filteredCategories.length} / ${categories.length} danh mục`}
+                    : `${pgCategories.total} / ${categories.length} danh mục`}
                 </p>
               </div>
               <div className="ad-toolbar">
@@ -5400,9 +5446,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredCategories.map((cat, idx) => (
+                      pgCategories.pageItems.map((cat, idx) => (
                         <tr key={cat.id}>
-                          <td className="ad-table__muted">{idx + 1}</td>
+                          <td className="ad-table__muted">
+                            {(pgCategories.page - 1) * PAGE_SIZE + idx + 1}
+                          </td>
                           <td>
                             <strong>{cat.name}</strong>
                           </td>
@@ -5444,6 +5492,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgCategories.page}
+                  totalPages={pgCategories.totalPages}
+                  total={pgCategories.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgCategories.goTo}
+                />
               </div>
             </div>
           )}
@@ -5455,7 +5510,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="ad-page-sub">
                   {loadingPayments
                     ? "Đang tải…"
-                    : `${filteredPayments.length} / ${payments.filter((p) => !["refund_requested", "refund_approved", "refunded"].includes(p.status)).length} giao dịch`}
+                    : `${pgPayments.total} / ${
+                        payments.filter(
+                          (p) =>
+                            ![
+                              "refund_requested",
+                              "refund_approved",
+                              "refunded",
+                            ].includes(p.status),
+                        ).length
+                      } giao dịch`}
                 </p>
               </div>
               <div className="ad-filters">
@@ -5517,7 +5581,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredPayments.map((p) => {
+                      pgPayments.pageItems.map((p) => {
                         const status = p.status ?? "pending";
                         return (
                           <tr key={p.id}>
@@ -5565,6 +5629,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgPayments.page}
+                  totalPages={pgPayments.totalPages}
+                  total={pgPayments.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgPayments.goTo}
+                />
               </div>
             </div>
           )}
@@ -5576,7 +5647,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="ad-page-sub">
                   {loadingReviews
                     ? "Đang tải…"
-                    : `${filteredReviews.length} / ${reviews.length} đánh giá`}
+                    : `${pgReviews.total} / ${reviews.length} đánh giá`}
                 </p>
               </div>
 
@@ -5671,7 +5742,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredReviews.map((r) => (
+                      pgReviews.pageItems.map((r) => (
                         <tr
                           key={r.id}
                           className={r.is_hidden ? "ad-row--hidden" : ""}
@@ -5751,6 +5822,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgReviews.page}
+                  totalPages={pgReviews.totalPages}
+                  total={pgReviews.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgReviews.goTo}
+                />
               </div>
 
               {reviewModal === "view" && selectedReview && (
@@ -6279,9 +6357,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="ad-page-header">
                 <h1 className="ad-page-title">Quản lý hoàn tiền</h1>
                 <p className="ad-page-sub">
-                  {loadingPayments
-                    ? "Đang tải…"
-                    : `${payments.filter((p) => ["refund_requested", "refund_approved", "refunded"].includes(p.status)).length} yêu cầu`}
+                  {loadingPayments ? "Đang tải…" : `${pgRefunds.total} yêu cầu`}
                 </p>
               </div>
 
@@ -6341,8 +6417,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </tr>
                         );
                       }
-
-                      if (refunds.length === 0) {
+                      if (pgRefunds.total === 0) {
                         return (
                           <tr>
                             <td
@@ -6355,7 +6430,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         );
                       }
 
-                      return refunds.map((p) => (
+                      return pgRefunds.pageItems.map((p) => (
                         <tr key={p.id}>
                           <td>
                             <div className="ad-user-cell">
@@ -6420,6 +6495,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     })()}
                   </tbody>
                 </table>
+                <Pagination
+                  page={pgRefunds.page}
+                  totalPages={pgRefunds.totalPages}
+                  total={pgRefunds.total}
+                  pageSize={PAGE_SIZE}
+                  onPage={pgRefunds.goTo}
+                />
               </div>
             </div>
           )}
