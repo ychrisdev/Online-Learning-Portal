@@ -859,7 +859,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         : adminEditAlerts;
 
     return (
-      <div className="ad-edit-alert" style={{ marginBottom: 0 }}>
+      <div className="ad-edit-alert ad-edit-alert--no-mb" >
         <div className="ad-edit-alert__header">
           <span className="ad-edit-alert__icon">⚠</span>
           <span className="ad-edit-alert__title">
@@ -1835,16 +1835,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </div>
               ) : attempts.length === 0 ? (
                 <p
-                  style={{
-                    textAlign: "center",
-                    color: "var(--color-text-secondary)",
-                    padding: "2rem 0",
-                  }}
+                  className="id-empty-state"
                 >
                   Chưa có học viên nào làm bài kiểm tra này.
                 </p>
               ) : (
-                <table className="ad-table" style={{ marginTop: 0 }}>
+                <table className="ad-table ad-table--no-mt">
                   <thead>
                     <tr>
                       <th>STT</th>
@@ -1877,11 +1873,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       return (
                         <tr key={a.id}>
                           <td
-                            style={{
-                              textAlign: "center",
-                              color: "var(--color-text-secondary)",
-                              fontSize: 12,
-                            }}
+                            className="id-td-index"
                           >
                             {idx + 1}
                           </td>
@@ -1924,19 +1916,17 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           </td>
                           <td
                             className="ad-table__muted"
-                            style={{ fontSize: 12 }}
                           >
                             {start ? start.toLocaleString("vi-VN") : "—"}
                           </td>
                           <td
                             className="ad-table__muted"
-                            style={{ fontSize: 12 }}
                           >
                             {submit ? submit.toLocaleString("vi-VN") : "—"}
                           </td>
                           <td
                             className="ad-table__muted"
-                            style={{ fontSize: 12 }}
+                          
                           >
                             {mm !== null && ss !== null
                               ? `${mm} phút ${ss} giây`
@@ -1997,23 +1987,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         >
           <div className="cm-box">
             <div className="cm-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="id-flex-row">
                 <button
                   onClick={backToAttemptList}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--color-text-secondary)",
-                    fontSize: 18,
-                    lineHeight: 1,
-                    padding: "0 4px",
-                  }}
+                  className="id-icon-btn"
                   title="Quay lại danh sách"
                 >
                   ←
                 </button>
-                <h2 className="cm-title" style={{ margin: 0 }}>
+                <h2 className="cm-title--no-margin">
                   Chi tiết bài làm
                 </h2>
               </div>
@@ -2024,12 +2006,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
             <div className="cm-body cm-body--scroll">
               <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                  gap: 10,
-                  marginBottom: 20,
-                }}
+                className="id-stat-mini-grid"
               >
                 {[
                   {
@@ -2063,19 +2040,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 ].map((item) => (
                   <div
                     key={item.label}
-                    style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "0.5px solid rgba(255,255,255,0.07)",
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                    }}
+                    className="id-stat-mini-card"
                   >
                     <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--color-text-secondary)",
-                        marginBottom: 4,
-                      }}
+                      className="id-stat-mini-card__label"
                     >
                       {item.label}
                     </div>
@@ -2100,30 +2068,23 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               ) : questions.length === 0 ? (
                 <div>
                   <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--color-text-secondary)",
-                      marginBottom: 12,
-                    }}
+                    className="id-hint-text"
                   >
                     Đáp án học viên đã chọn (theo ID):
                   </p>
                   {Object.entries(snapshot).length === 0 ? (
                     <p
-                      style={{
-                        color: "var(--color-text-secondary)",
-                        fontSize: 13,
-                      }}
+                      className="id-hint-text"
                     >
                       Không có dữ liệu đáp án.
                     </p>
                   ) : (
                     Object.entries(snapshot).map(([qId, aIds]) => (
-                      <div key={qId} style={{ marginBottom: 8, fontSize: 13 }}>
-                        <span style={{ color: "var(--color-text-secondary)" }}>
+                      <div key={qId} className="id-snapshot-row">
+                        <span className="id-text-secondary">
                           Câu {qId.slice(0, 8)}…:
                         </span>{" "}
-                        <span style={{ color: "var(--color-text-primary)" }}>
+                        <span className="id-text-primary">
                           {aIds.join(", ")}
                         </span>
                       </div>
@@ -2133,11 +2094,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               ) : (
                 <div>
                   <p
-                    style={{
-                      fontSize: 12,
-                      color: "var(--color-text-secondary)",
-                      marginBottom: 12,
-                    }}
+                    className="id-hint-text id-hint-text--xs"
                   >
                     {questions.length} câu hỏi — đáp án học viên chọn được tô
                     màu
@@ -2147,42 +2104,24 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     return (
                       <div
                         key={q.id}
-                        style={{
-                          marginBottom: 14,
-                          padding: "12px 14px",
-                          background: "rgba(255,255,255,0.03)",
-                          border: "0.5px solid rgba(255,255,255,0.07)",
-                          borderRadius: 8,
-                        }}
+                        className="id-question-card"
                       >
                         <div
-                          style={{ display: "flex", gap: 8, marginBottom: 8 }}
+                          className="id-question-card__header"
                         >
                           <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--color-text-secondary)",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                            className="id-question-card__meta"
+                            >
                             Câu {idx + 1} · {q.points} điểm
                           </span>
                         </div>
                         <p
-                          style={{
-                            fontSize: 13,
-                            color: "var(--color-text-primary)",
-                            margin: "0 0 10px",
-                          }}
+                          className="id-question-card__content"
                         >
                           {q.content}
                         </p>
                         <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                          }}
+                          className="id-answer-list"
                         >
                           {q.answers?.map((ans: any) => {
                             const isChosen = chosenIds.includes(String(ans.id));
@@ -2226,12 +2165,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </div>
                         {q.explanation && (
                           <p
-                            style={{
-                              fontSize: 12,
-                              color: "rgba(224,225,221,0.4)",
-                              margin: "8px 0 0",
-                              fontStyle: "italic",
-                            }}
+                            className="id-question-card__explanation"
                           >
                             💡 {q.explanation}
                           </p>
@@ -2457,7 +2391,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <input
                         type="file"
                         accept="image/*"
-                        style={{ display: "none" }}
+                        className="id-hidden"
                         onChange={handleAvatarChange}
                       />
                       Đổi ảnh
@@ -2683,22 +2617,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </div>
                 {passwordError && (
                   <p
-                    style={{
-                      color: "#ff6b6b",
-                      fontSize: 13,
-                      margin: "4px 0 8px",
-                    }}
+                    className="id-msg id-msg--error"
                   >
                     ⚠ {passwordError}
                   </p>
                 )}
                 {passwordSuccess && (
                   <p
-                    style={{
-                      color: "#4caf82",
-                      fontSize: 13,
-                      margin: "4px 0 8px",
-                    }}
+                    className="id-msg id-msg--success"
                   >
                     ✓ Đổi mật khẩu thành công!
                   </p>
@@ -2893,7 +2819,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           Doanh thu theo khóa học
                         </div>
                       </div>
-                      <div className="id-table-wrap" style={{ border: "none" }}>
+                      <div className="id-table-wrap id-table-wrap--borderless" >
                         <table className="id-table">
                           <thead>
                             <tr>
@@ -2992,7 +2918,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 )}
                 <button
                   className="id-btn-primary"
-                  style={{ marginLeft: "auto" }}
+                  className="id-btn-primary id-ml-auto"
                   onClick={() => {
                     setEditingCourseId(null);
                     setEditCourseForm({
@@ -3040,7 +2966,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     : "Không tìm thấy kết quả phù hợp."}
                 </p>
               ) : (
-                <div className="id-table-wrap" style={{ border: "none" }}>
+                <div className="id-table-wrap id-table-wrap--borderless" >
                   <table className="id-table">
                     <thead>
                       <tr>
@@ -3074,24 +3000,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           <tr key={c.id}>
                             <td className="id-table__title">
                               <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "10px",
-                                }}
+                                className="id-course-title-cell"
                               >
                                 {thumbSrc(c.thumbnail) && (
                                   <img
                                     src={thumbSrc(c.thumbnail)!}
                                     alt={c.title}
-                                    className="id-course-row__thumb"
-                                    style={{
-                                      width: 40,
-                                      height: 40,
-                                      borderRadius: 6,
-                                      objectFit: "cover",
-                                      flexShrink: 0,
-                                    }}
+                                    className="id-course-row__thumb id-course-row__thumb--sm"
+                                    
                                   />
                                 )}
                                 {c.title}
@@ -3333,7 +3249,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <tbody>
                     {loadingSections ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="id-td-center">
                           Đang tải…
                         </td>
                       </tr>
@@ -3350,11 +3266,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="id-td-empty"
                         >
                           Không có chương nào.
                         </td>
@@ -3372,7 +3284,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         )
                         .map((s) => (
                           <tr key={s.id}>
-                            <td style={{ textAlign: "center" }}>
+                            <td className="id-td-center">
                               {s.order_index ?? "—"}
                             </td>
                             <td>
@@ -3613,7 +3525,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <tbody>
                     {loadingLessons ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="id-td-center">
                           Đang tải…
                         </td>
                       </tr>
@@ -3621,11 +3533,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="id-td-empty"
                         >
                           Không có bài học nào.
                         </td>
@@ -3633,7 +3541,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     ) : (
                       lessons.map((l) => (
                         <tr key={l.id}>
-                          <td style={{ textAlign: "center" }}>
+                          <td className="id-td-center">
                             {l.order_index ?? "—"}
                           </td>
                           <td>
@@ -3644,7 +3552,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               (s) => s.id === (l.section?.id ?? l.section),
                             )?.title ?? "—"}
                           </td>
-                          <td style={{ textAlign: "center" }}>
+                          <td  className="id-td-center">
                             {l.is_preview_video ? "🎬" : ""}
                             {l.is_preview_article ? "📝" : ""}
                             {l.is_preview_resource ? "📎" : ""}
@@ -4145,7 +4053,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <tbody>
                     {loadingQuizzes ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center" }}>
+                        <td colSpan={6} className="id-td-center">
                           Đang tải…
                         </td>
                       </tr>
@@ -4157,11 +4065,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={6}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="id-td-empty"
                         >
                           Không có bài kiểm tra nào.
                         </td>
@@ -4232,14 +4136,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </tr>
                               {isExpanded && (
                                 <tr>
-                                  <td colSpan={6} style={{ padding: 0 }}>
+                                  <td colSpan={6} className="id-td-no-pad">
                                     <div
-                                      style={{
-                                        background: "rgba(27,38,59,0.6)",
-                                        padding: "12px 20px",
-                                        borderTop:
-                                          "1px solid rgba(119,141,169,0.1)",
-                                      }}
+                                      className="id-expand-panel"
                                     >
                                       {loadingQ ? (
                                         <p className="ad-empty">
@@ -4253,31 +4152,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                         questions.map((ques, idx) => (
                                           <div
                                             key={ques.id}
-                                            style={{
-                                              marginBottom: 10,
-                                              padding: "10px 12px",
-                                              background:
-                                                "rgba(255,255,255,0.03)",
-                                              borderRadius: 8,
-                                              border:
-                                                "0.5px solid rgba(255,255,255,0.07)",
-                                            }}
+                                            className="id-question-card"
                                           >
                                             <div
-                                              style={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "flex-start",
-                                                gap: 12,
-                                              }}
+                                              className="id-question-card__row"
                                             >
-                                              <div style={{ flex: 1 }}>
+                                              <div className="id-flex-1">
                                                 <span
-                                                  style={{
-                                                    fontSize: 12,
-                                                    color:
-                                                      "rgba(224,225,221,0.4)",
-                                                  }}
+                                                  className="id-question-card__meta"
                                                 >
                                                   Câu {idx + 1} ·{" "}
                                                   {
@@ -4295,20 +4177,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                                   · {ques.points} điểm
                                                 </span>
                                                 <p
-                                                  style={{
-                                                    fontSize: 13,
-                                                    color: "#e0e1dd",
-                                                    margin: "4px 0 6px",
-                                                  }}
+                                                  className="id-question-card__content"
                                                 >
                                                   {ques.content}
                                                 </p>
                                                 <div
-                                                  style={{
-                                                    display: "flex",
-                                                    flexWrap: "wrap",
-                                                    gap: 6,
-                                                  }}
+                                                  className="id-answer-tags"
                                                 >
                                                   {ques.answers?.map(
                                                     (a: any) => (
@@ -4358,8 +4232,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                         ))
                                       )}
                                       <button
-                                        className="ad-btn-sm ad-btn-sm--approve"
-                                        style={{ marginTop: 4 }}
+                                        className="ad-btn-sm ad-btn-sm--approve id-mt-4"
+                                      
                                         onClick={() => openAddQuestion(q.id)}
                                       >
                                         ＋ Thêm câu hỏi
@@ -4785,12 +4659,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             {questionForm.answers.map((ans, idx) => (
                               <div
                                 key={idx}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 8,
-                                  marginBottom: 8,
-                                }}
+                                className="id-answer-form-row"
                               >
                                 <input
                                   type={
@@ -4816,13 +4685,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                       answers: next,
                                     }));
                                   }}
-                                  style={{
-                                    flexShrink: 0,
-                                    accentColor: "#4caf82",
-                                  }}
+                                  className="id-answer-checkbox"
                                 />
                                 <input
-                                  className="cm-input"
+                                  className="cm-input  id-flex-1"
                                   type="text"
                                   placeholder={`Đáp án ${idx + 1}`}
                                   value={ans.content}
@@ -4837,7 +4703,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                       answers: next,
                                     }));
                                   }}
-                                  style={{ flex: 1 }}
+                                  
                                 />
                                 {questionForm.answers.length > 2 && (
                                   <button
@@ -4849,14 +4715,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                         ),
                                       }))
                                     }
-                                    style={{
-                                      background: "none",
-                                      border: "none",
-                                      color: "#e07a5f",
-                                      cursor: "pointer",
-                                      fontSize: 16,
-                                      padding: "0 4px",
-                                    }}
+                                    className="id-icon-btn id-icon-btn--danger"
                                   >
                                     ✕
                                   </button>
@@ -4877,14 +4736,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                   ],
                                 }))
                               }
-                              style={{
-                                fontSize: 12,
-                                color: "#5ba4de",
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: "4px 0",
-                              }}
+                              className="id-link-btn"
                             >
                               ＋ Thêm đáp án
                             </button>
@@ -4976,7 +4828,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <tbody>
                     {loadingEnrollments ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center" }}>
+                        <td colSpan={5} className="id-td-center">
                           Đang tải…
                         </td>
                       </tr>
@@ -4984,11 +4836,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={5}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="id-td-empty"
                         >
                           Không tìm thấy lượt đăng ký phù hợp.
                         </td>
@@ -5049,10 +4897,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 </div>
                               ) : (
                                 <span
-                                  style={{
-                                    color: "var(--color-text-secondary)",
-                                    fontSize: 12,
-                                  }}
+                                  className="id-text-secondary id-text-xs"
                                 >
                                   —
                                 </span>
@@ -5132,7 +4977,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <tbody>
                     {loadingPayments ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center" }}>
+                        <td colSpan={6} className="id-td-center">
                           Đang tải…
                         </td>
                       </tr>
@@ -5140,11 +4985,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={6}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="id-td-empty"
                         >
                           Không có giao dịch nào.
                         </td>
@@ -5165,7 +5006,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </div>
                             </td>
                             <td>{p.course_title ?? "—"}</td>
-                            <td style={{ color: "#4caf82", fontWeight: 600 }}>
+                            <td className="id-td-positive">
                               {formatPrice(p.amount ?? p.price ?? 0, "VND")}
                             </td>
                             <td className="ad-table__muted">
@@ -5219,16 +5060,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           <span>Đang tải…</span>
                         </div>
                       ) : !paymentDetail ? (
-                        <p style={{ color: "var(--color-text-secondary)" }}>
+                        <p className="id-hint-text">
                           Không tìm thấy giao dịch.
                         </p>
                       ) : (
                         <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 12,
-                          }}
+                          className="id-detail-list"
                         >
                           {[
                             {
@@ -5275,30 +5112,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           ].map((item) => (
                             <div
                               key={item.label}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                padding: "8px 0",
-                                borderBottom:
-                                  "0.5px solid rgba(255,255,255,0.06)",
-                              }}
+                              className="id-detail-row"
                             >
                               <span
-                                style={{
-                                  fontSize: 13,
-                                  color: "var(--color-text-secondary)",
-                                }}
+                                className="id-detail-label"
                               >
                                 {item.label}
                               </span>
                               <span
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 500,
-                                  color: "var(--color-text-primary)",
-                                  textAlign: "right",
-                                }}
+                                className="id-detail-value"
                               >
                                 {item.value}
                               </span>
@@ -5308,33 +5130,17 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             paymentDetail.status === "refund_approved" ||
                             paymentDetail.status === "refunded") && (
                             <div
-                              style={{
-                                marginTop: 4,
-                                padding: "10px 12px",
-                                borderRadius: 8,
-                                background: "rgba(255, 193, 7, 0.07)",
-                                border: "1px solid rgba(255, 193, 7, 0.22)",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 6,
-                              }}
+                              className="id-refund-reason-box"
                             >
                               <span>Lý do hoàn tiền</span>
                               <p
-                                style={{
-                                  margin: 0,
-                                  fontSize: 13,
-                                  color: "var(--color-text-primary)",
-                                  lineHeight: 1.6,
-                                }}
+                                className="id-refund-reason-box__text"
                               >
                                 {paymentDetail.refund_reason?.trim() ? (
                                   paymentDetail.refund_reason
                                 ) : (
                                   <em
-                                    style={{
-                                      color: "var(--color-text-secondary)",
-                                    }}
+                                    className="id-text-secondary"
                                   >
                                     Học viên không để lại lý do.
                                   </em>
@@ -5358,16 +5164,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               )}
 
               {refundRequests.length > 0 && (
-                <div className="id-form-card" style={{ marginTop: 20 }}>
+                <div className="id-form-card id-form-card--mt">
                   <h3
-                    className="id-form-card__title"
-                    style={{ color: "#f5a623" }}
+                    className="id-form-card__title id-form-card__title--warning"
+                    
                   >
                     Yêu cầu hoàn tiền cần xác nhận ({refundRequests.length})
                   </h3>
                   <div
-                    className="ad-table-wrap"
-                    style={{ border: "none", marginTop: 12 }}
+                    className="ad-table-wrap ad-table-wrap--borderless"
+                    
                   >
                     <table className="ad-table">
                       <thead>
@@ -5395,13 +5201,13 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               <td className="ad-table__title">
                                 {r.course_title ?? "—"}
                               </td>
-                              <td style={{ color: "#e05c5c", fontWeight: 600 }}>
+                              <td className="id-td-danger">
                                 {formatPrice(r.amount ?? 0, "VND")}
                               </td>
                               <td>
                                 <button
-                                  className="id-btn-primary"
-                                  style={{ fontSize: 12, padding: "4px 12px" }}
+                                  className="id-btn-primary id-btn-primary--xs"
+                                  
                                   onClick={() => handleConfirmRefund(r.id)}
                                   disabled={confirmingRefund === r.id}
                                 >
@@ -5415,29 +5221,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               <tr>
                                 <td colSpan={4}>
                                   <div
-                                    style={{
-                                      padding: "10px 14px",
-                                      borderRadius: 8,
-                                      margin: "4px 0",
-                                      background: "rgba(224,92,92,0.1)",
-                                      border: "1px solid rgba(224,92,92,0.3)",
-                                    }}
+                                    className="id-refund-warning"
                                   >
                                     <p
-                                      style={{
-                                        color: "#e05c5c",
-                                        fontSize: 13,
-                                        margin: 0,
-                                      }}
+                                     className="id-refund-warning__text id-refund-warning__text--error"
                                     >
                                       ⚠ {refundShortage.detail}
                                     </p>
                                     <p
-                                      style={{
-                                        color: "var(--color-text-secondary)",
-                                        fontSize: 12,
-                                        margin: "4px 0 0",
-                                      }}
+                                      className="id-refund-warning__text"
                                     >
                                       Hạn chót:{" "}
                                       {refundShortage.deadline
@@ -5447,8 +5239,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                         : "2 ngày kể từ hôm nay"}
                                     </p>
                                     <button
-                                      className="id-btn-sm"
-                                      style={{ marginTop: 8 }}
+                                      className="id-btn-sm id-mt-8"
+                                      
                                       onClick={() =>
                                         setActiveTab("wallet" as Tab)
                                       }
@@ -5539,7 +5331,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <tbody>
                     {loadingReviews ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center" }}>
+                        <td colSpan={6} className="id-td-center">
                           Đang tải…
                         </td>
                       </tr>
@@ -5547,11 +5339,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <tr>
                         <td
                           colSpan={6}
-                          style={{
-                            textAlign: "center",
-                            padding: "2rem",
-                            color: "var(--color-text-secondary)",
-                          }}
+                          className="id-td-empty"
                         >
                           Không tìm thấy đánh giá nào.
                         </td>
@@ -5574,10 +5362,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           </td>
                           <td>{r.course_title ?? "—"}</td>
                           <td>
-                            <span style={{ color: "#f5a623" }}>
+                            <span  className="id-star--filled">
                               {"★".repeat(r.rating)}
                             </span>
-                            <span style={{ color: "rgba(255,255,255,0.2)" }}>
+                            <span className="id-star--empty">
                               {"☆".repeat(5 - r.rating)}
                             </span>
                           </td>
@@ -5630,9 +5418,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               {reviewModal === "view" && selectedReview && (
                 <div className="ad-modal-overlay" onClick={closeReviewModal}>
                   <div
-                    className="ad-modal"
+                    className="ad-modal ad-modal--md"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ maxWidth: 500 }}
+                    
                   >
                     <h2 className="ad-modal__title">Chi tiết đánh giá</h2>
                     <div className="ad-modal__body">
@@ -5666,23 +5454,23 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <div className="ad-modal__field">
                         <span className="ad-modal__field-label">Số sao</span>
                         <span>
-                          <span style={{ color: "#f5a623" }}>
+                          <span className="id-star--filled">
                             {"★".repeat(selectedReview.rating)}
                           </span>
-                          <span style={{ color: "rgba(255,255,255,0.2)" }}>
+                          <span className="id-star--empty">
                             {"☆".repeat(5 - selectedReview.rating)}
                           </span>
                         </span>
                       </div>
                       <div
-                        className="ad-modal__field"
-                        style={{ alignItems: "flex-start" }}
+                        className="ad-modal__field ad-modal__field--top"
+                       
                       >
                         <span className="ad-modal__field-label">Nhận xét</span>
                         {selectedReview.comment ? (
                           <p
                             className="ad-modal__field-value--comment"
-                            style={{ margin: 0, textAlign: "right" }}
+                            
                           >
                             {selectedReview.comment}
                           </p>
@@ -5697,11 +5485,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           Trạng thái
                         </span>
                         <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                          }}
+                          className="id-flex-row id-flex-row--gap-10"
                         >
                           {selectedReview.is_hidden ? (
                             <span className="ad-badge ad-review-badge--hidden">
@@ -5733,93 +5517,55 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   onClick={() => !submittingReport && setReportModal(false)}
                 >
                   <div
-                    className="ad-modal"
+                    className="ad-modal ad-modal--sm"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ maxWidth: 440 }}
+                    
                   >
                     <h2 className="ad-modal__title">Báo cáo đánh giá</h2>
                     <div className="ad-modal__body">
                       <div
-                        style={{
-                          padding: "10px 12px",
-                          borderRadius: 8,
-                          marginBottom: 12,
-                          background: "rgba(255,255,255,0.04)",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                        }}
+                        className="id-review-preview"
                       >
                         <div
-                          style={{
-                            fontSize: 12,
-                            color: "var(--color-text-secondary)",
-                            marginBottom: 4,
-                          }}
+                          className="id-review-preview__meta"
                         >
                           {reportingReview.student_name ?? "—"} ·{" "}
                           {reportingReview.course_title ?? "—"}
                         </div>
                         <div>
-                          <span style={{ color: "#f5a623" }}>
+                          <span className="id-star--filled">
                             {"★".repeat(reportingReview.rating)}
                           </span>
-                          <span style={{ color: "rgba(255,255,255,0.15)" }}>
+                          <span className="id-star--empty">
                             {"☆".repeat(5 - reportingReview.rating)}
                           </span>
                         </div>
                         {reportingReview.comment && (
                           <p
-                            style={{
-                              margin: "6px 0 0",
-                              fontSize: 13,
-                              color: "var(--color-text-primary)",
-                              lineHeight: 1.5,
-                            }}
+                            className="id-review-preview__comment"
                           >
                             "{reportingReview.comment}"
                           </p>
                         )}
                       </div>
 
-                      <label
-                        style={{
-                          fontSize: 13,
-                          color: "var(--color-text-secondary)",
-                          display: "block",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Lý do báo cáo{" "}
-                        <span style={{ color: "#f5a623" }}>*</span>
-                      </label>
-                      <textarea
-                        rows={4}
-                        placeholder="Mô tả lý do bạn cho rằng đánh giá này vi phạm..."
-                        value={reportReason}
-                        onChange={(e) => setReportReason(e.target.value)}
-                        style={{
-                          width: "100%",
-                          boxSizing: "border-box",
-                          padding: "10px 12px",
-                          borderRadius: 8,
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          color: "var(--color-text-primary)",
-                          fontSize: 13,
-                          lineHeight: 1.6,
-                          resize: "vertical",
-                          outline: "none",
-                        }}
-                      />
-                      <p
-                        style={{
-                          margin: "6px 0 0",
-                          fontSize: 12,
-                          color: "var(--color-text-secondary)",
-                        }}
-                      >
-                        Admin sẽ xem xét và quyết định có ẩn hoặc xóa đánh giá
-                        này.
-                      </p>
+                      <div className="id-field">
+                        <label className="id-field__label">
+                          Lý do báo cáo <span className="id-required">*</span>
+                        </label>
+
+                        <textarea
+                          rows={4}
+                          placeholder="Mô tả lý do bạn cho rằng đánh giá này vi phạm..."
+                          value={reportReason}
+                          onChange={(e) => setReportReason(e.target.value)}
+                          className="id-field__textarea"
+                        />
+
+                        <p className="id-hint-text id-hint-text--xs">
+                          Admin sẽ xem xét và quyết định có ẩn hoặc xóa đánh giá này.
+                        </p>
+                      </div>
                     </div>
                     <div className="ad-modal__footer">
                       <button
@@ -5842,6 +5588,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               )}
             </div>
           )}
+          
 
           {showCourseModal && (
             <div
@@ -6130,27 +5877,18 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <p className="id-muted">Đang tải…</p>
               ) : (
                 <>
-                  <div className="id-form-card" style={{ marginBottom: 16 }}>
+                  <div className="id-form-card id-form-card--mb">
                     <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--color-text-secondary)",
-                        marginBottom: 4,
-                      }}
+                      className="id-wallet-balance__label"
                     >
                       Số dư hiện tại
                     </p>
                     <p
-                      style={{
-                        fontSize: 28,
-                        fontWeight: 700,
-                        color: "#4caf82",
-                        marginBottom: 12,
-                      }}
+                      className="id-wallet-balance__amount"
                     >
                       {formatPrice(wallet?.balance ?? 0, "VND")}
                     </p>
-                    <div style={{ display: "flex", gap: 10 }}>
+                   <div className="id-btn-group">
                       <button
                         className={
                           walletPanel === "deposit"
@@ -6183,19 +5921,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   </div>
 
                   {walletPanel === "deposit" && (
-                    <div className="id-form-card" style={{ marginBottom: 16 }}>
+                    <div className="id-form-card id-form-card--mb">
                       <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
                       <div
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          alignItems: "flex-end",
-                          flexWrap: "wrap",
-                        }}
+                        className="id-wallet-form-row"
+
                       >
                         <div
                           className="id-field"
-                          style={{ flex: 1, minWidth: 200, marginBottom: 0 }}
+                         className="id-field id-field--flex"
                         >
                           <label className="id-field__label">
                             Số tiền (VNĐ)
@@ -6222,12 +5956,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </button>
                       </div>
                       <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          marginTop: 10,
-                          flexWrap: "wrap",
-                        }}
+                        className="id-quick-amounts"
                       >
                         {[50000, 100000, 200000, 500000].map((v) => (
                           <button
@@ -6245,22 +5974,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       </div>
                       {depositError && (
                         <p
-                          style={{
-                            color: "#e05c5c",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
+                          className="id-msg id-msg--error"
                         >
                           ⚠ {depositError}
                         </p>
                       )}
                       {depositSuccess && (
                         <p
-                          style={{
-                            color: "#4caf82",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
+                          className="id-msg id-msg--success"
                         >
                           ✓ {depositSuccess}
                         </p>
@@ -6269,7 +5990,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   )}
 
                   {walletPanel === "withdraw" && (
-                    <div className="id-form-card" style={{ marginBottom: 16 }}>
+                    <div className="id-form-card id-form-card--mb">
                       <h3 className="id-form-card__title">Yêu cầu rút tiền</h3>
                       <div className="id-form-grid">
                         <div className="id-field">
@@ -6342,23 +6063,13 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </div>
                       </div>
                       {walletError && (
-                        <p
-                          style={{
-                            color: "#e05c5c",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
-                        >
+                        <p className="id-msg id-msg--error">
                           ⚠ {walletError}
                         </p>
                       )}
                       {walletSuccess && (
                         <p
-                          style={{
-                            color: "#4caf82",
-                            fontSize: 13,
-                            marginTop: 8,
-                          }}
+                          className="id-msg id-msg--success"
                         >
                           ✓ {walletSuccess}
                         </p>
@@ -6381,8 +6092,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <p className="id-muted">Chưa có giao dịch nào.</p>
                     ) : (
                       <div
-                        className="id-table-wrap"
-                        style={{ border: "none", marginTop: 12 }}
+                        className="id-table-wrap id-table-wrap--borderless"
+                       
                       >
                         <table className="id-table">
                           <thead>
@@ -6441,13 +6152,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               <tr key={`pay-${p.id}`}>
                                 <td>
                                   <span
-                                    style={{
-                                      fontSize: 12,
-                                      padding: "2px 8px",
-                                      borderRadius: 5,
-                                      background: "rgba(91,141,238,0.15)",
-                                      color: "#5b8dee",
-                                    }}
+                                    className="id-badge id-badge--payment"
                                   >
                                     Thanh toán
                                   </span>
@@ -6457,7 +6162,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                   {p.student_name ?? ""}
                                 </td>
                                 <td
-                                  style={{ fontWeight: 600, color: "#4caf82" }}
+                                  className="id-td-positive"
                                 >
                                   +{formatPrice(p.amount ?? 0, "VND")}
                                 </td>
@@ -6495,8 +6200,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <p className="id-muted">Đang tải…</p>
               ) : refundRequests.length === 0 ? (
                 <div
-                  className="id-form-card"
-                  style={{ textAlign: "center", padding: "3rem 0" }}
+                  className="id-form-card id-form-card--empty-state"
+                  
                 >
                   <p className="id-muted">
                     Không có yêu cầu hoàn tiền nào cần xác nhận.
@@ -6505,14 +6210,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               ) : (
                 <div className="id-form-card">
                   <h3
-                    className="id-form-card__title"
-                    style={{ color: "#f5a623" }}
+                    className="id-form-card__title id-form-card__title--warning"
+                    
                   >
                     Yêu cầu cần xác nhận ({refundRequests.length})
                   </h3>
                   <div
-                    className="id-table-wrap"
-                    style={{ border: "none", marginTop: 12 }}
+                    className="id-table-wrap id-table-wrap--borderless"
+                    
                   >
                     <table className="id-table">
                       <thead>
@@ -6540,11 +6245,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </td>
                               <td>{r.course_title ?? "—"}</td>
                               <td
-                                style={{ color: "var(--color-text-secondary)" }}
+                                className="id-td-muted"
                               >
                                 {formatPrice(r.amount ?? 0, "VND")}
                               </td>
-                              <td style={{ color: "#e05c5c", fontWeight: 600 }}>
+                              <td className="id-td-danger">
                                 {formatPrice(
                                   Math.round((r.amount ?? 0) * 0.7),
                                   "VND",
@@ -6553,7 +6258,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               <td>
                                 <button
                                   className="id-btn-primary"
-                                  style={{ fontSize: 12, padding: "4px 12px" }}
+                                  className="id-btn-primary id-btn-primary--xs"
                                   onClick={() => handleConfirmRefund(r.id)}
                                   disabled={confirmingRefund === r.id}
                                 >
@@ -6576,8 +6281,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                         : "2 ngày kể từ hôm nay"}
                                     </p>
                                     <button
-                                      className="id-btn-sm"
-                                      style={{ marginTop: 8 }}
+                                      className="id-btn-sm id-mt-8"
+                                     
                                       onClick={() =>
                                         setActiveTab("wallet" as Tab)
                                       }
