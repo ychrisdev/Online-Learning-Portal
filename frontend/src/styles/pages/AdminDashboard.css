@@ -508,13 +508,6 @@
   margin: 0 22px;
 }
 
-.ad-modal__sub-email {
-  font-weight: 400;
-  margin-left: 6px;
-  font-size: 12px;
-  opacity: 0.5;
-}
-
 .ad-modal__loading-text {
   text-align: center;
   color: rgba(224, 225, 221, 0.5);

@@ -346,8 +346,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const res = await fetch(`${API}/api/payments/admin/${id}/`, {
         headers: authHeader(),
       });
-      if (res.ok) setPaymentDetail(await res.json());
-      else setPaymentDetail(null);
+      if (res.ok) {
+        const data = await res.json();
+        console.log("REFUND DETAIL FIELDS:", Object.keys(data));
+        console.log("REFUND DETAIL DATA:", data);
+        setPaymentDetail(data);
+      } else setPaymentDetail(null);
     } catch {
       setPaymentDetail(null);
     } finally {
@@ -5269,9 +5273,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           refunded: "Đã hoàn tiền",
                         };
                         const ENROLL_BADGE: Record<string, string> = {
-                          active: "ad-badge--status-active",
+                          active: "ad-badge--active",
                           completed: "ad-badge--pay-success",
-                          cancelled: "ad-badge--status-banned",
+                          cancelled: "ad-badge--banned",
                           refunded: "ad-badge--pay-refunded",
                         };
                         return (
@@ -5755,24 +5759,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="ad-modal ad-modal--review"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <h2 className="ad-modal__title">Chi tiết đánh giá</h2>
+                    <div className="ad-modal__header">
+                      <h2 className="ad-modal__title">Chi tiết đánh giá</h2>
+                      <button
+                        className="ad-modal__close"
+                        onClick={closeReviewModal}
+                      >
+                        ✕
+                      </button>
+                    </div>
                     <div className="ad-modal__body">
                       <div className="ad-modal__field">
                         <span className="ad-modal__field-label">Học viên</span>
-                        <span className="ad-modal__field-value">
-                          {selectedReview.student_name ??
-                            selectedReview.student?.full_name ??
-                            "—"}
-                          {(selectedReview.student_email ??
-                            selectedReview.student?.email) && (
-                            <span className="ad-modal__sub-email">
-                              (
-                              {selectedReview.student_email ??
-                                selectedReview.student?.email}
-                              )
-                            </span>
-                          )}
-                        </span>
+                        <div>
+                          <span className="ad-modal__field-value">
+                            {selectedReview.student_name ??
+                              selectedReview.student?.full_name ??
+                              "—"}
+                          </span>
+                        </div>
                       </div>
                       <div className="ad-modal__field">
                         <span className="ad-modal__field-label">Khóa học</span>
@@ -5831,17 +5836,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 ).toLocaleDateString("vi-VN")}
                               </span>
                             )}
-                          <button
-                            className={`ad-btn-sm ${selectedReview.is_hidden ? "ad-btn-sm--restore" : "ad-btn-sm--refund"}`}
-                            onClick={() => handleToggleHide(selectedReview)}
-                            disabled={togglingReview}
-                          >
-                            {togglingReview
-                              ? "…"
-                              : selectedReview.is_hidden
-                                ? "Hiện lại"
-                                : "Ẩn đi"}
-                          </button>
                         </div>
                       </div>
                       {selectedReview.is_reported && (
@@ -6124,9 +6118,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             ? new Date(
                                 paymentDetail.refund_requested_at,
                               ).toLocaleString("vi-VN")
-                            : "—"}
+                            : paymentDetail.created_at
+                              ? new Date(
+                                  paymentDetail.created_at,
+                                ).toLocaleString("vi-VN")
+                              : "—"}
                         </span>
                       </div>
+
+                      {paymentDetail.refund_approved_at && (
+                        <div className="ad-modal__field">
+                          <span className="ad-modal__field-label">
+                            Ngày duyệt
+                          </span>
+                          <span className="ad-modal__field-value">
+                            {new Date(
+                              paymentDetail.refund_approved_at,
+                            ).toLocaleString("vi-VN")}
+                          </span>
+                        </div>
+                      )}
+
+                      {["refunded", "refund_approved"].includes(
+                        paymentDetail.status,
+                      ) &&
+                        paymentDetail.refund_approved_at && (
+                          <div className="ad-modal__field">
+                            <span className="ad-modal__field-label">
+                              Ngày hoàn tiền
+                            </span>
+                            <span className="ad-modal__field-value">
+                              {new Date(
+                                paymentDetail.refund_approved_at,
+                              ).toLocaleString("vi-VN")}
+                            </span>
+                          </div>
+                        )}
+
+                      <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">
+                          Trạng thái
+                        </span>
+                        <span
+                          className={`ad-badge ad-badge--pay-${paymentDetail.status}`}
+                        >
+                          {PAYMENT_STATUS_LABEL[paymentDetail.status] ??
+                            paymentDetail.status}
+                        </span>
+                      </div>
+
                       {paymentDetail.refund_reason && (
                         <>
                           <div className="ad-modal__section-title">

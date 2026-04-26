@@ -253,10 +253,6 @@ class AdminRefundView(APIView):
 
 # THÊM VÀO CUỐI — học viên yêu cầu hoàn tiền
 class RequestRefundView(APIView):
-    """
-    POST /api/payments/<id>/request-refund/
-    Học viên yêu cầu hoàn tiền — chỉ được khi status=success
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
@@ -275,6 +271,7 @@ class RequestRefundView(APIView):
         transaction.status = Transaction.Status.REFUND_REQUESTED
         transaction.refund_reason = reason
         transaction.refund_requested_once = True
+        transaction.refund_requested_at = timezone.now()
         transaction.save()
         return Response({'message': 'Yêu cầu hoàn tiền đã được gửi.'})
 
