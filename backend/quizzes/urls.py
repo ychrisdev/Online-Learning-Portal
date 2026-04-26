@@ -19,21 +19,19 @@ from .views import (
 
 urlpatterns = [
     path('', QuizListCreateView.as_view(), name='quiz-list-create'),
-    path('mine/',  QuizListCreateView.as_view(), name='quiz-mine'),  # ← FIX 404
+    path('mine/', QuizListCreateView.as_view(), name='quiz-mine'),
 
-    # ✅ Route cụ thể lên TRÊN
-    path('<uuid:id>/take/',     QuizDetailView.as_view(),    name='quiz-take'),
-    path('<uuid:id>/submit/',   QuizSubmitView.as_view(),    name='quiz-submit'),
-    path('<uuid:id>/attempts/', MyQuizAttemptsView.as_view(), name='quiz-attempts'),  # ← đây
-    path('<uuid:id>/attempts/all/', AdminQuizAttemptsView.as_view(), name='quiz-attempts-all'),
-    path('attempts/<uuid:id>/', QuizAttemptDetailView.as_view()),
-    path('<uuid:id>/start/',   QuizStartView.as_view()),
-
-    # Route chung xuống DƯỚI
-    path('<uuid:id>/',          QuizUpdateView.as_view(),    name='quiz-update'),
-
-    path('<uuid:quiz_id>/questions/',  QuestionListCreateView.as_view(), name='question-list-create'),
-    path('questions/<uuid:id>/',       QuestionUpdateView.as_view(),     name='question-update'),
     path('lesson/<uuid:lesson_id>/take/', QuizDetailByLessonView.as_view(), name='quiz-take-by-lesson'),
     path('attempts/mine/', MyAllQuizAttemptsView.as_view(), name='my-quiz-attempts'),
+    path('attempts/<uuid:id>/', QuizAttemptDetailView.as_view(), name='quiz-attempt-detail'),
+    path('questions/<uuid:id>/', QuestionUpdateView.as_view(), name='question-update'),
+
+    path('<uuid:id>/take/', QuizDetailView.as_view(), name='quiz-take'),
+    path('<uuid:id>/submit/', QuizSubmitView.as_view(), name='quiz-submit'),
+    path('<uuid:id>/start/', QuizStartView.as_view(), name='quiz-start'),
+    path('<uuid:id>/attempts/', MyQuizAttemptsView.as_view(), name='quiz-attempts'),
+    path('<uuid:id>/attempts/all/', AdminQuizAttemptsView.as_view(), name='quiz-attempts-all'),
+    path('<uuid:quiz_id>/questions/', QuestionListCreateView.as_view(), name='question-list-create'),
+
+    path('<uuid:id>/', QuizUpdateView.as_view(), name='quiz-update'),
 ]

@@ -157,7 +157,7 @@ class CourseWriteSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'category', 'title', 'slug', 'description', 'thumbnail',
             'price', 'discount_percent',
-            'level', 'requirements', 'what_you_learn',
+            'level', 'status', 'requirements', 'what_you_learn',
         ]
         read_only_fields = ['id', 'slug']
 

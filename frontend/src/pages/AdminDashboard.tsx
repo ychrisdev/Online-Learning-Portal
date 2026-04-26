@@ -512,20 +512,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const openAttemptDetail = async (attempt: any) => {
     setSelectedAttempt(attempt);
     setAttemptModal("detail");
-    if (!attempt.questions) {
-      setLoadingAttemptDetail(true);
-      try {
-        const res = await fetch(
-          `${API}/api/quizzes/${selectedQuizForAttempt?.id ?? attempt.quiz_id}/questions/`,
-          { headers: authHeader() },
-        );
-        if (res.ok) {
-          const qs = toList(await res.json());
-          setSelectedAttempt((prev: any) => ({ ...prev, _questions: qs }));
-        }
-      } catch {}
-      setLoadingAttemptDetail(false);
-    }
+    setLoadingAttemptDetail(true);
+    try {
+      const quizId = selectedQuizForAttempt?.id ?? attempt.quiz_id;
+      const [detailRes, questionsRes] = await Promise.all([
+        fetch(`${API}/api/quizzes/attempts/${attempt.id}/`, {
+          headers: authHeader(),
+        }),
+        fetch(`${API}/api/quizzes/${quizId}/questions/`, {
+          headers: authHeader(),
+        }),
+      ]);
+      const detail = detailRes.ok ? await detailRes.json() : null;
+      const qs = questionsRes.ok ? toList(await questionsRes.json()) : [];
+      setSelectedAttempt((prev: any) => ({
+        ...prev,
+        ...(detail ?? {}),
+        _questions: qs,
+      }));
+    } catch {}
+    setLoadingAttemptDetail(false);
   };
 
   const closeAttemptModal = () => {
@@ -3386,9 +3392,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             if (e.target === e.currentTarget) closeAttemptModal();
           }}
         >
-          <div className="cm-box">
+          <div className="cm-box cm-box--xl">
             <div className="cm-header">
-              <h2 className="cm-title">Lịch sử làm bài</h2>
+              <h2 className="cm-title">
+                Lịch sử làm bài
+                {selectedQuizForAttempt?.title && (
+                  <span className="cm-title-sub">
+                    — {selectedQuizForAttempt.title}
+                  </span>
+                )}
+              </h2>
               <button className="cm-close" onClick={closeAttemptModal}>
                 ✕
               </button>
@@ -3401,24 +3414,53 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>Đang tải lịch sử…</span>
                 </div>
               ) : attempts.length === 0 ? (
-                <p className="ad-empty ad-table__empty-cell">
+                <p className="cm-empty-state">
                   Chưa có học viên nào làm bài kiểm tra này.
                 </p>
               ) : (
-                <table className="ad-table ad-table--no-margin">
-                  <thead>
-                    <tr>
-                      <th>STT</th>
-                      <th>Học viên</th>
-                      <th>Điểm</th>
-                      <th>Kết quả</th>
-                      <th>Bắt đầu</th>
-                      <th>Nộp bài</th>
-                      <th>Thời gian làm</th>
-                      <th>Chi tiết</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <>
+                  <div className="cm-attempt-summary">
+                    <div className="cm-attempt-summary__item">
+                      <span className="cm-attempt-summary__val">
+                        {attempts.length}
+                      </span>
+                      <span className="cm-attempt-summary__lbl">Lượt làm</span>
+                    </div>
+                    <div className="cm-attempt-summary__item">
+                      <span
+                        className="cm-attempt-summary__val"
+                        style={{ color: "#4caf82" }}
+                      >
+                        {attempts.filter((a) => a.passed).length}
+                      </span>
+                      <span className="cm-attempt-summary__lbl">Đạt</span>
+                    </div>
+                    <div className="cm-attempt-summary__item">
+                      <span
+                        className="cm-attempt-summary__val"
+                        style={{ color: "#e07a5f" }}
+                      >
+                        {attempts.filter((a) => !a.passed).length}
+                      </span>
+                      <span className="cm-attempt-summary__lbl">Chưa đạt</span>
+                    </div>
+                    <div className="cm-attempt-summary__item">
+                      <span className="cm-attempt-summary__val">
+                        {attempts.length > 0
+                          ? (
+                              attempts.reduce(
+                                (s, a) => s + Number(a.score),
+                                0,
+                              ) / attempts.length
+                            ).toFixed(1)
+                          : "—"}
+                        %
+                      </span>
+                      <span className="cm-attempt-summary__lbl">Điểm TB</span>
+                    </div>
+                  </div>
+
+                  <div className="cm-attempt-list">
                     {attempts.map((a, idx) => {
                       const start = a.started_at
                         ? new Date(a.started_at)
@@ -3436,59 +3478,65 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         duration !== null ? Math.floor(duration / 60) : null;
                       const ss = duration !== null ? duration % 60 : null;
                       return (
-                        <tr key={a.id}>
-                          <td className="ad-table__center ad-table__muted ad-table__stt">
-                            {idx + 1}
-                          </td>
-                          <td>
-                            <div className="ad-user-cell">
-                              <span className="ad-user-cell__name">
-                                {a.student_name ??
-                                  a.student?.full_name ??
-                                  a.student?.username ??
-                                  "—"}
-                              </span>
-                              <span className="ad-user-cell__email">
-                                {a.student_email ?? a.student?.email ?? ""}
-                              </span>
-                            </div>
-                          </td>
-                          <td
-                            className={`ad-attempt__score ${a.passed ? "ad-attempt__score--pass" : "ad-attempt__score--fail"}`}
-                          >
-                            {(Number(a.score) / 10).toFixed(1)}
-                          </td>
-                          <td>
+                        <div
+                          key={a.id}
+                          className={`cm-attempt-row ${a.passed ? "cm-attempt-row--pass" : "cm-attempt-row--fail"}`}
+                          onClick={() => openAttemptDetail(a)}
+                        >
+                          <div className="cm-attempt-row__index">{idx + 1}</div>
+                          <div className="cm-attempt-row__user">
+                            <span className="cm-attempt-row__name">
+                              {a.student_name ??
+                                a.student?.full_name ??
+                                a.student?.username ??
+                                "—"}
+                            </span>
+                            <span className="cm-attempt-row__email">
+                              {a.student_email ?? a.student?.email ?? ""}
+                            </span>
+                          </div>
+                          <div className="cm-attempt-row__score-wrap">
                             <span
-                              className={`ad-badge ${a.passed ? "ad-badge--pay-success" : "ad-attempt__badge--fail"}`}
+                              className="cm-attempt-row__score"
+                              style={{
+                                color: a.passed ? "#4caf82" : "#e07a5f",
+                              }}
+                            >
+                              {Number(a.score).toFixed(1)}%
+                            </span>
+                            <span
+                              className="cm-attempt-row__badge"
+                              style={{
+                                background: a.passed
+                                  ? "rgba(76,175,130,0.12)"
+                                  : "rgba(224,122,95,0.12)",
+                                color: a.passed ? "#4caf82" : "#e07a5f",
+                                border: `0.5px solid ${a.passed ? "rgba(76,175,130,0.3)" : "rgba(224,122,95,0.3)"}`,
+                              }}
                             >
                               {a.passed ? "Đạt" : "Chưa đạt"}
                             </span>
-                          </td>
-                          <td className="ad-table__muted ad-table__sm">
-                            {start ? start.toLocaleString("vi-VN") : "—"}
-                          </td>
-                          <td className="ad-table__muted ad-table__sm">
-                            {submit ? submit.toLocaleString("vi-VN") : "—"}
-                          </td>
-                          <td className="ad-table__muted ad-table__sm">
-                            {mm !== null && ss !== null
-                              ? `${mm} phút ${ss} giây`
-                              : "—"}
-                          </td>
-                          <td>
-                            <button
-                              className="ad-btn-sm ad-btn-sm--view"
-                              onClick={() => openAttemptDetail(a)}
-                            >
-                              Xem
-                            </button>
-                          </td>
-                        </tr>
+                          </div>
+                          <div className="cm-attempt-row__meta">
+                            <span>
+                              {start ? start.toLocaleString("vi-VN") : "—"}
+                            </span>
+                            {duration !== null && (
+                              <span className="cm-attempt-row__duration">
+                                {mm}p {ss}s
+                              </span>
+                            )}
+                          </div>
+                          <div className="cm-attempt-row__action">
+                            <span className="cm-attempt-row__cta">
+                              Xem chi tiết
+                            </span>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                </>
               )}
             </div>
 
@@ -3516,11 +3564,47 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         start && submit
           ? Math.round((submit.getTime() - start.getTime()) / 1000)
           : null;
-      const snapshot: Record<string, string[]> =
-        selectedAttempt.answers_snapshot ?? {};
+      const rawSnapshot = selectedAttempt.answers_snapshot ?? {};
+      const snapshot: Record<string, string[]> = {};
+      Object.entries(rawSnapshot).forEach(([k, v]) => {
+        const vals = Array.isArray(v) ? v.map(String) : [String(v)];
+        snapshot[String(k)] = vals;
+        snapshot[Number(k).toString()] = vals;
+      });
 
-      const questions: any[] =
+      const attemptQuestions: any[] =
         selectedAttempt.questions ?? selectedAttempt._questions ?? [];
+
+      // Log sau khi khai báo xong
+      console.log("RAW SNAPSHOT:", JSON.stringify(rawSnapshot, null, 2));
+      console.log(
+        "ATTEMPT QUESTIONS:",
+        JSON.stringify(
+          attemptQuestions.map((q: any) => ({
+            id: q.id,
+            content: q.content?.slice(0, 30),
+            answers: q.answers?.map((a: any) => ({
+              id: a.id,
+              is_correct: a.is_correct,
+              content: a.content?.slice(0, 20),
+            })),
+          })),
+          null,
+          2,
+        ),
+      );
+      const correctCount = attemptQuestions.filter((q) => {
+        const chosen = snapshot[q.id] ?? [];
+        const correctIds =
+          q.answers
+            ?.filter((a: any) => a.is_correct)
+            .map((a: any) => String(a.id)) ?? [];
+        return (
+          chosen.length > 0 &&
+          chosen.every((id: string) => correctIds.includes(id)) &&
+          correctIds.every((id: string) => chosen.includes(id))
+        );
+      }).length;
 
       return (
         <div
@@ -3529,19 +3613,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             if (e.target === e.currentTarget) closeAttemptModal();
           }}
         >
-          <div className="cm-box">
+          <div className="cm-box cm-box--xl">
             <div className="cm-header">
-              <div className="cm-header__back-row">
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button
                   className="cm-back-btn"
                   onClick={backToAttemptList}
-                  title="Quay lại danh sách"
+                  title="Quay lại"
                 >
                   ←
                 </button>
-                <h2 className="cm-title cm-title--no-margin">
-                  Chi tiết bài làm
-                </h2>
+                <div>
+                  <h2 className="cm-title" style={{ marginBottom: 2 }}>
+                    Chi tiết bài làm
+                  </h2>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 12,
+                      color: "rgba(229,232,240,0.4)",
+                    }}
+                  >
+                    {selectedAttempt.student_name ??
+                      selectedAttempt.student?.full_name ??
+                      ""}
+                    {selectedAttempt.student_email
+                      ? ` · ${selectedAttempt.student_email}`
+                      : ""}
+                  </p>
+                </div>
               </div>
               <button className="cm-close" onClick={closeAttemptModal}>
                 ✕
@@ -3549,10 +3649,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="cm-body cm-body--scroll">
-              <div className="cm-attempt-stats">
+              {/* Stats bar */}
+              <div className="cm-detail-statsbar">
                 {[
                   {
-                    label: "Điểm số",
+                    label: "Điểm",
                     value: `${Number(selectedAttempt.score).toFixed(1)}%`,
                     color: selectedAttempt.passed ? "#4caf82" : "#e07a5f",
                   },
@@ -3562,13 +3663,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     color: selectedAttempt.passed ? "#4caf82" : "#e07a5f",
                   },
                   {
-                    label: "Bắt đầu",
-                    value: start ? start.toLocaleString("vi-VN") : "—",
+                    label: "Câu đúng",
+                    value:
+                      attemptQuestions.length > 0
+                        ? `${correctCount}/${attemptQuestions.length}`
+                        : "—",
                     color: undefined,
                   },
                   {
-                    label: "Nộp bài",
-                    value: submit ? submit.toLocaleString("vi-VN") : "—",
+                    label: "Bắt đầu",
+                    value: start ? start.toLocaleString("vi-VN") : "—",
                     color: undefined,
                   },
                   {
@@ -3580,10 +3684,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     color: undefined,
                   },
                 ].map((item) => (
-                  <div key={item.label} className="cm-attempt-stat">
-                    <div className="cm-attempt-stat__label">{item.label}</div>
+                  <div key={item.label} className="cm-detail-stat">
+                    <div className="cm-detail-stat__label">{item.label}</div>
                     <div
-                      className="cm-attempt-stat__value"
+                      className="cm-detail-stat__val"
                       style={item.color ? { color: item.color } : undefined}
                     >
                       {item.value}
@@ -3592,80 +3696,158 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ))}
               </div>
 
+              {attemptQuestions.length > 0 && (
+                <div className="cm-answer-legend">
+                  <span className="cm-legend-item cm-legend-item--correct">
+                    Đúng · đã chọn
+                  </span>
+                  <span className="cm-legend-item cm-legend-item--wrong">
+                    Sai · đã chọn
+                  </span>
+                  <span className="cm-legend-item cm-legend-item--correct">
+                    Đáp án đúng
+                  </span>
+                </div>
+              )}
+              {/* Questions */}
               {loadingAttemptDetail ? (
                 <div className="cm-loading">
                   <span className="cm-loading__spinner" />
                   <span>Đang tải chi tiết câu hỏi…</span>
                 </div>
-              ) : questions.length === 0 ? (
-                <div>
-                  <p className="cm-snapshot__hint">
-                    Đáp án học viên đã chọn (theo ID):
+              ) : attemptQuestions.length === 0 ? (
+                <div className="cm-snapshot-fallback">
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: "rgba(229,232,240,0.5)",
+                      marginBottom: 10,
+                    }}
+                  >
+                    Đáp án theo ID:
                   </p>
-                  {Object.entries(snapshot).length === 0 ? (
-                    <p className="cm-snapshot__hint">
-                      Không có dữ liệu đáp án.
-                    </p>
-                  ) : (
-                    Object.entries(snapshot).map(([qId, aIds]) => (
-                      <div key={qId} className="cm-snapshot__row">
-                        <span className="cm-snapshot__key">
-                          Câu {qId.slice(0, 8)}…:
-                        </span>{" "}
-                        <span className="cm-snapshot__val">
-                          {aIds.join(", ")}
-                        </span>
-                      </div>
-                    ))
-                  )}
+                  {Object.entries(snapshot).map(([qId, aIds]) => (
+                    <div key={qId} style={{ fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ color: "rgba(229,232,240,0.4)" }}>
+                        Câu {qId.slice(0, 8)}…:
+                      </span>{" "}
+                      <span style={{ color: "#e0e1dd" }}>
+                        {aIds.join(", ")}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div>
-                  <p className="cm-snapshot__hint cm-snapshot__hint--sm">
-                    {questions.length} câu hỏi — đáp án học viên chọn được tô
-                    màu
-                  </p>
-                  {questions.map((q: any, idx: number) => {
-                    const chosenIds: string[] = snapshot[q.id] ?? [];
+                <div className="cm-questions-list">
+                  {attemptQuestions.map((q: any, idx: number) => {
+                    const chosenIds: string[] =
+                      snapshot[String(q.id)] ?? snapshot[q.id] ?? [];
+                    const correctIds =
+                      q.answers
+                        ?.filter((a: any) => a.is_correct)
+                        .map((a: any) => String(a.id)) ?? [];
+                    const isQuestionCorrect =
+                      chosenIds.length > 0 &&
+                      chosenIds.every((id: string) =>
+                        correctIds.includes(id),
+                      ) &&
+                      correctIds.every((id: string) => chosenIds.includes(id));
+
                     return (
-                      <div key={q.id} className="cm-question-card">
-                        <div className="cm-question-card__header">
-                          <span className="cm-question-card__meta">
-                            Câu {idx + 1} · {q.points} điểm
+                      <div
+                        key={q.id}
+                        className={`cm-question-block ${isQuestionCorrect ? "cm-question-block--correct" : chosenIds.length > 0 ? "cm-question-block--wrong" : "cm-question-block--unanswered"}`}
+                      >
+                        <div className="cm-question-block__header">
+                          <span className="cm-question-block__num">
+                            Câu {idx + 1}
+                          </span>
+                          <span className="cm-question-block__type">
+                            {{
+                              single: "Chọn 1",
+                              multiple: "Chọn nhiều",
+                              true_false: "Đúng/Sai",
+                            }[q.question_type as string] ?? q.question_type}
+                          </span>
+                          <span className="cm-question-block__pts">
+                            {q.points} điểm
+                          </span>
+                          <span
+                            className="cm-question-block__result"
+                            style={{
+                              color: isQuestionCorrect
+                                ? "#4caf82"
+                                : chosenIds.length > 0
+                                  ? "#e07a5f"
+                                  : "rgba(229,232,240,0.35)",
+                            }}
+                          >
+                            {isQuestionCorrect
+                              ? "✓ Đúng"
+                              : chosenIds.length > 0
+                                ? "✗ Sai"
+                                : "Bỏ qua"}
                           </span>
                         </div>
-                        <p className="cm-question-card__text">{q.content}</p>
-                        <div className="cm-question-card__answers">
+
+                        <p className="cm-question-block__content">
+                          {q.content}
+                        </p>
+
+                        <div className="cm-answers-grid">
                           {q.answers?.map((ans: any) => {
-                            const isChosen = chosenIds.includes(String(ans.id));
-                            const isCorrect = ans.is_correct;
-                            let modifier = "";
+                            const ansId = String(ans.id);
+                            const chosen = snapshot[String(q.id)] ?? [];
+                            const isChosen = chosen.some(
+                              (id) => String(id) === ansId,
+                            );
+                            const isCorrect = Boolean(ans.is_correct);
+
+                            // 4 trạng thái rõ ràng
+                            let cls = "cm-ans";
                             let prefix = "";
+                            let marker = "";
+
                             if (isCorrect && isChosen) {
-                              modifier = "cm-answer--correct";
-                              prefix = "✓ ";
+                              // Chọn đúng — xanh lá đậm
+                              cls += " cm-ans--correct-chosen";
+                              prefix = "✓";
+                              marker = "Đúng · đã chọn";
                             } else if (!isCorrect && isChosen) {
-                              modifier = "cm-answer--wrong";
-                              prefix = "✗ ";
+                              // Chọn sai — đỏ
+                              cls += " cm-ans--wrong-chosen";
+                              prefix = "✗";
+                              marker = "Sai · đã chọn";
                             } else if (isCorrect && !isChosen) {
-                              modifier = "cm-answer--missed";
-                              prefix = "◎ ";
+                              // Đúng nhưng bỏ qua — vàng cam, nổi bật
+                              cls += " cm-ans--correct-missed";
+                              prefix = "→";
+                              marker = "Đáp án đúng";
+                            } else {
+                              // Sai, không chọn — mờ
+                              cls += " cm-ans--neutral";
                             }
+
                             return (
-                              <div
-                                key={ans.id}
-                                className={`cm-answer ${modifier}`}
-                              >
-                                {prefix}
-                                {ans.content}
+                              <div key={ans.id} className={cls}>
+                                <span className="cm-ans__prefix">{prefix}</span>
+                                <span className="cm-ans__text">
+                                  {ans.content}
+                                </span>
+                                {marker && (
+                                  <span className="cm-ans__marker">
+                                    {marker}
+                                  </span>
+                                )}
                               </div>
                             );
                           })}
                         </div>
+
                         {q.explanation && (
-                          <p className="cm-question-card__explain">
+                          <div className="cm-question-block__explain">
                             {q.explanation}
-                          </p>
+                          </div>
                         )}
                       </div>
                     );
@@ -3675,12 +3857,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             <div className="cm-footer">
-              <button
-                className="cm-btn cm-btn--cancel"
-                onClick={backToAttemptList}
-              >
-                ← Quay lại
-              </button>
               <button
                 className="cm-btn cm-btn--cancel"
                 onClick={closeAttemptModal}
@@ -3695,6 +3871,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     return null;
   };
+
   return (
     <div className="ad-page">
       {renderModal()}
