@@ -12,7 +12,6 @@ import {
 } from "recharts";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
-import ActionMenu from "../components/ui/ActionMenu";
 
 interface InstructorDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -3068,59 +3067,59 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </select>
                             </td>
                             <td>
-                              <ActionMenu
-                                items={[
-                                  {
-                                    label: "Sửa",
-                                    onClick: () => openEditCourse(c),
-                                    variant: "edit",
-                                  },
-                                  {
-                                    label: "Lưu trữ",
-                                    onClick: async () => {
-                                      if (!confirm(`Lưu trữ "${c.title}"?`))
-                                        return;
-                                      try {
-                                        const res = await fetch(
-                                          `${API}/api/courses/mine/${c.id}/archive/`,
-                                          {
-                                            method: "POST",
-                                            headers: authHeaders(),
-                                          },
-                                        );
-                                        if (res.ok) {
-                                          const refreshed = await fetch(
-                                            `${API}/api/courses/mine/`,
+                              <div className="tbl-actions">
+                                <button
+                                  className="tbl-btn tbl-btn--edit"
+                                  onClick={() => openEditCourse(c)}
+                                >
+                                  Sửa
+                                </button>
+                                {c.status === "published" &&
+                                  Number(c.total_students) === 0 && (
+                                    <button
+                                      className="tbl-btn tbl-btn--warn"
+                                      onClick={async () => {
+                                        if (!confirm(`Lưu trữ "${c.title}"?`))
+                                          return;
+                                        try {
+                                          const res = await fetch(
+                                            `${API}/api/courses/mine/${c.id}/archive/`,
                                             {
+                                              method: "POST",
                                               headers: authHeaders(),
                                             },
                                           );
-                                          if (refreshed.ok)
-                                            setCourses(
-                                              (await refreshed.json())
-                                                .results ?? [],
+                                          if (res.ok) {
+                                            const refreshed = await fetch(
+                                              `${API}/api/courses/mine/`,
+                                              { headers: authHeaders() },
                                             );
-                                        } else {
-                                          const err = await res
-                                            .json()
-                                            .catch(() => ({}));
-                                          alert(
-                                            err?.detail || "Không thể lưu trữ.",
-                                          );
+                                            if (refreshed.ok)
+                                              setCourses(
+                                                (await refreshed.json())
+                                                  .results ?? [],
+                                              );
+                                          } else {
+                                            const err = await res
+                                              .json()
+                                              .catch(() => ({}));
+                                            alert(
+                                              err?.detail ||
+                                                "Không thể lưu trữ.",
+                                            );
+                                          }
+                                        } catch (_) {
+                                          alert("Lỗi kết nối.");
                                         }
-                                      } catch (_) {
-                                        alert("Lỗi kết nối.");
-                                      }
-                                    },
-                                    variant: "ban",
-                                    hidden: !(
-                                      c.status === "published" &&
-                                      Number(c.total_students) === 0
-                                    ),
-                                  },
-                                  {
-                                    label: "Đăng lại",
-                                    onClick: async () => {
+                                      }}
+                                    >
+                                      Lưu trữ
+                                    </button>
+                                  )}
+                                {c.status === "archived" && c.published_at && (
+                                  <button
+                                    className="tbl-btn tbl-btn--restore"
+                                    onClick={async () => {
                                       if (!confirm(`Đăng lại "${c.title}"?`))
                                         return;
                                       try {
@@ -3134,9 +3133,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                         if (res.ok) {
                                           const refreshed = await fetch(
                                             `${API}/api/courses/mine/`,
-                                            {
-                                              headers: authHeaders(),
-                                            },
+                                            { headers: authHeaders() },
                                           );
                                           if (refreshed.ok)
                                             setCourses(
@@ -3155,15 +3152,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                       } catch (_) {
                                         alert("Lỗi kết nối.");
                                       }
-                                    },
-                                    variant: "restore",
-                                    hidden: !(
-                                      c.status === "archived" && c.published_at
-                                    ),
-                                  },
-                                  {
-                                    label: "Xóa",
-                                    onClick: async () => {
+                                    }}
+                                  >
+                                    Đăng lại
+                                  </button>
+                                )}
+                                {(c.status === "draft" ||
+                                  c.status === "review") && (
+                                  <button
+                                    className="tbl-btn tbl-btn--ban"
+                                    onClick={async () => {
                                       if (!confirm(`Xóa "${c.title}"?`)) return;
                                       try {
                                         const res = await fetch(
@@ -3178,15 +3176,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                             prev.filter((x) => x.id !== c.id),
                                           );
                                       } catch (_) {}
-                                    },
-                                    variant: "ban",
-                                    hidden: !(
-                                      c.status === "draft" ||
-                                      c.status === "review"
-                                    ),
-                                  },
-                                ]}
-                              />
+                                    }}
+                                  >
+                                    Xóa
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -3299,28 +3294,29 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               {s.description || "—"}
                             </td>
                             <td>
-                              <ActionMenu
-                                items={[
-                                  {
-                                    label: "Sửa",
-                                    onClick: () => openEditSection(s),
-                                    variant: "edit",
-                                  },
-                                  {
-                                    label: "Xem bài học",
-                                    onClick: () => {
-                                      setFilterLessonSection(s.id);
-                                      setActiveTab("lessons" as Tab);
-                                    },
-                                    variant: "approve",
-                                  },
-                                  {
-                                    label: "Xóa",
-                                    onClick: () => handleDeleteSection(s),
-                                    variant: "ban",
-                                  },
-                                ]}
-                              />
+                              <div className="tbl-actions">
+                                <button
+                                  className="tbl-btn tbl-btn--edit"
+                                  onClick={() => openEditSection(s)}
+                                >
+                                  Sửa
+                                </button>
+                                <button
+                                  className="tbl-btn tbl-btn--view"
+                                  onClick={() => {
+                                    setFilterLessonSection(s.id);
+                                    setActiveTab("lessons" as Tab);
+                                  }}
+                                >
+                                  Bài học
+                                </button>
+                                <button
+                                  className="tbl-btn tbl-btn--ban"
+                                  onClick={() => handleDeleteSection(s)}
+                                >
+                                  Xóa
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -3563,24 +3559,24 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               : ""}
                           </td>
                           <td>
-                            <ActionMenu
-                              items={[
-                                {
-                                  label: "Sửa",
-                                  onClick: () => openEditLesson(l),
-                                  variant: "edit",
-                                },
-                                {
-                                  label: "Xóa",
-                                  onClick: () => {
-                                    setSelectedLesson(l);
-                                    setLessonError("");
-                                    setLessonModal("delete");
-                                  },
-                                  variant: "ban",
-                                },
-                              ]}
-                            />
+                            <div className="tbl-actions">
+                              <button
+                                className="tbl-btn tbl-btn--edit"
+                                onClick={() => openEditLesson(l)}
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                className="tbl-btn tbl-btn--ban"
+                                onClick={() => {
+                                  setSelectedLesson(l);
+                                  setLessonError("");
+                                  setLessonModal("delete");
+                                }}
+                              >
+                                Xóa
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -4101,37 +4097,37 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                     : "Không giới hạn"}
                                 </td>
                                 <td>
-                                  <ActionMenu
-                                    items={[
-                                      {
-                                        label: "Sửa",
-                                        onClick: () => openEditQuiz(q),
-                                        variant: "edit",
-                                      },
-                                      {
-                                        label: "Lịch sử làm bài",
-                                        onClick: () => openAttemptList(q),
-                                        variant: "view",
-                                      },
-                                      {
-                                        label: isExpanded
-                                          ? "Ẩn câu hỏi"
-                                          : "Xem câu hỏi",
-                                        onClick: () => {
-                                          setExpandedQuizId(
-                                            isExpanded ? null : q.id,
-                                          );
-                                          if (!isExpanded) fetchQuestions(q.id);
-                                        },
-                                        variant: "approve",
-                                      },
-                                      {
-                                        label: "Xóa",
-                                        onClick: () => openDeleteQuiz(q),
-                                        variant: "ban",
-                                      },
-                                    ]}
-                                  />
+                                  <div className="tbl-actions">
+                                    <button
+                                      className="tbl-btn tbl-btn--edit"
+                                      onClick={() => openEditQuiz(q)}
+                                    >
+                                      Sửa
+                                    </button>
+                                    <button
+                                      className="tbl-btn tbl-btn--neutral"
+                                      onClick={() => openAttemptList(q)}
+                                    >
+                                      Lịch sử
+                                    </button>
+                                    <button
+                                      className="tbl-btn tbl-btn--view"
+                                      onClick={() => {
+                                        setExpandedQuizId(
+                                          isExpanded ? null : q.id,
+                                        );
+                                        if (!isExpanded) fetchQuestions(q.id);
+                                      }}
+                                    >
+                                      {isExpanded ? "Ẩn" : "Câu hỏi"}
+                                    </button>
+                                    <button
+                                      className="tbl-btn tbl-btn--ban"
+                                      onClick={() => openDeleteQuiz(q)}
+                                    >
+                                      Xóa
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                               {isExpanded && (
@@ -4211,22 +4207,24 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                                   )}
                                                 </div>
                                               </div>
-                                              <ActionMenu
-                                                items={[
-                                                  {
-                                                    label: "Sửa",
-                                                    onClick: () =>
-                                                      openEditQuestion(ques),
-                                                    variant: "edit",
-                                                  },
-                                                  {
-                                                    label: "Xóa",
-                                                    onClick: () =>
-                                                      openDeleteQuestion(ques),
-                                                    variant: "ban",
-                                                  },
-                                                ]}
-                                              />
+                                              <div className="tbl-actions">
+                                                <button
+                                                  className="tbl-btn tbl-btn--edit"
+                                                  onClick={() =>
+                                                    openEditQuestion(ques)
+                                                  }
+                                                >
+                                                  Sửa
+                                                </button>
+                                                <button
+                                                  className="tbl-btn tbl-btn--ban"
+                                                  onClick={() =>
+                                                    openDeleteQuestion(ques)
+                                                  }
+                                                >
+                                                  Xóa
+                                                </button>
+                                              </div>
                                             </div>
                                           </div>
                                         ))
@@ -5388,25 +5386,27 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             )}
                           </td>
                           <td>
-                            <ActionMenu
-                              items={[
-                                {
-                                  label: "Xem",
-                                  onClick: () => openViewReview(r),
-                                  variant: "view",
-                                },
+                            <div className="tbl-actions">
+                              {/* Nút Xem */}
+                              <button
+                                className="tbl-btn tbl-btn--view"
+                                onClick={() => openViewReview(r)}
+                              >
+                                Xem
+                              </button>
 
-                                {
-                                  label: "Báo cáo",
-                                  hidden:
-                                    r.is_hidden ||
-                                    r.is_reported ||
-                                    r.report_dismissed,
-                                  onClick: () => openReportModal(r),
-                                  variant: "ban",
-                                },
-                              ]}
-                            />
+                              {/* Nút Báo cáo (có điều kiện) */}
+                              {!r.is_hidden &&
+                                !r.is_reported &&
+                                !r.report_dismissed && (
+                                  <button
+                                    className="tbl-btn tbl-btn--ban"
+                                    onClick={() => openReportModal(r)}
+                                  >
+                                    Báo cáo
+                                  </button>
+                                )}
+                            </div>
                           </td>
                         </tr>
                       ))

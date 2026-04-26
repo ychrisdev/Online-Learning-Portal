@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
 import ReactDOM from "react-dom";
-import ActionMenu from "../components/ui/ActionMenu";
 
 interface AdminDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -4413,24 +4412,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </td>
                             <td>
-                              <ActionMenu
-                                items={[
-                                  {
-                                    label: "Xem",
-                                    onClick: () => openViewUser(u),
-                                    variant: "view",
-                                  },
-                                  {
-                                    label:
-                                      status === "banned"
-                                        ? "Mở khóa"
-                                        : "Khóa TK",
-                                    onClick: () => toggleUserStatus(u),
-                                    variant:
-                                      status === "banned" ? "restore" : "ban",
-                                  },
-                                ]}
-                              />
+                              <div className="tbl-actions">
+                                <button
+                                  className="tbl-btn tbl-btn--view"
+                                  onClick={() => openViewUser(u)}
+                                >
+                                  Xem
+                                </button>
+                                {u.role !== "admin" && (
+                                  <button
+                                    className={`tbl-btn ${status === "banned" ? "tbl-btn--restore" : "tbl-btn--ban"}`}
+                                    onClick={() => toggleUserStatus(u)}
+                                  >
+                                    {status === "banned" ? "Mở khóa" : "Khóa"}
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -4559,36 +4556,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </td>
                             <td>
-                              <ActionMenu
-                                items={[
-                                  {
-                                    label: "Xem",
-                                    onClick: () => openViewCourse(c),
-                                    variant: "view",
-                                  },
-
-                                  ...(c.status === "published" &&
-                                  (c.total_students ?? 0) === 0
-                                    ? [
-                                        {
-                                          label: "Ẩn",
-                                          onClick: () => archiveCourse(c.id),
-                                          variant: "ban",
-                                        },
-                                      ]
-                                    : []),
-
-                                  ...(c.status === "archived"
-                                    ? [
-                                        {
-                                          label: "Hiện",
-                                          onClick: () => unarchiveCourse(c.id),
-                                          variant: "restore",
-                                        },
-                                      ]
-                                    : []),
-                                ]}
-                              />
+                              <div className="tbl-actions">
+                                <button
+                                  className="tbl-btn tbl-btn--view"
+                                  onClick={() => openViewCourse(c)}
+                                >
+                                  Xem
+                                </button>
+                                {c.status === "published" &&
+                                  (c.total_students ?? 0) === 0 && (
+                                    <button
+                                      className="tbl-btn tbl-btn--ban"
+                                      onClick={() => archiveCourse(c.id)}
+                                    >
+                                      Ẩn
+                                    </button>
+                                  )}
+                                {c.status === "archived" && (
+                                  <button
+                                    className="tbl-btn tbl-btn--restore"
+                                    onClick={() => unarchiveCourse(c.id)}
+                                  >
+                                    Hiện
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -4921,29 +4913,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     : "Không giới hạn"}
                                 </td>
                                 <td>
-                                  <ActionMenu
-                                    items={[
-                                      {
-                                        label: isExpanded
-                                          ? "Ẩn"
-                                          : "Xem câu hỏi",
-                                        onClick: () => {
-                                          if (isExpanded) {
-                                            setExpandedQuizId(null);
-                                          } else {
-                                            setExpandedQuizId(q.id);
-                                            fetchQuestions(q.id);
-                                          }
-                                        },
-                                        variant: "view",
-                                      },
-                                      {
-                                        label: "Lịch sử",
-                                        onClick: () => openAttemptList(q),
-                                        variant: "edit",
-                                      },
-                                    ]}
-                                  />
+                                  <div className="tbl-actions">
+                                    <button
+                                      className="tbl-btn tbl-btn--view"
+                                      onClick={() => {
+                                        if (isExpanded) {
+                                          setExpandedQuizId(null);
+                                        } else {
+                                          setExpandedQuizId(q.id);
+                                          fetchQuestions(q.id);
+                                        }
+                                      }}
+                                    >
+                                      {isExpanded ? "Ẩn" : "Câu hỏi"}
+                                    </button>
+                                    <button
+                                      className="tbl-btn tbl-btn--neutral"
+                                      onClick={() => openAttemptList(q)}
+                                    >
+                                      Lịch sử
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                               {isExpanded && (
@@ -5253,20 +5243,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {cat.is_pinned ? cat.pin_order : "—"}
                           </td>
                           <td>
-                            <ActionMenu
-                              items={[
-                                {
-                                  label: "Sửa",
-                                  onClick: () => openEditCategory(cat),
-                                  variant: "edit",
-                                },
-                                {
-                                  label: "Xóa",
-                                  onClick: () => openDeleteCategory(cat),
-                                  variant: "ban",
-                                },
-                              ]}
-                            />
+                            <div className="tbl-actions">
+                              <button
+                                className="tbl-btn tbl-btn--edit"
+                                onClick={() => openEditCategory(cat)}
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                className="tbl-btn tbl-btn--ban"
+                                onClick={() => openDeleteCategory(cat)}
+                              >
+                                Xóa
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -5546,25 +5536,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             )}
                           </td>
                           <td>
-                            <ActionMenu
-                              items={[
-                                {
-                                  label: "Xem chi tiết",
-                                  onClick: () => openViewReview(r),
-                                  variant: "view",
-                                },
-                                {
-                                  label: r.is_hidden ? "Hiện lại" : "Ẩn",
-                                  onClick: () => handleToggleHide(r),
-                                  variant: r.is_hidden ? "restore" : "refund",
-                                },
-                                {
-                                  label: "Xóa",
-                                  onClick: () => openDeleteReview(r),
-                                  variant: "ban",
-                                },
-                              ]}
-                            />
+                            <div className="tbl-actions tbl-actions--col">
+                              <div className="tbl-actions tbl-actions--row">
+                                <button
+                                  className="tbl-btn tbl-btn--view"
+                                  onClick={() => openViewReview(r)}
+                                >
+                                  Xem
+                                </button>
+                                <button
+                                  className={`tbl-btn ${r.is_hidden ? "tbl-btn--restore" : "tbl-btn--warn"}`}
+                                  onClick={() => handleToggleHide(r)}
+                                  disabled={togglingReview}
+                                >
+                                  {r.is_hidden ? "Hiện" : "Ẩn"}
+                                </button>
+                                <button
+                                  className="tbl-btn tbl-btn--ban"
+                                  onClick={() => openDeleteReview(r)}
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                              {r.is_reported && !r.is_hidden && (
+                                <span className="tbl-reported-badge">
+                                  Báo cáo
+                                </span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -6174,29 +6173,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </span>
                           </td>
                           <td>
-                            <ActionMenu
-                              items={[
-                                {
-                                  label: "Xem chi tiết",
-                                  onClick: () => openRefundDetail(p.id),
-                                  variant: "view",
-                                },
-                                ...(p.status === "refund_requested"
-                                  ? [
-                                      {
-                                        label: "Duyệt",
-                                        onClick: () => openApproveRefund(p),
-                                        variant: "approve",
-                                      },
-                                      {
-                                        label: "Từ chối",
-                                        onClick: () => openRejectRefund(p),
-                                        variant: "ban",
-                                      },
-                                    ]
-                                  : []),
-                              ]}
-                            />
+                            <div className="tbl-actions">
+                              <button
+                                className="tbl-btn tbl-btn--view"
+                                onClick={() => openRefundDetail(p.id)}
+                              >
+                                Xem
+                              </button>
+                              {p.status === "refund_requested" && (
+                                <>
+                                  <button
+                                    className="tbl-btn tbl-btn--restore"
+                                    onClick={() => openApproveRefund(p)}
+                                  >
+                                    Duyệt
+                                  </button>
+                                  <button
+                                    className="tbl-btn tbl-btn--ban"
+                                    onClick={() => openRejectRefund(p)}
+                                  >
+                                    Từ chối
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ));

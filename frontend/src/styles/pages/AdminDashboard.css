@@ -1011,41 +1011,9 @@
   text-align: center;
 }
 
-/* ── Nút thao tác trong bảng: không wrap, căn giữa ── */
 .ad-table .ad-actions {
   justify-content: center;
   flex-wrap: nowrap;
-}
-
-.ad-table--payments .ad-btn-sm {
-  width: 100%;
-  height: 32px; /* 🔥 chiều cao cố định */
-  box-sizing: border-box;
-
-  display: flex; /* 🔥 quan trọng */
-  align-items: center; /* căn giữa dọc */
-  justify-content: center; /* căn giữa ngang */
-
-  padding: 0 6px; /* ❗ bỏ padding dọc */
-  font-size: 12px;
-  line-height: 1; /* 🔥 tránh lệch text */
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ad-table--payments .ad-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-start;
-  flex-wrap: nowrap;
-  align-items: center;
-}
-
-.ad-table--payments .ad-actions .ad-btn-sm {
-  min-width: 60px;
-  width: auto;
 }
 
 .ad-table--users .ad-role-select {
@@ -1142,11 +1110,7 @@
   color: #4caf82;
   border: 0.5px solid rgba(76, 175, 130, 0.2);
 }
-.ad-badge--pay-completed {
-  background: rgba(76, 175, 130, 0.12);
-  color: #4caf82;
-  border: 0.5px solid rgba(76, 175, 130, 0.2);
-}
+
 .ad-badge--pay-pending {
   background: rgba(245, 158, 11, 0.12);
   color: #f59e0b;
@@ -2305,34 +2269,6 @@
   background: rgba(65, 90, 119, 0.45);
   color: #c9d6e3;
 }
-.ad-action-group {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  align-items: stretch;
-  flex-wrap: nowrap;
-  justify-content: center;
-}
-
-.ad-table--users .ad-actions,
-.ad-table--courses .ad-actions {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-}
-
-.ad-action-group .ad-btn-sm {
-  height: 26px;
-  padding: 0 10px;
-  font-size: 11px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: unset;
-  min-width: 70px;
-}
-
 .ad-modal--user {
   max-width: 480px;
 }
@@ -2681,20 +2617,6 @@
 .ad-edit-alert__more-btn:hover {
   color: #f5a623;
 }
-
-.ad-actions .ad-btn-sm,
-.ad-action-group .ad-btn-sm {
-  width: 100%; /* full slot */
-  height: 32px; /* 🔥 chiều cao cố định */
-  padding: 6px 8px;
-  font-size: 12px;
-  text-align: center;
-  display: flex; /* căn giữa text */
-  align-items: center;
-  justify-content: center;
-}
-
-/* Khi chỉ có 1 button visible → đưa vào giữa */
 .ad-table--payments .ad-actions:has(.ad-btn-sm:not(.is-hidden):only-child) {
   display: flex;
   justify-content: center;
@@ -2702,11 +2624,11 @@
 .ad-table--payments
   .ad-actions:has(.ad-btn-sm:not(.is-hidden):only-child)
   .ad-btn-sm {
-  width: 70px; /* giữ size đẹp, không full */
+  width: 70px;
 }
 .ad-table--payments .ad-actions .ad-btn-sm {
   width: 100%;
-  min-width: 0; /* 🔥 chặn overflow */
+  min-width: 0;
 }
 
 .ad-table--payments .ad-actions:has(.ad-btn-sm:only-child) {
@@ -2719,21 +2641,6 @@
   min-width: 40px;
 }
 
-.ad-table--refunds .ad-actions {
-  display: flex !important;
-  justify-content: flex-start !important;
-  flex-wrap: nowrap;
-  gap: 6px;
-}
-
-.ad-table--refunds .ad-actions .ad-btn-sm {
-  width: auto !important;
-  min-width: 40px;
-  height: 30px;
-  padding: 0 8px;
-  flex: 0 0 auto;
-}
-
 .ad-table {
   overflow: visible;
 }
@@ -2742,82 +2649,152 @@
   overflow: visible;
 }
 
-.am-wrap {
-  position: relative;
-  display: inline-block;
-}
-
-.am-trigger {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  border: 0.5px solid rgba(119, 141, 169, 0.2);
-  background: rgba(65, 90, 119, 0.15);
-  color: rgba(224, 225, 221, 0.6);
-  font-size: 14px;
-  letter-spacing: 1px;
-  cursor: pointer;
+.tbl-actions {
   display: flex;
   align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
   justify-content: center;
-  transition: all 0.15s;
-  font-family: var(--font-body);
-}
-.am-trigger:hover {
-  background: rgba(65, 90, 119, 0.35);
-  color: #e0e1dd;
 }
 
-.am-menu {
-  position: fixed;
-  background: #1a2638;
-  border: 0.5px solid rgba(119, 141, 169, 0.25);
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  min-width: 130px;
-  overflow: hidden;
-  animation: cm-slide-up 0.15s ease;
+.tbl-actions--row {
+  flex-direction: row;
 }
 
-.am-item {
-  display: block;
-  width: 100%;
-  padding: 9px 14px;
-  font-size: 13px;
+.tbl-actions--col {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.tbl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: var(--fw-medium);
   font-family: var(--font-body);
-  text-align: left;
-  border: none;
-  background: none;
   cursor: pointer;
-  transition: background 0.12s;
+  border: 0.5px solid;
   white-space: nowrap;
-  box-sizing: border-box;
+  line-height: 1.5;
+  transition: all var(--transition-fast);
+  min-width: 52px;
 }
-.am-item--default {
-  color: rgba(224, 225, 221, 0.7);
+
+.tbl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
-.am-item--view {
+
+.tbl-btn--view {
+  background: rgba(65, 90, 119, 0.18);
   color: #9db8d2;
+  border-color: rgba(119, 141, 169, 0.28);
 }
-.am-item--edit {
+.tbl-btn--view:hover:not(:disabled) {
+  background: rgba(65, 90, 119, 0.32);
+  color: #c3d6e8;
+  border-color: rgba(119, 141, 169, 0.45);
+}
+
+.tbl-btn--edit {
+  background: rgba(55, 138, 221, 0.1);
   color: #5ba4de;
+  border-color: rgba(55, 138, 221, 0.25);
 }
-.am-item--approve {
+.tbl-btn--edit:hover:not(:disabled) {
+  background: rgba(55, 138, 221, 0.18);
+  border-color: rgba(55, 138, 221, 0.42);
+}
+
+.tbl-btn--restore {
+  background: rgba(76, 175, 130, 0.1);
   color: #4caf82;
+  border-color: rgba(76, 175, 130, 0.25);
 }
-.am-item--restore {
-  color: #4caf82;
+.tbl-btn--restore:hover:not(:disabled) {
+  background: rgba(76, 175, 130, 0.18);
+  border-color: rgba(76, 175, 130, 0.42);
 }
-.am-item--ban {
+
+.tbl-btn--ban {
+  background: rgba(224, 92, 92, 0.08);
   color: #e05c5c;
+  border-color: rgba(224, 92, 92, 0.22);
 }
-.am-item--delete {
-  color: #e07a5f;
+.tbl-btn--ban:hover:not(:disabled) {
+  background: rgba(224, 92, 92, 0.16);
+  border-color: rgba(224, 92, 92, 0.38);
 }
-.am-item--refund {
+
+.tbl-btn--warn {
+  background: rgba(245, 158, 11, 0.08);
   color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.22);
 }
-.am-item:hover {
-  background: rgba(65, 90, 119, 0.2);
+.tbl-btn--warn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.38);
+}
+
+.tbl-btn--neutral {
+  background: rgba(119, 141, 169, 0.1);
+  color: rgba(224, 225, 221, 0.55);
+  border-color: rgba(119, 141, 169, 0.2);
+}
+.tbl-btn--neutral:hover:not(:disabled) {
+  background: rgba(119, 141, 169, 0.2);
+  color: #e0e1dd;
+  border-color: rgba(119, 141, 169, 0.35);
+}
+
+.tbl-reported-badge {
+  font-size: 10px;
+  font-weight: var(--fw-semibold);
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(220, 53, 69, 0.12);
+  color: #ff6b6b;
+  border: 0.5px solid rgba(220, 53, 69, 0.25);
+  white-space: nowrap;
+}
+
+.ad-table--users th:last-child,
+.ad-table--users td:last-child {
+  width: 150px;
+  text-align: center;
+}
+
+.ad-table--courses th:last-child,
+.ad-table--courses td:last-child {
+  width: 130px;
+  text-align: center;
+}
+
+.ad-table--categories th:last-child,
+.ad-table--categories td:last-child {
+  width: 120px;
+  text-align: center;
+}
+
+.ad-table--reviews th:last-child,
+.ad-table--reviews td:last-child {
+  width: 160px;
+  text-align: center;
+}
+
+.ad-table--quizzes th:last-child,
+.ad-table--quizzes td:last-child {
+  width: 160px;
+  text-align: center;
+}
+
+.ad-table--refunds th:last-child,
+.ad-table--refunds td:last-child {
+  width: 190px;
+  text-align: center;
 }

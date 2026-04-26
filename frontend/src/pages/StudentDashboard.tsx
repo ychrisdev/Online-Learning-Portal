@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { formatPrice, formatDate } from "../utils/format";
 import "../styles/pages/StudentDashboard.css";
-import ActionMenu from "../components/ui/ActionMenu";
 
 interface StudentDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;

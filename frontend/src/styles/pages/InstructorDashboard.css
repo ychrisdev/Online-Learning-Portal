@@ -921,3 +921,117 @@
   color: #f87171;
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
+
+/* ══════════════════════════════════════════════════
+   INLINE TABLE ACTION BUTTONS (shared với Admin)
+   ══════════════════════════════════════════════════ */
+
+.tbl-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.tbl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: 0.5px solid;
+  white-space: nowrap;
+  line-height: 1.5;
+  transition: all var(--transition-fast);
+  min-width: 48px;
+}
+.tbl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.tbl-btn--view {
+  background: rgba(65, 90, 119, 0.18);
+  color: #9db8d2;
+  border-color: rgba(119, 141, 169, 0.28);
+}
+.tbl-btn--view:hover:not(:disabled) {
+  background: rgba(65, 90, 119, 0.32);
+  color: #c3d6e8;
+  border-color: rgba(119, 141, 169, 0.45);
+}
+.tbl-btn--edit {
+  background: rgba(55, 138, 221, 0.1);
+  color: #5ba4de;
+  border-color: rgba(55, 138, 221, 0.25);
+}
+.tbl-btn--edit:hover:not(:disabled) {
+  background: rgba(55, 138, 221, 0.18);
+  border-color: rgba(55, 138, 221, 0.42);
+}
+.tbl-btn--restore {
+  background: rgba(76, 175, 130, 0.1);
+  color: #4caf82;
+  border-color: rgba(76, 175, 130, 0.25);
+}
+.tbl-btn--restore:hover:not(:disabled) {
+  background: rgba(76, 175, 130, 0.18);
+  border-color: rgba(76, 175, 130, 0.42);
+}
+.tbl-btn--ban {
+  background: rgba(224, 92, 92, 0.08);
+  color: #e05c5c;
+  border-color: rgba(224, 92, 92, 0.22);
+}
+.tbl-btn--ban:hover:not(:disabled) {
+  background: rgba(224, 92, 92, 0.16);
+  border-color: rgba(224, 92, 92, 0.38);
+}
+.tbl-btn--warn {
+  background: rgba(245, 158, 11, 0.08);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.22);
+}
+.tbl-btn--warn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.38);
+}
+.tbl-btn--neutral {
+  background: rgba(119, 141, 169, 0.1);
+  color: rgba(224, 225, 221, 0.55);
+  border-color: rgba(119, 141, 169, 0.2);
+}
+.tbl-btn--neutral:hover:not(:disabled) {
+  background: rgba(119, 141, 169, 0.2);
+  color: #e0e1dd;
+  border-color: rgba(119, 141, 169, 0.35);
+}
+
+/* Width cột thao tác cho từng bảng Instructor */
+.id-table th:last-child,
+.id-table td:last-child {
+  text-align: center;
+}
+
+/* Bảng Courses: tối đa 3 nút → ~220px */
+.id-table.id-table--courses th:last-child,
+.id-table.id-table--courses td:last-child {
+  width: 220px;
+}
+
+/* Bảng Sections: 3 nút → ~190px */
+.id-table.id-table--sections th:last-child,
+.id-table.id-table--sections td:last-child {
+  width: 190px;
+}
+
+/* Bảng Quizzes: 4 nút → ~250px */
+.id-table.id-table--quizzes th:last-child,
+.id-table.id-table--quizzes td:last-child {
+  width: 250px;
+}
