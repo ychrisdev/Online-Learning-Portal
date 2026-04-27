@@ -37,11 +37,6 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
-
-
-# ─────────────────────────────────────────────────────────────────
-# COURSE
-# ─────────────────────────────────────────────────────────────────
 class Course(models.Model):
     """
     Khoá học — đơn vị trung tâm của hệ thống.
@@ -56,9 +51,10 @@ class Course(models.Model):
 
     class Status(models.TextChoices):
         DRAFT     = 'draft',     'Nháp'
-        REVIEW    = 'review',    'Chờ duyệt'     # Giảng viên gửi duyệt
-        PUBLISHED = 'published', 'Đã xuất bản'   # Admin duyệt (5.3.2)
-        ARCHIVED  = 'archived',  'Đã lưu trữ'    # Xoá mềm (5.2.1)
+        REVIEW    = 'review',    'Chờ duyệt'
+        PUBLISHED = 'published', 'Đã xuất bản'
+        ARCHIVED  = 'archived',  'Đã lưu trữ'
+        ARCHIVE_REQUESTED = 'archive_requested', 'Yêu cầu lưu trữ'
 
     id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     instructor    = models.ForeignKey(

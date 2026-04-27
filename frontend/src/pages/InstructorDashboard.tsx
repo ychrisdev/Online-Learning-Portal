@@ -199,6 +199,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     "all" | "draft" | "review" | "published" | "archived"
   >("all");
 
+  const [archiveConfirmCourse, setArchiveConfirmCourse] = useState<any>(null);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+
   const [adminEditAlerts, setAdminEditAlerts] = useState<any[]>([]);
   const INSTRUCTOR_DISMISS_KEY = `instructor_admin_edit_dismissed_${getUserId()}`;
   const [sessionDismissedInstructor, setSessionDismissedInstructor] = useState<
@@ -214,6 +217,34 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     const ids = new Set(adminEditAlerts.map((c) => c.id));
     setSessionDismissedInstructor((prev) => new Set([...prev, ...ids]));
     setAdminEditAlerts([]);
+  };
+
+  const handleArchiveRequest = async () => {
+    if (!archiveConfirmCourse) return;
+    setArchiveLoading(true);
+    try {
+      const res = await fetch(
+        `${API}/api/courses/mine/${archiveConfirmCourse.id}/archive/`,
+        { method: "POST", headers: authHeaders() },
+      );
+      if (res.ok) {
+        const refreshed = await fetch(`${API}/api/courses/mine/`, {
+          headers: authHeaders(),
+        });
+        if (refreshed.ok) setCourses(toList(await refreshed.json()));
+        showToast(
+          "Đã gửi yêu cầu lưu trữ. Vui lòng chờ admin duyệt.",
+          "success",
+        );
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast("⚠ " + (err?.detail || "Không thể gửi yêu cầu."), "error");
+      }
+    } catch (_) {
+      showToast("⚠ Lỗi kết nối.", "error");
+    }
+    setArchiveLoading(false);
+    setArchiveConfirmCourse(null);
   };
 
   const [sections, setSections] = useState<any[]>([]);
@@ -858,7 +889,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         : adminEditAlerts;
 
     return (
-      <div className="ad-edit-alert ad-edit-alert--no-mb" >
+      <div className="ad-edit-alert ad-edit-alert--no-mb">
         <div className="ad-edit-alert__header">
           <span className="ad-edit-alert__icon">⚠</span>
           <span className="ad-edit-alert__title">
@@ -1833,9 +1864,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <span>Đang tải lịch sử…</span>
                 </div>
               ) : attempts.length === 0 ? (
-                <p
-                  className="id-empty-state"
-                >
+                <p className="id-empty-state">
                   Chưa có học viên nào làm bài kiểm tra này.
                 </p>
               ) : (
@@ -1871,11 +1900,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       const ss = duration !== null ? duration % 60 : null;
                       return (
                         <tr key={a.id}>
-                          <td
-                            className="id-td-index"
-                          >
-                            {idx + 1}
-                          </td>
+                          <td className="id-td-index">{idx + 1}</td>
                           <td>
                             <div className="ad-user-cell">
                               <span className="ad-user-cell__name">
@@ -1913,20 +1938,13 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               {a.passed ? "Đạt" : "Chưa đạt"}
                             </span>
                           </td>
-                          <td
-                            className="ad-table__muted"
-                          >
+                          <td className="ad-table__muted">
                             {start ? start.toLocaleString("vi-VN") : "—"}
                           </td>
-                          <td
-                            className="ad-table__muted"
-                          >
+                          <td className="ad-table__muted">
                             {submit ? submit.toLocaleString("vi-VN") : "—"}
                           </td>
-                          <td
-                            className="ad-table__muted"
-                          
-                          >
+                          <td className="ad-table__muted">
                             {mm !== null && ss !== null
                               ? `${mm} phút ${ss} giây`
                               : "—"}
@@ -1994,9 +2012,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 >
                   ←
                 </button>
-                <h2 className="cm-title--no-margin">
-                  Chi tiết bài làm
-                </h2>
+                <h2 className="cm-title--no-margin">Chi tiết bài làm</h2>
               </div>
               <button className="cm-close" onClick={closeAttemptModal}>
                 ✕
@@ -2004,9 +2020,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
 
             <div className="cm-body cm-body--scroll">
-              <div
-                className="id-stat-mini-grid"
-              >
+              <div className="id-stat-mini-grid">
                 {[
                   {
                     label: "Điểm số",
@@ -2037,15 +2051,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     color: undefined,
                   },
                 ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="id-stat-mini-card"
-                  >
-                    <div
-                      className="id-stat-mini-card__label"
-                    >
-                      {item.label}
-                    </div>
+                  <div key={item.label} className="id-stat-mini-card">
+                    <div className="id-stat-mini-card__label">{item.label}</div>
                     <div
                       style={{
                         fontSize: 14,
@@ -2066,17 +2073,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </div>
               ) : questions.length === 0 ? (
                 <div>
-                  <p
-                    className="id-hint-text"
-                  >
+                  <p className="id-hint-text">
                     Đáp án học viên đã chọn (theo ID):
                   </p>
                   {Object.entries(snapshot).length === 0 ? (
-                    <p
-                      className="id-hint-text"
-                    >
-                      Không có dữ liệu đáp án.
-                    </p>
+                    <p className="id-hint-text">Không có dữ liệu đáp án.</p>
                   ) : (
                     Object.entries(snapshot).map(([qId, aIds]) => (
                       <div key={qId} className="id-snapshot-row">
@@ -2092,36 +2093,21 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </div>
               ) : (
                 <div>
-                  <p
-                    className="id-hint-text id-hint-text--xs"
-                  >
+                  <p className="id-hint-text id-hint-text--xs">
                     {questions.length} câu hỏi — đáp án học viên chọn được tô
                     màu
                   </p>
                   {questions.map((q: any, idx: number) => {
                     const chosenIds: string[] = snapshot[q.id] ?? [];
                     return (
-                      <div
-                        key={q.id}
-                        className="id-question-card"
-                      >
-                        <div
-                          className="id-question-card__header"
-                        >
-                          <span
-                            className="id-question-card__meta"
-                            >
+                      <div key={q.id} className="id-question-card">
+                        <div className="id-question-card__header">
+                          <span className="id-question-card__meta">
                             Câu {idx + 1} · {q.points} điểm
                           </span>
                         </div>
-                        <p
-                          className="id-question-card__content"
-                        >
-                          {q.content}
-                        </p>
-                        <div
-                          className="id-answer-list"
-                        >
+                        <p className="id-question-card__content">{q.content}</p>
+                        <div className="id-answer-list">
                           {q.answers?.map((ans: any) => {
                             const isChosen = chosenIds.includes(String(ans.id));
                             const isCorrect = ans.is_correct;
@@ -2163,9 +2149,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           })}
                         </div>
                         {q.explanation && (
-                          <p
-                            className="id-question-card__explanation"
-                          >
+                          <p className="id-question-card__explanation">
                             💡 {q.explanation}
                           </p>
                         )}
@@ -2615,16 +2599,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   </div>
                 </div>
                 {passwordError && (
-                  <p
-                    className="id-msg id-msg--error"
-                  >
-                    ⚠ {passwordError}
-                  </p>
+                  <p className="id-msg id-msg--error">⚠ {passwordError}</p>
                 )}
                 {passwordSuccess && (
-                  <p
-                    className="id-msg id-msg--success"
-                  >
+                  <p className="id-msg id-msg--success">
                     ✓ Đổi mật khẩu thành công!
                   </p>
                 )}
@@ -2818,7 +2796,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           Doanh thu theo khóa học
                         </div>
                       </div>
-                      <div className="id-table-wrap id-table-wrap--borderless" >
+                      <div className="id-table-wrap id-table-wrap--borderless">
                         <table className="id-table">
                           <thead>
                             <tr>
@@ -2964,7 +2942,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     : "Không tìm thấy kết quả phù hợp."}
                 </p>
               ) : (
-                <div className="id-table-wrap id-table-wrap--borderless" >
+                <div className="id-table-wrap id-table-wrap--borderless">
                   <table className="id-table">
                     <thead>
                       <tr>
@@ -2987,6 +2965,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           review: "Chờ duyệt",
                           published: "Đã đăng",
                           archived: "Đã ẩn",
+                          archive_requested: "Yêu cầu lưu trữ",
                         };
                         const statusColor: Record<string, string> = {
                           draft: "draft",
@@ -2997,15 +2976,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         return (
                           <tr key={c.id}>
                             <td className="id-table__title">
-                              <div
-                                className="id-course-title-cell"
-                              >
+                              <div className="id-course-title-cell">
                                 {thumbSrc(c.thumbnail) && (
                                   <img
                                     src={thumbSrc(c.thumbnail)!}
                                     alt={c.title}
                                     className="id-course-row__thumb id-course-row__thumb--sm"
-                                    
                                   />
                                 )}
                                 {c.title}
@@ -3074,47 +3050,22 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                   Sửa
                                 </button>
                                 {c.status === "published" &&
-                                  Number(c.total_students) === 0 && (
+                                  (Number(c.total_students) || 0) === 0 && (
                                     <button
                                       className="tbl-btn tbl-btn--warn"
-                                      onClick={async () => {
-                                        if (!confirm(`Lưu trữ "${c.title}"?`))
-                                          return;
-                                        try {
-                                          const res = await fetch(
-                                            `${API}/api/courses/mine/${c.id}/archive/`,
-                                            {
-                                              method: "POST",
-                                              headers: authHeaders(),
-                                            },
-                                          );
-                                          if (res.ok) {
-                                            const refreshed = await fetch(
-                                              `${API}/api/courses/mine/`,
-                                              { headers: authHeaders() },
-                                            );
-                                            if (refreshed.ok)
-                                              setCourses(
-                                                (await refreshed.json())
-                                                  .results ?? [],
-                                              );
-                                          } else {
-                                            const err = await res
-                                              .json()
-                                              .catch(() => ({}));
-                                            alert(
-                                              err?.detail ||
-                                                "Không thể lưu trữ.",
-                                            );
-                                          }
-                                        } catch (_) {
-                                          alert("Lỗi kết nối.");
-                                        }
-                                      }}
+                                      onClick={() => setArchiveConfirmCourse(c)}
                                     >
-                                      Lưu trữ
+                                      Yêu cầu lưu trữ
                                     </button>
                                   )}
+                                {c.status === "archive_requested" && (
+                                  <span
+                                    className="tbl-btn"
+                                    style={{ opacity: 0.5, cursor: "default" }}
+                                  >
+                                    Đang chờ xử lý
+                                  </span>
+                                )}
                                 {c.status === "archived" && c.published_at && (
                                   <button
                                     className="tbl-btn tbl-btn--restore"
@@ -3192,6 +3143,57 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             </div>
           )}
 
+          {archiveConfirmCourse && (
+            <div
+              className="cm-overlay"
+              onClick={(e) => {
+                if (e.target === e.currentTarget && !archiveLoading)
+                  setArchiveConfirmCourse(null);
+              }}
+            >
+              <div className="cm-box cm-box--sm">
+                <div className="cm-header">
+                  <h2 className="cm-title">Yêu cầu lưu trữ khóa học</h2>
+                  <button
+                    className="cm-close"
+                    onClick={() =>
+                      !archiveLoading && setArchiveConfirmCourse(null)
+                    }
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="cm-body">
+                  <p className="cm-delete-desc">
+                    Bạn muốn gửi yêu cầu lưu trữ khóa học:
+                  </p>
+                  <p className="cm-delete-name">
+                    "{archiveConfirmCourse.title}"
+                  </p>
+                  <p className="cm-delete-notify">
+                    Khóa học sẽ được ẩn khỏi trang chủ sau khi admin xét duyệt.
+                  </p>
+                </div>
+                <div className="cm-footer">
+                  <button
+                    className="cm-btn cm-btn--save"
+                    onClick={handleArchiveRequest}
+                    disabled={archiveLoading}
+                  >
+                    {archiveLoading ? "Đang gửi…" : "Gửi yêu cầu"}
+                  </button>
+                  <button
+                    className="cm-btn cm-btn--cancel"
+                    onClick={() => setArchiveConfirmCourse(null)}
+                    disabled={archiveLoading}
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === "sections" && (
             <div className="ad-content">
               <div className="ad-page-header">
@@ -3258,10 +3260,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0),
                         ).length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={5}
-                          className="id-td-empty"
-                        >
+                        <td colSpan={5} className="id-td-empty">
                           Không có chương nào.
                         </td>
                       </tr>
@@ -3526,10 +3525,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       </tr>
                     ) : lessons.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={5}
-                          className="id-td-empty"
-                        >
+                        <td colSpan={5} className="id-td-empty">
                           Không có bài học nào.
                         </td>
                       </tr>
@@ -3547,7 +3543,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               (s) => s.id === (l.section?.id ?? l.section),
                             )?.title ?? "—"}
                           </td>
-                          <td  className="id-td-center">
+                          <td className="id-td-center">
                             {l.is_preview_video ? "🎬" : ""}
                             {l.is_preview_article ? "📝" : ""}
                             {l.is_preview_resource ? "📎" : ""}
@@ -4058,10 +4054,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           String(q.lesson?.id ?? q.lesson) === filterQuizLesson,
                       ).length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={6}
-                          className="id-td-empty"
-                        >
+                        <td colSpan={6} className="id-td-empty">
                           Không có bài kiểm tra nào.
                         </td>
                       </tr>
@@ -4132,9 +4125,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               {isExpanded && (
                                 <tr>
                                   <td colSpan={6} className="id-td-no-pad">
-                                    <div
-                                      className="id-expand-panel"
-                                    >
+                                    <div className="id-expand-panel">
                                       {loadingQ ? (
                                         <p className="ad-empty">
                                           Đang tải câu hỏi…
@@ -4149,13 +4140,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                             key={ques.id}
                                             className="id-question-card"
                                           >
-                                            <div
-                                              className="id-question-card__row"
-                                            >
+                                            <div className="id-question-card__row">
                                               <div className="id-flex-1">
-                                                <span
-                                                  className="id-question-card__meta"
-                                                >
+                                                <span className="id-question-card__meta">
                                                   Câu {idx + 1} ·{" "}
                                                   {
                                                     (
@@ -4171,14 +4158,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                                   }{" "}
                                                   · {ques.points} điểm
                                                 </span>
-                                                <p
-                                                  className="id-question-card__content"
-                                                >
+                                                <p className="id-question-card__content">
                                                   {ques.content}
                                                 </p>
-                                                <div
-                                                  className="id-answer-tags"
-                                                >
+                                                <div className="id-answer-tags">
                                                   {ques.answers?.map(
                                                     (a: any) => (
                                                       <span
@@ -4230,7 +4213,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                       )}
                                       <button
                                         className="ad-btn-sm ad-btn-sm--approve id-mt-4"
-                                      
                                         onClick={() => openAddQuestion(q.id)}
                                       >
                                         ＋ Thêm câu hỏi
@@ -4653,10 +4635,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               Đáp án <span className="cm-required">*</span>
                             </label>
                             {questionForm.answers.map((ans, idx) => (
-                              <div
-                                key={idx}
-                                className="id-answer-form-row"
-                              >
+                              <div key={idx} className="id-answer-form-row">
                                 <input
                                   type={
                                     questionForm.question_type === "multiple"
@@ -4699,7 +4678,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                       answers: next,
                                     }));
                                   }}
-                                  
                                 />
                                 {questionForm.answers.length > 2 && (
                                   <button
@@ -4830,10 +4808,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       </tr>
                     ) : filteredEnrollments.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={5}
-                          className="id-td-empty"
-                        >
+                        <td colSpan={5} className="id-td-empty">
                           Không tìm thấy lượt đăng ký phù hợp.
                         </td>
                       </tr>
@@ -4892,9 +4867,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                   </span>
                                 </div>
                               ) : (
-                                <span
-                                  className="id-text-secondary id-text-xs"
-                                >
+                                <span className="id-text-secondary id-text-xs">
                                   —
                                 </span>
                               )}
@@ -4979,10 +4952,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       </tr>
                     ) : filteredPayments.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={6}
-                          className="id-td-empty"
-                        >
+                        <td colSpan={6} className="id-td-empty">
                           Không có giao dịch nào.
                         </td>
                       </tr>
@@ -5060,9 +5030,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           Không tìm thấy giao dịch.
                         </p>
                       ) : (
-                        <div
-                          className="id-detail-list"
-                        >
+                        <div className="id-detail-list">
                           {[
                             {
                               label: "Học viên",
@@ -5106,18 +5074,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 "—",
                             },
                           ].map((item) => (
-                            <div
-                              key={item.label}
-                              className="id-detail-row"
-                            >
-                              <span
-                                className="id-detail-label"
-                              >
+                            <div key={item.label} className="id-detail-row">
+                              <span className="id-detail-label">
                                 {item.label}
                               </span>
-                              <span
-                                className="id-detail-value"
-                              >
+                              <span className="id-detail-value">
                                 {item.value}
                               </span>
                             </div>
@@ -5125,19 +5086,13 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           {(paymentDetail.status === "refund_requested" ||
                             paymentDetail.status === "refund_approved" ||
                             paymentDetail.status === "refunded") && (
-                            <div
-                              className="id-refund-reason-box"
-                            >
+                            <div className="id-refund-reason-box">
                               <span>Lý do hoàn tiền</span>
-                              <p
-                                className="id-refund-reason-box__text"
-                              >
+                              <p className="id-refund-reason-box__text">
                                 {paymentDetail.refund_reason?.trim() ? (
                                   paymentDetail.refund_reason
                                 ) : (
-                                  <em
-                                    className="id-text-secondary"
-                                  >
+                                  <em className="id-text-secondary">
                                     Học viên không để lại lý do.
                                   </em>
                                 )}
@@ -5161,16 +5116,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
               {refundRequests.length > 0 && (
                 <div className="id-form-card id-form-card--mt">
-                  <h3
-                    className="id-form-card__title id-form-card__title--warning"
-                    
-                  >
+                  <h3 className="id-form-card__title id-form-card__title--warning">
                     Yêu cầu hoàn tiền cần xác nhận ({refundRequests.length})
                   </h3>
-                  <div
-                    className="ad-table-wrap ad-table-wrap--borderless"
-                    
-                  >
+                  <div className="ad-table-wrap ad-table-wrap--borderless">
                     <table className="ad-table">
                       <thead>
                         <tr>
@@ -5203,7 +5152,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               <td>
                                 <button
                                   className="id-btn-primary id-btn-primary--xs"
-                                  
                                   onClick={() => handleConfirmRefund(r.id)}
                                   disabled={confirmingRefund === r.id}
                                 >
@@ -5216,17 +5164,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             {refundShortage?.id === r.id && (
                               <tr>
                                 <td colSpan={4}>
-                                  <div
-                                    className="id-refund-warning"
-                                  >
-                                    <p
-                                     className="id-refund-warning__text id-refund-warning__text--error"
-                                    >
+                                  <div className="id-refund-warning">
+                                    <p className="id-refund-warning__text id-refund-warning__text--error">
                                       ⚠ {refundShortage.detail}
                                     </p>
-                                    <p
-                                      className="id-refund-warning__text"
-                                    >
+                                    <p className="id-refund-warning__text">
                                       Hạn chót:{" "}
                                       {refundShortage.deadline
                                         ? new Date(
@@ -5236,7 +5178,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                     </p>
                                     <button
                                       className="id-btn-sm id-mt-8"
-                                      
                                       onClick={() =>
                                         setActiveTab("wallet" as Tab)
                                       }
@@ -5333,10 +5274,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       </tr>
                     ) : filteredReviews.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={6}
-                          className="id-td-empty"
-                        >
+                        <td colSpan={6} className="id-td-empty">
                           Không tìm thấy đánh giá nào.
                         </td>
                       </tr>
@@ -5358,7 +5296,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           </td>
                           <td>{r.course_title ?? "—"}</td>
                           <td>
-                            <span  className="id-star--filled">
+                            <span className="id-star--filled">
                               {"★".repeat(r.rating)}
                             </span>
                             <span className="id-star--empty">
@@ -5418,7 +5356,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <div
                     className="ad-modal ad-modal--md"
                     onClick={(e) => e.stopPropagation()}
-                    
                   >
                     <h2 className="ad-modal__title">Chi tiết đánh giá</h2>
                     <div className="ad-modal__body">
@@ -5460,16 +5397,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           </span>
                         </span>
                       </div>
-                      <div
-                        className="ad-modal__field ad-modal__field--top"
-                       
-                      >
+                      <div className="ad-modal__field ad-modal__field--top">
                         <span className="ad-modal__field-label">Nhận xét</span>
                         {selectedReview.comment ? (
-                          <p
-                            className="ad-modal__field-value--comment"
-                            
-                          >
+                          <p className="ad-modal__field-value--comment">
                             {selectedReview.comment}
                           </p>
                         ) : (
@@ -5482,9 +5413,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         <span className="ad-modal__field-label">
                           Trạng thái
                         </span>
-                        <div
-                          className="id-flex-row id-flex-row--gap-10"
-                        >
+                        <div className="id-flex-row id-flex-row--gap-10">
                           {selectedReview.is_hidden ? (
                             <span className="ad-badge ad-review-badge--hidden">
                               Đang ẩn
@@ -5517,16 +5446,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <div
                     className="ad-modal ad-modal--sm"
                     onClick={(e) => e.stopPropagation()}
-                    
                   >
                     <h2 className="ad-modal__title">Báo cáo đánh giá</h2>
                     <div className="ad-modal__body">
-                      <div
-                        className="id-review-preview"
-                      >
-                        <div
-                          className="id-review-preview__meta"
-                        >
+                      <div className="id-review-preview">
+                        <div className="id-review-preview__meta">
                           {reportingReview.student_name ?? "—"} ·{" "}
                           {reportingReview.course_title ?? "—"}
                         </div>
@@ -5539,9 +5463,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           </span>
                         </div>
                         {reportingReview.comment && (
-                          <p
-                            className="id-review-preview__comment"
-                          >
+                          <p className="id-review-preview__comment">
                             "{reportingReview.comment}"
                           </p>
                         )}
@@ -5561,7 +5483,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         />
 
                         <p className="id-hint-text id-hint-text--xs">
-                          Admin sẽ xem xét và quyết định có ẩn hoặc xóa đánh giá này.
+                          Admin sẽ xem xét và quyết định có ẩn hoặc xóa đánh giá
+                          này.
                         </p>
                       </div>
                     </div>
@@ -5586,7 +5509,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               )}
             </div>
           )}
-          
 
           {showCourseModal && (
             <div
@@ -5875,17 +5797,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               ) : (
                 <>
                   <div className="id-form-card id-form-card--mb">
-                    <p
-                      className="id-wallet-balance__label"
-                    >
-                      Số dư hiện tại
-                    </p>
-                    <p
-                      className="id-wallet-balance__amount"
-                    >
+                    <p className="id-wallet-balance__label">Số dư hiện tại</p>
+                    <p className="id-wallet-balance__amount">
                       {formatPrice(wallet?.balance ?? 0, "VND")}
                     </p>
-                   <div className="id-btn-group">
+                    <div className="id-btn-group">
                       <button
                         className={
                           walletPanel === "deposit"
@@ -5920,13 +5836,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   {walletPanel === "deposit" && (
                     <div className="id-form-card id-form-card--mb">
                       <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
-                      <div
-                        className="id-wallet-form-row"
-
-                      >
-                        <div
-                          className="id-field id-field--flex"
-                        >
+                      <div className="id-wallet-form-row">
+                        <div className="id-field id-field--flex">
                           <label className="id-field__label">
                             Số tiền (VNĐ)
                           </label>
@@ -5951,9 +5862,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           {depositing ? "Đang nạp…" : "Nạp tiền"}
                         </button>
                       </div>
-                      <div
-                        className="id-quick-amounts"
-                      >
+                      <div className="id-quick-amounts">
                         {[50000, 100000, 200000, 500000].map((v) => (
                           <button
                             key={v}
@@ -5969,16 +5878,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         ))}
                       </div>
                       {depositError && (
-                        <p
-                          className="id-msg id-msg--error"
-                        >
-                          ⚠ {depositError}
-                        </p>
+                        <p className="id-msg id-msg--error">⚠ {depositError}</p>
                       )}
                       {depositSuccess && (
-                        <p
-                          className="id-msg id-msg--success"
-                        >
+                        <p className="id-msg id-msg--success">
                           ✓ {depositSuccess}
                         </p>
                       )}
@@ -6059,14 +5962,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </div>
                       </div>
                       {walletError && (
-                        <p className="id-msg id-msg--error">
-                          ⚠ {walletError}
-                        </p>
+                        <p className="id-msg id-msg--error">⚠ {walletError}</p>
                       )}
                       {walletSuccess && (
-                        <p
-                          className="id-msg id-msg--success"
-                        >
+                        <p className="id-msg id-msg--success">
                           ✓ {walletSuccess}
                         </p>
                       )}
@@ -6087,10 +5986,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     {walletTxs.length === 0 ? (
                       <p className="id-muted">Chưa có giao dịch nào.</p>
                     ) : (
-                      <div
-                        className="id-table-wrap id-table-wrap--borderless"
-                       
-                      >
+                      <div className="id-table-wrap id-table-wrap--borderless">
                         <table className="id-table">
                           <thead>
                             <tr>
@@ -6147,9 +6043,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             {payments.map((p) => (
                               <tr key={`pay-${p.id}`}>
                                 <td>
-                                  <span
-                                    className="id-badge id-badge--payment"
-                                  >
+                                  <span className="id-badge id-badge--payment">
                                     Thanh toán
                                   </span>
                                 </td>
@@ -6157,9 +6051,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                   {p.course_title ?? "—"} ·{" "}
                                   {p.student_name ?? ""}
                                 </td>
-                                <td
-                                  className="id-td-positive"
-                                >
+                                <td className="id-td-positive">
                                   +{formatPrice(p.amount ?? 0, "VND")}
                                 </td>
                                 <td className="ad-table__muted">—</td>
@@ -6195,26 +6087,17 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
               {loadingRefunds ? (
                 <p className="id-muted">Đang tải…</p>
               ) : refundRequests.length === 0 ? (
-                <div
-                  className="id-form-card id-form-card--empty-state"
-                  
-                >
+                <div className="id-form-card id-form-card--empty-state">
                   <p className="id-muted">
                     Không có yêu cầu hoàn tiền nào cần xác nhận.
                   </p>
                 </div>
               ) : (
                 <div className="id-form-card">
-                  <h3
-                    className="id-form-card__title id-form-card__title--warning"
-                    
-                  >
+                  <h3 className="id-form-card__title id-form-card__title--warning">
                     Yêu cầu cần xác nhận ({refundRequests.length})
                   </h3>
-                  <div
-                    className="id-table-wrap id-table-wrap--borderless"
-                    
-                  >
+                  <div className="id-table-wrap id-table-wrap--borderless">
                     <table className="id-table">
                       <thead>
                         <tr>
@@ -6240,9 +6123,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 </div>
                               </td>
                               <td>{r.course_title ?? "—"}</td>
-                              <td
-                                className="id-td-muted"
-                              >
+                              <td className="id-td-muted">
                                 {formatPrice(r.amount ?? 0, "VND")}
                               </td>
                               <td className="id-td-danger">
@@ -6277,7 +6158,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                     </p>
                                     <button
                                       className="id-btn-sm id-mt-8"
-                                     
                                       onClick={() =>
                                         setActiveTab("wallet" as Tab)
                                       }

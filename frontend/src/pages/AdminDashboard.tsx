@@ -65,6 +65,7 @@ const STATUS_LABEL: Record<string, string> = {
   review: "Chờ duyệt",
   published: "Đã xuất bản",
   archived: "Đã lưu trữ",
+  archive_requested: "Yêu cầu lưu trữ",
 };
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   success: "Thành công",
@@ -879,42 +880,92 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const approveCourse = async (id: string) => {
     try {
-      await fetch(`${API}/api/courses/admin/${id}/approve/`, {
+      const res = await fetch(`${API}/api/courses/admin/${id}/approve/`, {
         method: "PATCH",
         headers: authHeader(),
       });
-      fetchCourses();
-    } catch {}
+      if (res.ok) {
+        fetchCourses();
+        showToast("Đã duyệt khóa học thành công.", "success");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.detail ?? "Duyệt thất bại.", "error");
+      }
+    } catch {
+      showToast("Lỗi kết nối.", "error");
+    }
   };
 
   const rejectCourse = async (id: string) => {
     try {
-      await fetch(`${API}/api/courses/admin/${id}/reject/`, {
+      const res = await fetch(`${API}/api/courses/admin/${id}/reject/`, {
         method: "PATCH",
         headers: authHeader(),
       });
-      fetchCourses();
-    } catch {}
+      if (res.ok) {
+        fetchCourses();
+        showToast("Đã từ chối khóa học.", "success");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.detail ?? "Từ chối thất bại.", "error");
+      }
+    } catch {
+      showToast("Lỗi kết nối.", "error");
+    }
   };
 
   const archiveCourse = async (id: string) => {
     try {
-      await fetch(`${API}/api/courses/admin/${id}/archive/`, {
+      const res = await fetch(`${API}/api/courses/admin/${id}/archive/`, {
         method: "PATCH",
         headers: authHeader(),
       });
-      fetchCourses();
-    } catch {}
+      if (res.ok) {
+        fetchCourses();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.detail ?? "Không thể ẩn khóa học.", "error");
+      }
+    } catch {
+      showToast("Lỗi kết nối.", "error");
+    }
   };
 
   const unarchiveCourse = async (id: string) => {
     try {
-      await fetch(`${API}/api/courses/admin/${id}/unarchive/`, {
+      const res = await fetch(`${API}/api/courses/admin/${id}/unarchive/`, {
         method: "PATCH",
         headers: authHeader(),
       });
-      fetchCourses();
-    } catch {}
+      if (res.ok) {
+        fetchCourses();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.detail ?? "Khôi phục thất bại.", "error");
+      }
+    } catch {
+      showToast("Lỗi kết nối.", "error");
+    }
+  };
+
+  const rejectArchiveCourse = async (id: string) => {
+    try {
+      const res = await fetch(
+        `${API}/api/courses/admin/${id}/reject-archive/`,
+        {
+          method: "PATCH",
+          headers: authHeader(),
+        },
+      );
+      if (res.ok) {
+        fetchCourses();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.detail ?? "Từ chối thất bại.", "error");
+      }
+    } catch {
+      showToast("Lỗi kết nối.", "error");
+    }
   };
 
   const closeModal = () => {
@@ -1547,7 +1598,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return matchSearch && matchRating && matchCourse && matchReported;
   });
 
-  const pendingCourses = courses.filter((c) => c.status === "review");
+  const pendingCourses = courses.filter(
+    (c) => c.status === "review" || c.status === "archive_requested",
+  );
   const approvedCourses = courses.filter((c) => c.status === "published");
   const totalRevenue =
     revenueStats?.total_revenue ?? revenueStats?.revenue ?? 0;
@@ -3471,19 +3524,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="cm-attempt-summary__lbl">Lượt làm</span>
                     </div>
                     <div className="cm-attempt-summary__item">
-                      <span
-                        className="cm-attempt-summary__val"
-                        style={{ color: "#4caf82" }}
-                      >
+                      <span className="cm-attempt-summary__val summary__valG">
                         {attempts.filter((a) => a.passed).length}
                       </span>
                       <span className="cm-attempt-summary__lbl">Đạt</span>
                     </div>
                     <div className="cm-attempt-summary__item">
-                      <span
-                        className="cm-attempt-summary__val"
-                        style={{ color: "#e07a5f" }}
-                      >
+                      <span className="cm-attempt-summary__val summary__valR">
                         {attempts.filter((a) => !a.passed).length}
                       </span>
                       <span className="cm-attempt-summary__lbl">Chưa đạt</span>
@@ -3659,25 +3706,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         >
           <div className="cm-box cm-box--xl">
             <div className="cm-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button
-                  className="cm-back-btn"
-                  onClick={backToAttemptList}
-                  title="Quay lại"
-                >
-                  ←
-                </button>
+              <div className="cm-attempt-row__score-wrap">
                 <div>
-                  <h2 className="cm-title" style={{ marginBottom: 2 }}>
-                    Chi tiết bài làm
-                  </h2>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 12,
-                      color: "rgba(229,232,240,0.4)",
-                    }}
-                  >
+                  <h2 className="cm-title">Chi tiết bài làm</h2>
+                  <p className="cm-text">
                     {selectedAttempt.student_name ??
                       selectedAttempt.student?.full_name ??
                       ""}
@@ -3761,23 +3793,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               ) : attemptQuestions.length === 0 ? (
                 <div className="cm-snapshot-fallback">
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "rgba(229,232,240,0.5)",
-                      marginBottom: 10,
-                    }}
-                  >
-                    Đáp án theo ID:
-                  </p>
+                  <p className="cm-snapshot-text">Đáp án theo ID:</p>
                   {Object.entries(snapshot).map(([qId, aIds]) => (
-                    <div key={qId} style={{ fontSize: 13, marginBottom: 6 }}>
-                      <span style={{ color: "rgba(229,232,240,0.4)" }}>
+                    <div key={qId} className="cm-entries">
+                      <span className="cm-entries__s1">
                         Câu {qId.slice(0, 8)}…:
                       </span>{" "}
-                      <span style={{ color: "#e0e1dd" }}>
-                        {aIds.join(", ")}
-                      </span>
+                      <span className="cm-entries__s2">{aIds.join(", ")}</span>
                     </div>
                   ))}
                 </div>
@@ -4422,15 +4444,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     ) : (
                       pendingCourses.map((c) => (
                         <div key={c.id} className="ad-pending-row">
-                          <span className="ad-pending-row__title">
-                            {c.title}
-                          </span>
-                          <button
-                            className="ad-btn-approve"
-                            onClick={() => approveCourse(c.id)}
-                          >
-                            Duyệt
-                          </button>
+                          <div className="ad-pending-column">
+                            <span className="ad-pending-row__title">
+                              {c.title}
+                            </span>
+                            {c.status === "archive_requested" && (
+                              <span className="ad-pending-archive">
+                                Yêu cầu lưu trữ
+                              </span>
+                            )}
+                            {c.status === "review" && (
+                              <span
+                                className="ad-pending-archive"
+                                style={{ color: "#5ba4de" }}
+                              >
+                                Chờ duyệt xuất bản
+                              </span>
+                            )}
+                          </div>
+                          {c.status === "review" ? (
+                            <div className="ad-refund-actions">
+                              <button
+                                className="ad-btn-sm ad-btn-sm--approve"
+                                onClick={() => approveCourse(c.id)}
+                              >
+                                Duyệt
+                              </button>
+                              <button
+                                className="ad-btn-sm ad-btn-sm--ban"
+                                onClick={() => rejectCourse(c.id)}
+                              >
+                                Từ chối
+                              </button>
+                            </div>
+                          ) : c.status === "archive_requested" ? (
+                            <div className="ad-refund-actions">
+                              <button
+                                className="ad-btn-sm ad-btn-sm--approve"
+                                onClick={() => archiveCourse(c.id)}
+                              >
+                                Duyệt ẩn
+                              </button>
+                              <button
+                                className="ad-btn-sm ad-btn-sm--ban"
+                                onClick={() => rejectArchiveCourse(c.id)}
+                              >
+                                Từ chối
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       ))
                     )}
@@ -4800,6 +4862,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                       Ẩn
                                     </button>
                                   )}
+
+                                {c.status === "archive_requested" && (
+                                  <>
+                                    <button
+                                      className="tbl-btn tbl-btn--restore"
+                                      onClick={() => archiveCourse(c.id)}
+                                    >
+                                      Duyệt ẩn
+                                    </button>
+                                    <button
+                                      className="tbl-btn tbl-btn--ban"
+                                      onClick={() => rejectArchiveCourse(c.id)}
+                                    >
+                                      Từ chối
+                                    </button>
+                                  </>
+                                )}
                                 {c.status === "archived" && (
                                   <button
                                     className="tbl-btn tbl-btn--restore"

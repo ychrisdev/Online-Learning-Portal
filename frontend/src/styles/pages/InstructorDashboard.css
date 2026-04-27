@@ -1037,3 +1037,10 @@
 .id-table.id-table--quizzes td:last-child {
   width: 250px;
 }
+
+.cm-delete-notify{
+  font-size: 13px;
+  color: rgba(224,225,221,0.5);
+  line-height: 1.6;
+  margin: 0;
+}

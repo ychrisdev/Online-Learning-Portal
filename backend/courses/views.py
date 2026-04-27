@@ -288,7 +288,7 @@ class AdminCourseListView(generics.ListCreateAPIView):
         return Course.objects.all().select_related('instructor').order_by('-created_at')
 
 
-class AdminCourseDetailView(generics.RetrieveAPIView):
+class AdminCourseDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = CourseAdminSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     lookup_field       = 'id'
@@ -322,7 +322,10 @@ class AdminCourseArchiveView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def patch(self, request, id):
-        course = generics.get_object_or_404(Course, id=id, status=Course.Status.PUBLISHED)
+        course = generics.get_object_or_404(
+            Course, id=id,
+            status__in=[Course.Status.PUBLISHED, Course.Status.ARCHIVE_REQUESTED]
+        )
         if course.enrollments.filter(status='active').exists():
             return Response(
                 {'detail': 'Không thể ẩn khoá học khi có học viên đang học.'},
@@ -331,6 +334,18 @@ class AdminCourseArchiveView(APIView):
         course.status = Course.Status.ARCHIVED
         course.save()
         return Response({'message': f'Đã ẩn khoá học "{course.title}".'})
+
+class AdminCourseRejectArchiveView(APIView):
+    """PATCH /api/courses/admin/<id>/reject-archive/"""
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def patch(self, request, id):
+        course = generics.get_object_or_404(
+            Course, id=id, status=Course.Status.ARCHIVE_REQUESTED
+        )
+        course.status = Course.Status.PUBLISHED
+        course.save(update_fields=['status'])
+        return Response({'message': f'Đã từ chối yêu cầu lưu trữ "{course.title}".'})
 
 class AdminCourseUnarchiveView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -351,7 +366,7 @@ class AdminSectionListCreateView(generics.ListCreateAPIView):
         return Section.objects.all().select_related('course').order_by('course', 'order_index')
 
 
-class AdminSectionDetailView(generics.RetrieveAPIView):
+class AdminSectionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = SectionWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     lookup_field       = 'id'
@@ -377,7 +392,7 @@ class AdminLessonListCreateView(generics.ListAPIView):
         return qs
 
 
-class AdminLessonDetailView(generics.RetrieveAPIView):
+class AdminLessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class   = LessonWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     lookup_field       = 'id'
@@ -482,16 +497,12 @@ class InstructorCourseArchiveView(APIView):
 
     def post(self, request, id):
         course = generics.get_object_or_404(
-            Course, id=id, instructor=request.user, status=Course.Status.PUBLISHED
+            Course, id=id, instructor=request.user,
+            status=Course.Status.PUBLISHED
         )
-        if course.enrollments.filter(status='active').exists():
-            return Response(
-                {'detail': 'Không thể lưu trữ khi có học viên đang học.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        course.status = Course.Status.ARCHIVED
+        course.status = Course.Status.ARCHIVE_REQUESTED
         course.save(update_fields=['status'])
-        return Response({'message': 'Đã lưu trữ khóa học.'})
+        return Response({'message': 'Đã gửi yêu cầu lưu trữ. Vui lòng chờ admin xét duyệt.'})
     
 class InstructorSectionListCreateView(generics.ListCreateAPIView):
     serializer_class   = SectionWriteSerializer

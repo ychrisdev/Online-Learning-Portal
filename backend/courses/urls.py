@@ -29,7 +29,7 @@ from .views import (
     AdminLessonListCreateView,
     AdminLessonDetailView,
     CategoryDetailView,
-    AdminReviewListView,    # ← thêm
+    AdminReviewListView,
     AdminReviewDetailView,
     AdminReviewToggleHideView,
     InstructorCourseUnarchiveView,
@@ -40,7 +40,8 @@ from .views import (
     InstructorLessonDetailView,
     InstructorReviewListView,
     InstructorReviewReportView,
-    AdminReviewDismissReportView
+    AdminReviewDismissReportView,
+    AdminCourseRejectArchiveView
 )
 
 urlpatterns = [
@@ -56,6 +57,7 @@ urlpatterns = [
     path('admin/<uuid:id>/reject/',    AdminCourseRejectView.as_view(),    name='admin-course-reject'),
     path('admin/<uuid:id>/archive/',   AdminCourseArchiveView.as_view(),   name='admin-course-archive'),
     path('admin/<uuid:id>/unarchive/', AdminCourseUnarchiveView.as_view(), name='admin-course-unarchive'),
+    path('admin/<uuid:id>/reject-archive/', AdminCourseRejectArchiveView.as_view(), name='admin-course-reject-archive'),
      # ── Admin Section ──────────────────────────────────────────────────────────────
     path('sections/',          AdminSectionListCreateView.as_view(), name='admin-section-list'),
     path('sections/<uuid:id>/', AdminSectionDetailView.as_view(),   name='admin-section-detail'),
