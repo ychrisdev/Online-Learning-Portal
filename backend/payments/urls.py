@@ -18,6 +18,8 @@ from .views import (
     InstructorTransactionListView,    # ← thêm
     InstructorTransactionDetailView,  # ← thêm
     InstructorConfirmRefundView,
+    WalletPayView,
+    
 )
 
 urlpatterns = [
@@ -45,4 +47,7 @@ urlpatterns = [
     path('instructor/',           InstructorTransactionListView.as_view(),  name='instructor-transaction-list'),
     path('instructor/<uuid:id>/', InstructorTransactionDetailView.as_view(), name='instructor-transaction-detail'),
     path('instructor/<uuid:id>/confirm-refund/', InstructorConfirmRefundView.as_view()),
+
+    #payment
+    path('wallet-pay/', WalletPayView.as_view(), name='wallet-pay'),
 ]

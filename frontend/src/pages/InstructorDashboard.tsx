@@ -896,7 +896,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </button>
                 <button
                   className="ad-edit-alert__dismiss-single"
-                  onClick={() => dismissAdminEditCourse(c.id, c.updated_at)}
+                  onClick={() => dismissAdminEditCourse(c.id)}
                   title="Bỏ qua"
                 >
                   ✕
@@ -2916,7 +2916,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   </button>
                 )}
                 <button
-                  className="id-btn-primary"
                   className="id-btn-primary id-ml-auto"
                   onClick={() => {
                     setEditingCourseId(null);
@@ -4338,7 +4337,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             <select
                               className="cm-select"
                               value={quizForm.lesson}
-                              onKeyDown={blockNegative}
                               onChange={(e) =>
                                 setQuizForm((f) => ({
                                   ...f,
@@ -5751,7 +5749,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           <select
                             className="cm-select"
                             value={editCourseForm.level}
-                            onKeyDown={blockNegative}
                             onChange={(e) =>
                               setEditCourseForm((f) => ({
                                 ...f,
@@ -5928,8 +5925,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
                       >
                         <div
-                          className="id-field"
-                         className="id-field id-field--flex"
+                          className="id-field id-field--flex"
                         >
                           <label className="id-field__label">
                             Số tiền (VNĐ)
@@ -6257,7 +6253,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               </td>
                               <td>
                                 <button
-                                  className="id-btn-primary"
                                   className="id-btn-primary id-btn-primary--xs"
                                   onClick={() => handleConfirmRefund(r.id)}
                                   disabled={confirmingRefund === r.id}

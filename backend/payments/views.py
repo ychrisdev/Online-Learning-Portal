@@ -490,3 +490,41 @@ class InstructorConfirmRefundView(APIView):
             transaction.save()
 
         return Response({'message': 'Hoàn tiền thành công.'})
+    
+class WalletPayView(APIView):
+    """
+    POST /api/payments/wallet-pay/
+    Trừ ví student + activate enrollment sau khi initiate thành công.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        ref_code = request.data.get('ref_code')
+        if not ref_code:
+            return Response({'detail': 'Thiếu ref_code.'}, status=400)
+
+        transaction = generics.get_object_or_404(
+            Transaction,
+            ref_code=ref_code,
+            student=request.user,
+            status=Transaction.Status.PENDING,
+        )
+
+        from wallet.services import pay_for_course
+        try:
+            pay_for_course(
+                student=request.user,
+                course=transaction.course,
+                amount=int(transaction.amount),
+            )
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=400)
+
+        transaction.status = Transaction.Status.SUCCESS
+        transaction.paid_at = timezone.now()
+        transaction.gateway_ref = f'WALLET_{transaction.ref_code}'
+        transaction.save()
+
+        _activate_enrollment(transaction)
+
+        return Response({'message': 'Thanh toán bằng ví thành công.'})

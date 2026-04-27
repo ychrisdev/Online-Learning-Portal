@@ -15,34 +15,7 @@ const authHeader = (): Record<string, string> => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-interface PaymentMethod {
-  id: string;
-  label: string;
-  icon: string;
-  description: string;
-}
 
-const PAYMENT_METHODS: PaymentMethod[] = [
-  {
-    id: "vnpay",
-    label: "VNPay",
-    icon: "🏦",
-    description: "Thanh toán qua cổng VNPay (ATM, Visa, QR)",
-  },
-  { id: "momo", label: "MoMo", icon: "💜", description: "Ví điện tử MoMo" },
-  {
-    id: "stripe",
-    label: "Thẻ tín dụng",
-    icon: "💳",
-    description: "Visa / Mastercard / JCB",
-  },
-  {
-    id: "bank",
-    label: "Chuyển khoản",
-    icon: "🏧",
-    description: "Chuyển khoản ngân hàng nội địa",
-  },
-];
 
 type Step = "select" | "processing" | "success" | "failed";
 
@@ -60,10 +33,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   console.log("course:", course); // thêm dòng này
   console.log("price:", course.price, "sale_price:", course.sale_price);
   const [step, setStep] = useState<Step>("select");
-  const [method, setMethod] = useState(PAYMENT_METHODS[0].id);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [refCode, setRefCode] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [loadingWallet, setLoadingWallet]  = useState(true);
 
   const price =
     course.sale_price !== undefined &&
@@ -88,11 +61,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     return () => window.removeEventListener("keydown", fn);
   }, [onClose]);
 
+  useEffect(() => {
+    const fetchWallet = async () => {
+      setLoadingWallet(true);
+      try {
+        const res = await fetch(`${API}/api/wallet/`, {
+          headers: authHeader(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setWalletBalance(Number(data.balance));
+        } else {
+          setWalletBalance(0);
+        }
+      } catch {
+        setWalletBalance(0);
+      } finally {
+        setLoadingWallet(false);
+      }
+    };
+    fetchWallet();
+  }, []);
+
   const handlePay = async () => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      // ── Khóa học miễn phí: gọi enroll trực tiếp, không qua payment ──
+      // Khoá học miễn phí
       if (isFree) {
         const res = await fetch(`${API}/api/enrollments/`, {
           method: "POST",
@@ -102,69 +97,50 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         const data = await res.json();
         if (!res.ok) {
           setErrorMsg(data.detail ?? data.message ?? "Đăng ký thất bại.");
-          setLoading(false);
           return;
         }
         setStep("success");
-        setLoading(false);
         return;
       }
 
-      // ── Khóa học có phí ──
-      const res = await fetch(`${API}/api/payments/initiate/`, {
+      // Bước 1: initiate với method=wallet
+      const initiateRes = await fetch(`${API}/api/payments/initiate/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify({
-          course_id: course.id,
-          method,
-          re_enroll: true, // báo backend cho phép đăng ký lại nếu refunded
-        }),
+        body: JSON.stringify({ course_id: course.id, method: "wallet" }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMsg(
-          data.detail ?? data.message ?? "Khởi tạo thanh toán thất bại.",
-        );
-        setLoading(false);
+      const initiateData = await initiateRes.json();
+      console.log("initiate status:", initiateRes.status);
+      console.log("initiate response:", initiateData);
+      if (!initiateRes.ok) {
+        setErrorMsg(initiateData.detail ?? "Không thể khởi tạo thanh toán.");
         return;
       }
-      setRefCode(data.ref_code);
+
+      // Bước 2: trừ ví
+      const ref_code = initiateData.ref_code ?? initiateData.transaction?.ref_code;
       setStep("processing");
-      setLoading(false);
-      setTimeout(() => simulateCallback(data.ref_code), 2500);
+
+      const walletRes = await fetch(`${API}/api/payments/wallet-pay/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ ref_code }),
+      });
+      const walletData = await walletRes.json();
+      if (!walletRes.ok) {
+        setErrorMsg(walletData.detail ?? "Thanh toán ví thất bại.");
+        setStep("failed");
+        return;
+      }
+
+      setStep("success");
     } catch {
       setErrorMsg("Lỗi kết nối. Vui lòng thử lại.");
+      setStep("failed");
+    } finally {
       setLoading(false);
     }
   };
-
-  const simulateCallback = async (ref: string) => {
-    try {
-      const res = await fetch(`${API}/api/payments/callback/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ref_code: ref,
-          gateway_ref: `GW-${Date.now()}`,
-          result: "success",
-        }),
-      });
-
-      if (res.ok) {
-        setStep("success");
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.error("Callback failed:", err);
-        setErrorMsg(err.detail ?? "Thanh toán thất bại từ server.");
-        setStep("failed");
-      }
-    } catch (e) {
-      console.error("Callback error:", e);
-      setStep("failed");
-    }
-  };
-
-  const selectedMethod = PAYMENT_METHODS.find((m) => m.id === method)!;
 
   const titles: Record<Step, string> = {
     select: "Đăng ký khóa học",
@@ -192,65 +168,61 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           {/* ── SELECT ── */}
           {step === "select" && (
             <>
+              {/* Thông tin khoá học */}
               <div className="pm-course-card">
                 {course.thumbnail ? (
-                  <img
-                    className="pm-course-thumb"
-                    src={course.thumbnail}
-                    alt={course.title}
-                  />
+                  <img className="pm-course-thumb" src={course.thumbnail} alt={course.title} />
                 ) : (
                   <div className="pm-course-thumb-placeholder">📚</div>
                 )}
                 <div className="pm-course-info">
                   <div className="pm-course-title">{course.title}</div>
-                  <div className="pm-course-instructor">
-                    👤 {course.instructor_name}
-                  </div>
+                  <div className="pm-course-instructor">👤 {course.instructor_name}</div>
                   <div className="pm-course-price-row">
                     <span className="pm-price-main">
                       {isFree ? "Miễn phí" : formatPrice(price, "VND")}
                     </span>
                     {!isFree && course.discount_percent > 0 && (
                       <>
-                        <span className="pm-price-original">
-                          {formatPrice(course.price, "VND")}
-                        </span>
-                        <span className="pm-price-badge">
-                          -{course.discount_percent}%
-                        </span>
+                        <span className="pm-price-original">{formatPrice(course.price, "VND")}</span>
+                        <span className="pm-price-badge">-{course.discount_percent}%</span>
                       </>
                     )}
                   </div>
                 </div>
               </div>
 
+              {/* Số dư ví */}
               {!isFree && (
-                <>
-                  <p className="pm-section-label">Phương thức thanh toán</p>
-                  <div className="pm-methods">
-                    {PAYMENT_METHODS.map((m) => (
-                      <button
-                        key={m.id}
-                        className={`pm-method${method === m.id ? " pm-method--active" : ""}`}
-                        onClick={() => setMethod(m.id)}
-                      >
-                        <span className="pm-method__icon">{m.icon}</span>
-                        <span className="pm-method__info">
-                          <span className="pm-method__label">{m.label}</span>
-                          <span className="pm-method__desc">
-                            {m.description}
-                          </span>
-                        </span>
-                        <span className="pm-method__radio">
-                          <span className="pm-method__radio-dot" />
-                        </span>
-                      </button>
-                    ))}
+                <div className="pm-wallet-box">
+                  <div className="pm-wallet-box__header">
+                    <span className="pm-wallet-box__icon">💳</span>
+                    <span className="pm-wallet-box__label">Thanh toán bằng ví</span>
                   </div>
-                </>
+                  {loadingWallet ? (
+                    <div className="pm-wallet-box__loading">Đang tải số dư…</div>
+                  ) : (
+                    <div className="pm-wallet-box__balance-row">
+                      <span>Số dư hiện tại</span>
+                      <span className={
+                        walletBalance !== null && walletBalance < price
+                          ? "pm-wallet-box__balance pm-wallet-box__balance--low"
+                          : "pm-wallet-box__balance"
+                      }>
+                        {formatPrice(walletBalance ?? 0, "VND")}
+                      </span>
+                    </div>
+                  )}
+                  {walletBalance !== null && walletBalance < price && !loadingWallet && (
+                    <div className="pm-wallet-box__insufficient">
+                      ⚠ Số dư không đủ — cần nạp thêm{" "}
+                      <strong>{formatPrice(price - walletBalance, "VND")}</strong>
+                    </div>
+                  )}
+                </div>
               )}
 
+              {/* Tổng */}
               <div className="pm-total">
                 <span className="pm-total__label">Tổng thanh toán</span>
                 <span className="pm-total__amount">
@@ -263,7 +235,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <button
                 className="pm-btn-pay"
                 onClick={handlePay}
-                disabled={loading}
+                disabled={
+                  loading ||
+                  loadingWallet ||
+                  (!isFree && walletBalance !== null && walletBalance < price)
+                }
               >
                 {loading
                   ? "Đang xử lý…"
@@ -271,10 +247,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     ? "Đăng ký miễn phí"
                     : `Thanh toán ${formatPrice(price, "VND")}`}
               </button>
-
-              <p className="pm-note">
-                🔒 Thông tin thanh toán được mã hóa an toàn
-              </p>
+              <p className="pm-note">🔒 Thông tin thanh toán được mã hóa an toàn</p>
             </>
           )}
 
@@ -287,14 +260,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
               <div className="pm-processing__sub">
                 Vui lòng không đóng cửa sổ này…
-              </div>
-              {refCode && (
-                <div className="pm-processing__ref">Mã GD: {refCode}</div>
-              )}
-              <div className="pm-processing__gateway">
-                Đang chuyển đến <strong>{selectedMethod.label}</strong>{" "}
-                {selectedMethod.icon}
-              </div>
+              </div>              
             </div>
           )}
 
@@ -308,9 +274,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <br />
                 <strong>{course.title}</strong>
               </div>
-              {refCode && (
-                <div className="pm-processing__ref">Mã GD: {refCode}</div>
-              )}
               <div className="pm-result__actions">
                 <button className="pm-btn-success" onClick={onSuccess}>
                   ▶ Bắt đầu học ngay

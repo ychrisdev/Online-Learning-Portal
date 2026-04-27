@@ -1405,6 +1405,37 @@
   margin-top: 4px;
   display: block;
 }
+.cd-progress-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.cd-progress-bar-label {
+  font-size: 12px;
+  color: rgba(224, 225, 221, 0.4);
+  margin-top: 0;
+}
+
+.cd-progress-cert-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e1dd;
+  background: rgba(119, 141, 169, 0.2);
+  border: 1px solid rgba(119, 141, 169, 0.3);
+  border-radius: 8px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.cd-progress-cert-btn:hover {
+  background: rgba(119, 141, 169, 0.35);
+  border-color: rgba(119, 141, 169, 0.5);
+}
 
 .cd-btn-enroll--disabled {
   background: rgba(119, 141, 169, 0.15);

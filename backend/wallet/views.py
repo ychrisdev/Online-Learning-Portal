@@ -69,3 +69,4 @@ class WithdrawalListView(generics.ListAPIView):
     def get_queryset(self):
         wallet = services.get_or_create_wallet(self.request.user)
         return wallet.withdrawals.all()
+    

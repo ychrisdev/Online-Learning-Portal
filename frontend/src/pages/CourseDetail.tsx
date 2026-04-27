@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { formatPrice } from "../utils/format";
 import { getVideoEmbed } from "../utils/youtube";
 import PaymentModal from "./PaymentPage";
+import CertificateModal from "./CertificateModal";
 
 const API = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 const authHeader = (): Record<string, string> => {
@@ -251,6 +252,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const handleSubmitQuizRef = useRef<() => void>(() => {});
   const [progressMap, setProgressMap] = useState<Record<string, boolean>>({});
   const [progressPct, setProgressPct] = useState<number>(0);
+  // Thêm vào sau progressPct state:
+  const [showCertificate, setShowCertificate]       = useState(false);
+  const [certificateCode, setCertificateCode]       = useState<string | undefined>(undefined);
+  const [certificateShownFor, setCertificateShownFor] = useState<string | null>(null);
 
   // ── Toast state ──────────────────────────────────────────────────────────────
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -269,6 +274,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const showError = (msg: string) => addToast(msg, "error");
   const showWarning = (msg: string) => addToast(msg, "warning");
   const showInfo = (msg: string) => addToast(msg, "info");
+  const fetchCertificate = async () => {
+    try {
+      const res = await refreshAndRetry(
+        `${API}/api/enrollments/certificate/?course_id=${courseId}`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setCertificateCode(data.certificate_code ?? data.code ?? undefined);
+      }
+    } catch {}
+  };
 
   // ── Reset toàn bộ quiz state ─────────────────────────────────────────────────
   const resetQuizState = () => {
@@ -341,7 +357,30 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       } catch {}
     };
     fetchMyReviews();
-  }, [isLoggedIn, course?.slug]);
+    }, [isLoggedIn, course?.slug]);
+
+  useEffect(() => {
+    if (!progressPct || progressPct < 100 || !isEnrolled || !courseId) return;
+
+    const key = `cert_shown_${courseId}`;
+    if (localStorage.getItem(key)) return;
+
+    const fetchAndShow = async () => {
+      try {
+        const res = await refreshAndRetry(
+          `${API}/api/enrollments/certificate/?course_id=${courseId}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCertificateCode(data.certificate_code ?? undefined);
+        }
+      } catch {}
+      localStorage.setItem(key, '1');
+      setTimeout(() => setShowCertificate(true), 600);
+    };
+
+    fetchAndShow();
+  }, [progressPct, isEnrolled, courseId]);
 
   const handleEnroll = async () => {
     if (!isLoggedIn) {
@@ -1898,9 +1937,28 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
-                  <span className="cd-progress-bar-label">
-                    Tiến độ: {progressPct}%
-                  </span>
+                  <div className="cd-progress-bar-row">
+                    <span className="cd-progress-bar-label">Tiến độ: {progressPct}%</span>
+                    {progressPct === 100 && (
+                      <button
+                        className="cd-progress-cert-btn"
+                        onClick={async () => {
+                          try {
+                            const res = await refreshAndRetry(
+                              `${API}/api/enrollments/certificate/?course_id=${courseId}`
+                            );
+                            if (res.ok) {
+                              const data = await res.json();
+                              setCertificateCode(data.certificate_code ?? undefined);
+                            }
+                          } catch {}
+                          setShowCertificate(true);
+                        }}
+                      >
+                        🏆 Chứng chỉ
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               {course.category_name && (
@@ -1913,6 +1971,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
           </div>
         </div>
       </div>
+      {showCertificate && (
+        <CertificateModal
+          courseName={course?.title ?? ''}
+          studentName={
+            localStorage.getItem('full_name') ||
+            localStorage.getItem('username') ||
+            ''
+          }
+          certificateCode={certificateCode}
+          onClose={() => setShowCertificate(false)}
+        />
+      )}
       {showPayment && course && (
         <PaymentModal
           course={course}

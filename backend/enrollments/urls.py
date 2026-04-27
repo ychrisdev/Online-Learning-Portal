@@ -11,6 +11,7 @@ from .views import (
     ProgressUpdateView,
     AdminUserCertificateListView,
     InstructorEnrollmentListView,
+    MyCertificateByCourseView,
 )
 
 urlpatterns = [
@@ -23,6 +24,7 @@ urlpatterns = [
     path('<uuid:enrollment_id>/progress/',          ProgressListView.as_view(),          name='progress-list'),
     path('progress/<uuid:lesson_id>/',              ProgressUpdateView.as_view(),        name='progress-update'),
     path('certificates/',                           MyCertificateListView.as_view(),     name='certificate-list'),
+    path('certificate/',                            MyCertificateByCourseView.as_view(), name='certificate-by-course'),
 
     # Instructor
     path('instructor/<uuid:course_id>/students/',  InstructorStudentListView.as_view(), name='instructor-students'),

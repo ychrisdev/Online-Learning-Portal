@@ -27,6 +27,7 @@ class Transaction(models.Model):
         STRIPE = 'stripe', 'Stripe'
         BANK   = 'bank',   'Chuyển khoản'
         FREE   = 'free',   'Miễn phí'
+        WALLET = 'wallet', 'Ví điện tử'
 
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student     = models.ForeignKey(

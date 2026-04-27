@@ -116,42 +116,6 @@ class ProgressUpdateView(APIView):
         _check_course_completion(enrollment)
         return Response(ProgressSerializer(progress).data)
 
-
-def _check_course_completion(enrollment: Enrollment):
-    from courses.models import Lesson as LessonModel
-    from quizzes.models import QuizAttempt
-
-    lessons = LessonModel.objects.filter(section__course=enrollment.course)
-    total = lessons.count()
-    if not total:
-        return
-
-    done = enrollment.progress_records.filter(is_completed=True).count()
-
-    lessons_with_quiz = lessons.filter(quiz__isnull=False)          # ← SỬA
-    quiz_required_count = lessons_with_quiz.count()
-
-    if quiz_required_count > 0:
-        passed_quiz_count = QuizAttempt.objects.filter(
-            student=enrollment.student,
-            quiz__lesson__in=lessons_with_quiz,
-            passed=True,
-        ).values('quiz__lesson').distinct().count()
-        quiz_ok = (passed_quiz_count >= quiz_required_count)
-    else:
-        quiz_ok = True
-
-    if done >= total and quiz_ok and enrollment.status == Enrollment.Status.ACTIVE:
-        enrollment.status       = Enrollment.Status.COMPLETED
-        enrollment.completed_at = timezone.now()
-        enrollment.save(update_fields=['status', 'completed_at'])
-        if not hasattr(enrollment, 'certificate'):
-            import uuid as _uuid
-            Certificate.objects.create(
-                enrollment  = enrollment,
-                cert_number = f'CERT-{str(_uuid.uuid4())[:8].upper()}',
-            )
-
 def _check_course_completion(enrollment: Enrollment):
     from courses.models import Lesson as LessonModel
     from quizzes.models import QuizAttempt  # chỉnh lại đúng app name của bạn
@@ -182,10 +146,13 @@ def _check_course_completion(enrollment: Enrollment):
         enrollment.completed_at = timezone.now()
         enrollment.save(update_fields=['status', 'completed_at'])
         if not hasattr(enrollment, 'certificate'):
-            import uuid as _uuid
+            course_code  = enrollment.course.slug[:6].upper().replace('-', '')
+            student_code = str(enrollment.student.id)[:4].upper()
+            year         = timezone.now().strftime('%y')
+            cert_number  = f'CERT-{year}-{course_code}-{student_code}'
             Certificate.objects.create(
                 enrollment  = enrollment,
-                cert_number = f'CERT-{str(_uuid.uuid4())[:8].upper()}',
+                cert_number = cert_number,
             )
 
 
@@ -276,3 +243,26 @@ class InstructorEnrollmentListView(generics.ListAPIView):
         return Enrollment.objects.filter(
             course__instructor=self.request.user
         ).select_related('student', 'course').order_by('-enrolled_at')
+    
+class MyCertificateByCourseView(APIView):
+    """GET /api/enrollments/certificate/?course_id=<id>"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        course_id = request.query_params.get('course_id')
+        if not course_id:
+            return Response({'detail': 'Thiếu course_id.'}, status=400)
+
+        cert = Certificate.objects.filter(
+            enrollment__student=request.user,
+            enrollment__course__slug=course_id,
+        ).select_related('enrollment__course').first()
+
+        if not cert:
+            return Response({'detail': 'Chưa có chứng chỉ.'}, status=404)
+
+        return Response({
+            'certificate_code': cert.cert_number,
+            'issued_at': cert.issued_at,
+            'course_title': cert.enrollment.course.title,
+        })
