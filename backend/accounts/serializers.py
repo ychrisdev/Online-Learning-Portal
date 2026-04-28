@@ -213,12 +213,24 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     def save(self):
         email = self.validated_data['email']
         otp = ''.join(random.choices(string.digits, k=6))
-        cache.set(f'pwd_reset_otp:{email}', otp, timeout=600)
+        cache.set(f'pwd_reset_otp:{email}', otp, timeout=120)
+        from django.template.loader import render_to_string
+        from django.utils.html import strip_tags
+        from django.utils import timezone
+        user = User.objects.get(email=email)
+        context = {
+            'student_name': user.full_name or user.username,
+            'otp': otp,
+            'sent_at': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+        html_message  = render_to_string('emails/otp_reset.html', context)
+        plain_message = strip_tags(html_message)
         send_mail(
             subject='[EnglishHub] Mã OTP đặt lại mật khẩu',
-            message=f'Mã OTP của bạn là: {otp}\nMã có hiệu lực trong 10 phút. Không chia sẻ mã này với ai.',
+            message=plain_message,
             from_email=django_settings.DEFAULT_FROM_EMAIL,
             recipient_list=[email],
+            html_message=html_message,
         )
 
 
@@ -239,7 +251,10 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             attrs['user'] = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
             raise serializers.ValidationError({'email': 'Email không hợp lệ.'})
-
+        # Check mật khẩu mới không trùng mật khẩu cũ
+        user = attrs['user']
+        if user.check_password(attrs['new_password']):
+            raise serializers.ValidationError({'new_password': 'Mật khẩu mới không được trùng với mật khẩu hiện tại.'})
         return attrs
 
     def save(self):

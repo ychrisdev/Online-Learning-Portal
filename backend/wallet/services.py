@@ -25,7 +25,7 @@ def deposit(user, amount: int, note: str = 'Nạp tiền') -> Wallet:
     return wallet
 
 
-def pay_for_course(student, course, amount: int) -> None:
+def pay_for_course(student, course, amount: int, transaction_id: str = '') -> None:
     """
     Trừ tiền ví sinh viên + cộng doanh thu giảng viên.
     Gọi từ payments/views.py sau khi tạo Transaction thành công.
@@ -43,11 +43,11 @@ def pay_for_course(student, course, amount: int) -> None:
             amount        = -amount,
             balance_after = student_wallet.balance,
             note          = f'Thanh toán khóa học: {course.title}',
-            ref_id        = str(course.id),
+            ref_id        = transaction_id,
         )
 
         # Cộng doanh thu giảng viên
-        revenue = int(amount * INSTRUCTOR_REVENUE_RATE)
+        revenue = amount
         instructor_wallet = Wallet.objects.select_for_update().get_or_create(user=course.instructor)[0]
         instructor_wallet.balance += revenue
         instructor_wallet.save()
@@ -57,7 +57,7 @@ def pay_for_course(student, course, amount: int) -> None:
             amount        = revenue,
             balance_after = instructor_wallet.balance,
             note          = f'Doanh thu từ: {course.title}',
-            ref_id        = str(course.id),
+            ref_id        = transaction_id,
         )
 
 
@@ -100,4 +100,28 @@ def withdraw(user, amount: int, bank_name: str, bank_account: str, account_name:
             bank_name    = bank_name,
             bank_account = bank_account,
             account_name = account_name,
+        )
+    
+def pay_instructor_revenue(course, amount: int, transaction_id: str = '') -> None:
+    """Cộng doanh thu cho instructor sau khi thanh toán qua gateway."""
+    instructor = course.instructor
+    if not instructor:
+        return
+    with db_transaction.atomic():
+        already_credited = WalletTransaction.objects.filter(
+            ref_id=transaction_id,
+            tx_type=WalletTransaction.TxType.REVENUE,
+        ).exists()
+        if already_credited:
+            return
+        instructor_wallet = Wallet.objects.select_for_update().get_or_create(user=instructor)[0]
+        instructor_wallet.balance += amount
+        instructor_wallet.save()
+        WalletTransaction.objects.create(
+            wallet        = instructor_wallet,
+            tx_type       = WalletTransaction.TxType.REVENUE,
+            amount        = amount,
+            balance_after = instructor_wallet.balance,
+            note          = f'Doanh thu từ: {course.title}',
+            ref_id        = transaction_id,
         )

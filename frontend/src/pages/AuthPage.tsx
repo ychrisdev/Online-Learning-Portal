@@ -8,7 +8,7 @@ interface AuthPageProps {
 
 const API = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-type ForgotStep = "email" | "otp" | "done";
+type ForgotStep = "email" | "otp" | "reset"| "done";
 
 type ToastType = "success" | "error" | "warning" | "info";
 interface ToastItem {
@@ -82,7 +82,7 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { toasts, removeToast, showError } = useToast();
   const [countdown, setCountdown] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -94,11 +94,11 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const sendOtp = async () => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setError("Vui lòng nhập email hợp lệ");
+      showError("Vui lòng nhập email hợp lệ");
       return;
     }
     setLoading(true);
-    setError("");
+    
     try {
       const res = await fetch(`${API}/api/auth/password-reset/`, {
         method: "POST",
@@ -107,49 +107,74 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(parseApiError(data));
+        showError(parseApiError(data));
         return;
       }
+      setOtp(["", "", "", "", "", ""]);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
       setStep("otp");
       setCountdown(60);
     } catch {
-      setError("Lỗi kết nối server. Vui lòng thử lại.");
+      showError("Lỗi kết nối server. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    const code = otp.join("");
+    if (code.length < 6) {
+      showError("Vui lòng nhập đủ 6 chữ số OTP");
+      return;
+    }
+    setLoading(true);
+    
+    try {
+      const res = await fetch(`${API}/api/auth/password-reset/verify-otp/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: code }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showError(parseApiError(data));
+        return;
+      }
+      setStep("reset");
+      
+    } catch {
+      showError("Lỗi kết nối server. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
   const confirmReset = async () => {
-    const code = otp.join("");
-    if (code.length < 6) {
-      setError("Vui lòng nhập đủ 6 chữ số OTP");
-      return;
-    }
     if (!password || password.length < 6) {
-      setError("Mật khẩu tối thiểu 6 ký tự");
+      showError("Mật khẩu tối thiểu 6 ký tự");
       return;
     }
     if (password !== confirm) {
-      setError("Mật khẩu xác nhận không khớp");
+      showError("Mật khẩu xác nhận không khớp");
       return;
     }
-
     setLoading(true);
-    setError("");
+    
     try {
       const res = await fetch(`${API}/api/auth/password-reset/confirm/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp: code, new_password: password }),
+        body: JSON.stringify({ email, otp: otp.join(""), new_password: password }),
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(parseApiError(data));
+        showError(parseApiError(data));
         return;
       }
       setStep("done");
+      
     } catch {
-      setError("Lỗi kết nối server. Vui lòng thử lại.");
+      showError("Lỗi kết nối server. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -190,11 +215,13 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <h2 className="fp-title">
                 {step === "email" && "Quên mật khẩu"}
                 {step === "otp" && "Xác nhận OTP"}
+                {step === "reset" && "Đặt lại mật khẩu"}
                 {step === "done" && "Đặt lại thành công"}
               </h2>
               <p className="fp-sub">
                 {step === "email" && "Nhập email để nhận mã xác nhận"}
                 {step === "otp" && `Mã OTP đã gửi tới ${email}`}
+                {step === "reset" && "Nhập mật khẩu mới của bạn"}
                 {step === "done" && "Mật khẩu của bạn đã được cập nhật"}
               </p>
             </div>
@@ -210,18 +237,15 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <div className="fp-field">
                 <label className="fp-label">Địa chỉ email</label>
                 <input
-                  className={`fp-input${error ? " fp-input--error" : ""}`}
+                  className="fp-input"
                   type="email"
                   placeholder="email@example.com"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError("");
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendOtp()}
                   autoFocus
                 />
-                {error && <span className="fp-error">{error}</span>}
+                
               </div>
               <button className="fp-btn" onClick={sendOtp} disabled={loading}>
                 {loading ? <span className="fp-spinner" /> : "Gửi mã OTP"}
@@ -237,10 +261,8 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   {otp.map((digit, i) => (
                     <input
                       key={i}
-                      ref={(el) => {
-                        otpRefs.current[i] = el;
-                      }}
-                      className={`fp-otp-box${error && !digit ? " fp-otp-box--error" : ""}`}
+                      ref={(el) => { otpRefs.current[i] = el; }}
+                      className="fp-otp-box"
                       type="text"
                       inputMode="numeric"
                       maxLength={1}
@@ -252,21 +274,31 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
                 <div className="fp-resend">
                   {countdown > 0 ? (
-                    <span className="fp-resend__count">
-                      Gửi lại sau {countdown}s
-                    </span>
+                    <span className="fp-resend__count">Gửi lại sau {countdown}s</span>
                   ) : (
-                    <button
-                      className="fp-resend__btn"
-                      onClick={sendOtp}
-                      disabled={loading}
-                    >
+                    <button className="fp-resend__btn" onClick={sendOtp} disabled={loading}>
                       Gửi lại OTP
                     </button>
                   )}
                 </div>
               </div>
+              
+              <div className="fp-btn-row">
+                <button
+                  className="fp-btn fp-btn--ghost"
+                  onClick={() => { setStep("email");  setOtp(["", "", "", "", "", ""]); }}
+                >
+                  ← Quay lại
+                </button>
+                <button className="fp-btn" onClick={verifyOtp} disabled={loading}>
+                  {loading ? <span className="fp-spinner" /> : "Xác nhận OTP"}
+                </button>
+              </div>
+            </>
+          )}
 
+          {step === "reset" && (
+            <>
               <div className="fp-field">
                 <label className="fp-label">Mật khẩu mới</label>
                 <input
@@ -274,10 +306,8 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   type="password"
                   placeholder="Tối thiểu 6 ký tự"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError("");
-                  }}
+                  onChange={(e) => { setPassword(e.target.value);  }}
+                  autoFocus
                 />
               </div>
               <div className="fp-field">
@@ -287,33 +317,20 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   type="password"
                   placeholder="Nhập lại mật khẩu"
                   value={confirm}
-                  onChange={(e) => {
-                    setConfirm(e.target.value);
-                    setError("");
-                  }}
+                  onChange={(e) => { setConfirm(e.target.value);  }}
                   onKeyDown={(e) => e.key === "Enter" && confirmReset()}
                 />
               </div>
-
-              {error && <span className="fp-error">{error}</span>}
-
+              
               <div className="fp-btn-row">
                 <button
                   className="fp-btn fp-btn--ghost"
-                  onClick={() => {
-                    setStep("email");
-                    setError("");
-                    setOtp(["", "", "", "", "", ""]);
-                  }}
+                  onClick={() => { setStep("otp");  }}
                 >
                   ← Quay lại
                 </button>
-                <button
-                  className="fp-btn"
-                  onClick={confirmReset}
-                  disabled={loading}
-                >
-                  {loading ? <span className="fp-spinner" /> : "Xác nhận"}
+                <button className="fp-btn" onClick={confirmReset} disabled={loading}>
+                  {loading ? <span className="fp-spinner" /> : "Đặt lại mật khẩu"}
                 </button>
               </div>
             </>
@@ -322,6 +339,7 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           {step === "done" && (
             <div className="fp-done">
               <div className="fp-done__check">✓</div>
+              <h3 className="fp-done__title">Đặt lại mật khẩu thành công!</h3>
               <p className="fp-done__text">
                 Mật khẩu mới đã được lưu. Bạn có thể đăng nhập ngay bây giờ.
               </p>
@@ -332,6 +350,7 @@ const ForgotModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )}
         </div>
       </div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 };
@@ -355,7 +374,7 @@ const AuthPage: React.FC<AuthPageProps> = ({
   const [showForgot, setShowForgot] = useState(false);
   const { toasts, removeToast, showToast, showError, showWarning } = useToast();
 
-  const update = (field: string, value: string) => {
+ const update = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };

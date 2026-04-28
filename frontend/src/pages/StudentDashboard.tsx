@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { formatPrice, formatDate } from "../utils/format";
 import "../styles/pages/StudentDashboard.css";
 
@@ -44,6 +44,7 @@ interface EnrolledCourse {
 interface Payment {
   id: string;
   course_title: string;
+  instructor_name?: string;
   course_id: string;
   created_at: string;
   amount: number;
@@ -245,6 +246,25 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     })();
   }, []);
 
+  const fetchPayments = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/payments/history/`, { headers: authHeaders() });
+      const payList = res.ok ? toList(await res.json()) : [];
+      setPayments(payList.map((item: any) => ({
+        id: item.id,
+        course_id: item.course ?? "",
+        course_title: item.course_title ?? "",
+        instructor_name: item.instructor_name ?? "",
+        created_at: item.created_at ?? "",
+        amount: Number(item.amount) ?? 0,
+        status: item.status ?? "success",
+        method: item.method ?? "",
+        ref_code: item.ref_code ?? "",
+        refund_requested_once: item.refund_requested_once ?? false,
+      })));
+    } catch {}
+  }, []);
+  
   useEffect(() => {
     (async () => {
       setLoadingCourses(true);
@@ -271,7 +291,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         const mappedCourses: EnrolledCourse[] = enrollList.map((item: any) => {
           const courseId = item.course ?? item.course_id ?? item.id;
           const p = mappedPayments.find(
-            (p) => p.course_id === courseId && p.status === "success",
+            (p) => p.course_id === courseId && ["success", "refund_requested", "refund_approved"].includes(p.status),
           );
           return {
             id: item.id,
@@ -293,6 +313,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
       setLoadingPayments(false);
     })();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "payments") return;
+    fetchPayments();
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab !== "certificates") return;
@@ -651,9 +676,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       value: paymentDetail.course_title ?? "—",
                     },
                     {
+                      label: "Giảng viên",
+                      value: paymentDetail.instructor_name ?? "—",
+                    },
+                    {
                       label: "Số tiền",
                       value: formatPrice(paymentDetail.amount, "VND"),
                     },
+                    ...(["refund_requested", "refund_approved", "refunded"].includes(paymentDetail.status)
+                      ? [{ label: "Số tiền hoàn", value: formatPrice((paymentDetail.amount ?? 0) * 0.7, "VND") }]
+                      : []),
                     {
                       label: "Trạng thái",
                       value:

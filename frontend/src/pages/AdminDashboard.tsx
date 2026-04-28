@@ -6259,11 +6259,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       </div>
                       <div className="ad-modal__field">
+                        <span className="ad-modal__field-label">Giảng viên</span>
+                        <span className="ad-modal__field-value">
+                          {paymentDetail.instructor_name || "—"}
+                        </span>
+                      </div>
+                      <div className="ad-modal__field">
                         <span className="ad-modal__field-label">
                           Số tiền hoàn
                         </span>
                         <span className="ad-modal__field-value ad-modal__field-value--refund">
-                          {formatPrice(paymentDetail.amount ?? 0, "VND")}
+                          {formatPrice((paymentDetail.amount ?? 0) * 0.7, "VND")}
                         </span>
                       </div>
                       <div className="ad-modal__field">

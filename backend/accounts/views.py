@@ -138,7 +138,20 @@ class PasswordResetConfirmView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'message': 'Đặt lại mật khẩu thành công.'})
-    
+
+class PasswordResetVerifyOtpView(APIView):
+    """POST /api/auth/password-reset/verify-otp/"""
+    permission_classes = [AllowAny]
+    def post(self, request):
+        email = request.data.get('email', '')
+        otp   = request.data.get('otp', '')
+        if not email or not otp:
+            return Response({'detail': 'Thiếu email hoặc OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        from django.core.cache import cache
+        cached_otp = cache.get(f'pwd_reset_otp:{email}')
+        if not cached_otp or str(cached_otp) != str(otp):
+            return Response({'detail': 'Mã OTP không đúng hoặc đã hết hạn.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'OTP hợp lệ.'})
 # ── 5.1.1 Hồ sơ mở rộng: Student ─────────────────────────────────────────────
 
 class StudentProfileView(generics.RetrieveUpdateAPIView):

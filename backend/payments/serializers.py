@@ -7,11 +7,12 @@ from .models import Transaction
 
 class TransactionSerializer(serializers.ModelSerializer):
     course_title = serializers.CharField(source='course.title', read_only=True)
-
+    instructor_name = serializers.CharField(source='course.instructor.full_name', read_only=True)
     class Meta:
         model  = Transaction
         fields = [
             'id', 'course', 'course_title', 'amount', 'status',
+            'instructor_name',
             'method', 'ref_code', 'gateway_ref', 'note', 'created_at', 'paid_at','refund_requested_once', 'refund_requested_at',
         ]
         read_only_fields = [
@@ -43,6 +44,7 @@ class AdminTransactionDetailSerializer(serializers.ModelSerializer):
     student_email = serializers.CharField(source='student.email',     read_only=True)
     course_title  = serializers.CharField(source='course.title',      read_only=True)
     course_slug   = serializers.CharField(source='course.slug',       read_only=True)
+    instructor_name = serializers.CharField(source='course.instructor.full_name', read_only=True)
 
     class Meta:
         model  = Transaction
@@ -50,6 +52,7 @@ class AdminTransactionDetailSerializer(serializers.ModelSerializer):
             'id', 'ref_code', 'gateway_ref',
             'student', 'student_name', 'student_email',
             'course',  'course_title', 'course_slug',
+            'instructor_name',
             'amount', 'status', 'method',
             'note', 'refund_reason',
             'refund_requested_once', 'refund_requested_at',

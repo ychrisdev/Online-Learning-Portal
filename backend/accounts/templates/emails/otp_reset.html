@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mã OTP đặt lại mật khẩu</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:12px;overflow:hidden;
+                      border:1px solid #e5e7eb;">
+          <!-- Header -->
+          <tr>
+            <td style="background:#1a56db;padding:28px 36px;">
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:32px;height:32px;background:rgba(255,255,255,0.2);
+                             border-radius:8px;text-align:center;vertical-align:middle;
+                             padding:6px;">
+                    &#127891;
+                  </td>
+                  <td style="padding-left:10px;">
+                    <span style="color:#ffffff;font-size:17px;font-weight:bold;
+                                 letter-spacing:0.3px;">EnglishHub</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Icon + tiêu đề -->
+          <tr>
+            <td style="padding:32px 36px 0;text-align:center;">
+              <div style="display:inline-block;width:56px;height:56px;
+                          background:#EFF6FF;border-radius:50%;
+                          text-align:center;line-height:56px;
+                          font-size:26px;margin-bottom:16px;">
+                &#128274;
+              </div>
+              <h1 style="margin:0 0 8px;font-size:24px;font-weight:bold;
+                         color:#111827;line-height:1.4;">
+                Đặt lại mật khẩu
+              </h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
+                Sử dụng mã OTP bên dưới để đặt lại mật khẩu của bạn.
+              </p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:0 36px 32px;">
+              <p style="margin:0 0 16px;font-size:15px;color:#111827;line-height:1.7;">
+                Xin chào <strong>{{ student_name }}</strong>,
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.7;">
+                Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản EnglishHub của bạn.
+                Vui lòng sử dụng mã OTP dưới đây để tiếp tục:
+              </p>
+              <!-- OTP Box -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="margin-bottom:24px;">
+                <tr>
+                  <td align="center">
+                    <div style="display:inline-block;background:#EFF6FF;
+                                border:2px dashed #1a56db;border-radius:12px;
+                                padding:20px 40px;text-align:center;">
+                      <p style="margin:0 0 6px;font-size:12px;color:#6b7280;
+                                 letter-spacing:1px;text-transform:uppercase;">
+                        Mã OTP của bạn
+                      </p>
+                      <p style="margin:0;font-size:36px;font-weight:bold;
+                                 color:#1a56db;letter-spacing:10px;
+                                 font-family:'Courier New',monospace;">
+                        {{ otp }}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <!-- Thông tin -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#f9fafb;border-radius:8px;
+                            border:1px solid #e5e7eb;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#6b7280;width:140px;">
+                    Hiệu lực
+                  </td>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#111827;font-weight:bold;text-align:right;">
+                    2 phút
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 20px;font-size:13px;color:#6b7280;">
+                    Thời gian gửi
+                  </td>
+                  <td style="padding:10px 20px;font-size:13px;color:#111827;text-align:right;">
+                    {{ sent_at }}
+                  </td>
+                </tr>
+              </table>
+              <!-- Cảnh báo -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#FEF2F2;border-radius:8px;
+                            border:1px solid #FECACA;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:14px 20px;font-size:13px;color:#991B1B;line-height:1.6;">
+                    &#9888;&nbsp; <strong>Không chia sẻ mã này với bất kỳ ai.</strong>
+                    Đội ngũ EnglishHub sẽ không bao giờ yêu cầu mã OTP của bạn.
+                    Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.7;">
+                Nếu bạn có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ của EnglishHub.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 36px;border-top:1px solid #e5e7eb;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+                Email này được gửi tự động, vui lòng không trả lời.<br/>
+                © 2025 EnglishHub. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

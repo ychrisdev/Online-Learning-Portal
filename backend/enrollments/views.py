@@ -18,6 +18,8 @@ from .serializers import (
     InstructorStudentSerializer,
     ProgressSerializer,
 )
+from .emails import send_certificate_email
+from payments.emails import send_enrollment_email
 
 
 # ── Student ───────────────────────────────────────────────────────────────────
@@ -60,6 +62,7 @@ class MyEnrollmentListView(generics.ListCreateAPIView):
             course=course,
             status=Enrollment.Status.ACTIVE,
         )
+        send_enrollment_email(enrollment)
         return Response(EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED)
 
 
@@ -114,6 +117,7 @@ class ProgressUpdateView(APIView):
 
         progress.save()
         _check_course_completion(enrollment)
+        _auto_cancel_refund_if_over_threshold(enrollment)
         return Response(ProgressSerializer(progress).data)
 
 def _check_course_completion(enrollment: Enrollment):
@@ -150,10 +154,11 @@ def _check_course_completion(enrollment: Enrollment):
             student_code = str(enrollment.student.id)[:4].upper()
             year         = timezone.now().strftime('%y')
             cert_number  = f'CERT-{year}-{course_code}-{student_code}'
-            Certificate.objects.create(
+            certificate = Certificate.objects.create(
                 enrollment  = enrollment,
                 cert_number = cert_number,
             )
+            send_certificate_email(certificate)
 
 
 class MyCertificateListView(generics.ListAPIView):
@@ -266,3 +271,49 @@ class MyCertificateByCourseView(APIView):
             'issued_at': cert.issued_at,
             'course_title': cert.enrollment.course.title,
         })
+def _auto_cancel_refund_if_over_threshold(enrollment: Enrollment):
+    """Tự hủy yêu cầu hoàn tiền nếu tiến độ vượt 20%."""
+    from payments.models import Transaction
+    from payments.emails import send_payment_success_email
+    from courses.models import Lesson as LessonModel
+
+    total = LessonModel.objects.filter(section__course=enrollment.course).count()
+    if not total:
+        return
+    completed = Progress.objects.filter(enrollment=enrollment, is_completed=True).count()
+    progress_pct = completed / total * 100
+
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"[AUTO_CANCEL] total={total} completed={completed} pct={progress_pct:.1f}%")
+
+    if progress_pct <= 20:
+        logger.warning(f"[AUTO_CANCEL] pct <= 20, skip")
+        return
+
+    logger.warning(f"[AUTO_CANCEL] checking transactions for student={enrollment.student.id} course={enrollment.course.id}")
+    transactions = Transaction.objects.filter(
+        student=enrollment.student,
+        course=enrollment.course,
+        status=Transaction.Status.REFUND_REQUESTED,
+    )
+    logger.warning(f"[AUTO_CANCEL] found {transactions.count()} transactions")
+
+    transactions = Transaction.objects.filter(
+        student=enrollment.student,
+        course=enrollment.course,
+        status=Transaction.Status.REFUND_REQUESTED,
+    )
+    for tx in transactions:
+        tx.status = Transaction.Status.SUCCESS
+        tx.refund_reason = ''
+        tx.note = 'Yêu cầu hoàn tiền tự động hủy do tiến độ vượt 20%.'
+        tx.save()
+        try:
+            from payments.emails import send_refund_cancelled_email
+            send_refund_cancelled_email(tx)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Auto-cancel refund email failed for transaction {tx.id}: {e}"
+            )

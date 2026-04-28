@@ -22,6 +22,7 @@ from .serializers import (
     TransactionSerializer,
     AdminTransactionDetailSerializer
 )
+from .emails import send_enrollment_email, send_payment_success_email, send_refund_success_email
 
 class InitiatePaymentView(APIView):
     """
@@ -111,6 +112,17 @@ class PaymentCallbackView(APIView):
             transaction.paid_at     = timezone.now()
             transaction.save()
             _activate_enrollment(transaction)
+            # Cộng doanh thu instructor
+            if transaction.amount and int(transaction.amount) > 0:
+                from wallet.services import pay_instructor_revenue
+                try:
+                    pay_instructor_revenue(
+                        course=transaction.course,
+                        amount=int(transaction.amount),
+                        transaction_id=str(transaction.id),
+                    )
+                except Exception:
+                    pass
         else:
             transaction.status      = Transaction.Status.FAILED
             transaction.gateway_ref = gateway_ref
@@ -142,28 +154,9 @@ def _activate_enrollment(transaction):
         enrollment.save(update_fields=['status', 'paid_amount'])
 
     if transaction.amount and int(transaction.amount) > 0:
-        try:
-            from wallet.models import Wallet, WalletTransaction
-            from wallet.services import INSTRUCTOR_REVENUE_RATE
-            revenue = int(int(transaction.amount) * INSTRUCTOR_REVENUE_RATE)
-            instructor = transaction.course.instructor
-            if instructor:
-                instructor_wallet, _ = Wallet.objects.get_or_create(user=instructor)
-                instructor_wallet.balance += revenue
-                instructor_wallet.save(update_fields=['balance'])
-                WalletTransaction.objects.create(
-                    wallet=instructor_wallet,
-                    tx_type=WalletTransaction.TxType.REVENUE,
-                    amount=revenue,
-                    balance_after=instructor_wallet.balance,
-                    note=f'Doanh thu từ: {transaction.course.title}',
-                    ref_id=str(transaction.id),
-                )
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(
-                f"Wallet update failed for transaction {transaction.id}: {e}"
-            )
+        send_payment_success_email(transaction)   # khoá học có phí
+    else:
+        send_enrollment_email(enrollment) 
 class MyTransactionListView(generics.ListAPIView):
     """
     GET /api/payments/history/
@@ -267,6 +260,34 @@ class RequestRefundView(APIView):
                 {'detail': 'Bạn đã yêu cầu hoàn tiền cho giao dịch này rồi.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Điều kiện 1: chỉ hoàn trong vòng 7 ngày
+        if transaction.paid_at:
+            days_since = (timezone.now() - transaction.paid_at).days
+            if days_since > 7:
+                return Response(
+                    {'detail': 'Chỉ được hoàn tiền trong vòng 7 ngày sau khi mua.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Điều kiện 2: chưa học quá 30%
+        from enrollments.models import Enrollment, Progress
+        enrollment = Enrollment.objects.filter(
+            student=request.user,
+            course=transaction.course,
+        ).first()
+        if enrollment:
+            total_lessons = Progress.objects.filter(enrollment=enrollment).count()
+            completed_lessons = Progress.objects.filter(
+                enrollment=enrollment, is_completed=True
+            ).count()
+            if total_lessons > 0:
+                progress_pct = completed_lessons / total_lessons * 100
+                if progress_pct > 20:
+                    return Response(
+                        {'detail': 'Không thể hoàn tiền khi đã học quá 20%.'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
         reason = request.data.get('reason', '')
         transaction.status = Transaction.Status.REFUND_REQUESTED
         transaction.refund_reason = reason
@@ -321,6 +342,11 @@ class AdminRejectRefundView(APIView):
         transaction.status = Transaction.Status.SUCCESS
         transaction.note   = request.data.get('reason', '')
         transaction.save()
+        try:
+            from .emails import send_refund_rejected_email
+            send_refund_rejected_email(transaction, reject_reason=transaction.note)
+        except Exception:
+            pass
         return Response({'message': 'Đã từ chối yêu cầu hoàn tiền.'})
     
 class InstructorRevenueMonthlyView(APIView):
@@ -481,7 +507,7 @@ class InstructorConfirmRefundView(APIView):
 
             refund_to_student(
                 student      = transaction.student,
-                amount       = int(transaction.amount),
+                amount       = amount,
                 course_title = transaction.course.title,
                 ref_id       = str(transaction.id),
             )
@@ -489,6 +515,7 @@ class InstructorConfirmRefundView(APIView):
             transaction.status = Transaction.Status.REFUNDED
             transaction.save()
 
+        send_refund_success_email(transaction)
         return Response({'message': 'Hoàn tiền thành công.'})
     
 class WalletPayView(APIView):
@@ -516,6 +543,7 @@ class WalletPayView(APIView):
                 student=request.user,
                 course=transaction.course,
                 amount=int(transaction.amount),
+                transaction_id=str(transaction.id),
             )
         except ValueError as e:
             return Response({'detail': str(e)}, status=400)

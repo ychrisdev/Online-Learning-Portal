@@ -15,6 +15,7 @@ from .views import (
     CustomTokenObtainPairView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
+    PasswordResetVerifyOtpView,
 )
 
 urlpatterns = [
@@ -28,6 +29,7 @@ urlpatterns = [
     path('change-password/',     ChangePasswordView.as_view(),   name='change-password'),
     
     path('password-reset/',         PasswordResetRequestView.as_view(), name='password-reset'),
+    path('password-reset/verify-otp/', PasswordResetVerifyOtpView.as_view(), name='password-reset-verify-otp'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     
     path('profile/student/',     StudentProfileView.as_view(),    name='profile-student'),

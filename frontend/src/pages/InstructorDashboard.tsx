@@ -5045,12 +5045,19 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               value: paymentDetail.course_title ?? "—",
                             },
                             {
+                              label: "Giảng viên",
+                              value: paymentDetail.instructor_name ?? "—",
+                            },
+                            {
                               label: "Số tiền",
                               value: formatPrice(
                                 paymentDetail.amount ?? 0,
                                 "VND",
                               ),
                             },
+                            ...(["refund_requested", "refund_approved", "refunded"].includes(paymentDetail.status)
+                              ? [{ label: "Số tiền hoàn", value: formatPrice((paymentDetail.amount ?? 0) * 0.7, "VND") }]
+                              : []),
                             {
                               label: "Trạng thái",
                               value:
@@ -6036,30 +6043,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                     ? new Date(
                                         tx.created_at,
                                       ).toLocaleDateString("vi-VN")
-                                    : "—"}
-                                </td>
-                              </tr>
-                            ))}
-                            {payments.map((p) => (
-                              <tr key={`pay-${p.id}`}>
-                                <td>
-                                  <span className="id-badge id-badge--payment">
-                                    Thanh toán
-                                  </span>
-                                </td>
-                                <td className="ad-table__muted">
-                                  {p.course_title ?? "—"} ·{" "}
-                                  {p.student_name ?? ""}
-                                </td>
-                                <td className="id-td-positive">
-                                  +{formatPrice(p.amount ?? 0, "VND")}
-                                </td>
-                                <td className="ad-table__muted">—</td>
-                                <td className="ad-table__muted">
-                                  {p.created_at
-                                    ? new Date(p.created_at).toLocaleDateString(
-                                        "vi-VN",
-                                      )
                                     : "—"}
                                 </td>
                               </tr>

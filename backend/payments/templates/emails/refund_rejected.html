@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Yêu cầu hoàn tiền bị từ chối</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:12px;overflow:hidden;
+                      border:1px solid #e5e7eb;">
+          <!-- Header -->
+          <tr>
+            <td style="background:#1a56db;padding:28px 36px;">
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:32px;height:32px;background:rgba(255,255,255,0.2);
+                             border-radius:8px;text-align:center;vertical-align:middle;
+                             font-size:18px;line-height:32px;">
+                    &#127891;
+                  </td>
+                  <td style="padding-left:10px;">
+                    <span style="color:#ffffff;font-size:17px;font-weight:bold;">EnglishHub</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Icon + tiêu đề -->
+          <tr>
+            <td style="padding:32px 36px 0;text-align:center;">
+              <h1 style="margin:0 0 8px;font-size:24px;font-weight:bold;color:#111827;">
+                Yêu cầu hoàn tiền bị từ chối
+              </h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
+                Yêu cầu hoàn tiền của bạn đã được xem xét và không được chấp thuận.
+              </p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:0 36px 32px;">
+              <p style="margin:0 0 16px;font-size:15px;color:#111827;line-height:1.7;">
+                Xin chào <strong>{{ student_name }}</strong>,
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.7;">
+                Sau khi xem xét, đội ngũ EnglishHub đã <strong style="color:#DC2626;">từ chối</strong>
+                yêu cầu hoàn tiền cho khoá học
+                <span style="color:#1a56db;font-weight:bold;">{{ course_title }}</span>.
+              </p>
+              <!-- Bảng thông tin -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#f9fafb;border-radius:8px;
+                            border:1px solid #e5e7eb;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#6b7280;width:130px;">
+                    Khoá học
+                  </td>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#111827;font-weight:bold;text-align:right;">
+                    {{ course_title }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#6b7280;">
+                    Số tiền
+                  </td>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#111827;font-weight:bold;text-align:right;">
+                    {{ amount }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#6b7280;">
+                    Mã giao dịch
+                  </td>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#1a56db;font-weight:bold;
+                             letter-spacing:0.5px;text-align:right;">
+                    {{ ref_code }}
+                  </td>
+                </tr>
+                {% if reject_reason %}
+                <tr>
+                  <td style="padding:10px 20px;font-size:13px;color:#6b7280;">
+                    Lý do từ chối
+                  </td>
+                  <td style="padding:10px 20px;font-size:13px;color:#DC2626;text-align:right;">
+                    {{ reject_reason }}
+                  </td>
+                </tr>
+                {% endif %}
+              </table>
+              <!-- Ghi chú -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#FEF2F2;border-radius:8px;
+                            border:1px solid #FECACA;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:14px 20px;font-size:13px;color:#991B1B;line-height:1.6;">
+                    &#9432;&nbsp; Giao dịch của bạn vẫn có hiệu lực và bạn có thể tiếp tục
+                    học khoá học này. Nếu bạn cho rằng quyết định này chưa chính xác,
+                    vui lòng liên hệ đội ngũ hỗ trợ để được giải quyết.
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.7;">
+                Nếu bạn có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ của EnglishHub.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 36px;border-top:1px solid #e5e7eb;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+                Email này được gửi tự động, vui lòng không trả lời.<br/>
+                © 2025 EnglishHub. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

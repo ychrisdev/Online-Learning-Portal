@@ -235,7 +235,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
           {!featuredLoading && !featuredError && featured.length > 0 && (
             <div className="grid-courses">
-              {featured.map((course) => (
+              {featured.slice(0, 8).map((course) => (
                 <CourseListCard
                   key={course.id}
                   course={course}
