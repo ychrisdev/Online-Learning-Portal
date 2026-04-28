@@ -512,3 +512,46 @@
     align-items: flex-start;
   }
 }
+.courses-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) 0 var(--space-4);
+  border-top: 1px solid rgba(119, 141, 169, 0.1);
+  margin-top: var(--space-4);
+}
+
+.pagination-btn {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 1em;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: rgba(224, 225, 221, 0.75);
+  background: rgba(65, 90, 119, 0.12);
+  border: 1px solid rgba(119, 141, 169, 0.18);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #415a77;
+  color: #e0e1dd;
+  border-color: rgba(119, 141, 169, 0.4);
+}
+
+.pagination-btn--active {
+  background: #415a77;
+  color: #e0e1dd;
+  border-color: rgba(119, 141, 169, 0.4);
+  font-weight: var(--fw-semibold);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}

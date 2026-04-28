@@ -41,7 +41,6 @@ const Navbar: React.FC<NavbarProps> = ({
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const raw = searchQuery.trim();
-    if (!raw) return;
     if (currentPage === 'courses') {
       onSearch?.(raw);
     } else {
@@ -55,7 +54,7 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="navbar__inner">
 
           <div className="navbar__left">
-            <button className="navbar__logo" onClick={() => onNavigate('home')} aria-label="Về trang chủ">
+            <button className="navbar__logo" onClick={() => { setSearchQuery(''); onSearch?.(''); onNavigate('home'); }} aria-label="Về trang chủ">
               <div className="navbar__logo-icon">E</div>
               <span className="navbar__logo-text">EnglishHub</span>
             </button>
@@ -64,7 +63,11 @@ const Navbar: React.FC<NavbarProps> = ({
                 <button
                   key={link.id}
                   className={`navbar__link ${currentPage === link.id ? 'navbar__link--active' : ''}`}
-                  onClick={() => onNavigate(link.id)}
+                  onClick={() => {
+                    setSearchQuery('');      // ← reset ô search
+                    onSearch?.(''); 
+                    onNavigate(link.id);
+                  }}
                 >
                   {link.label}
                 </button>
@@ -82,7 +85,17 @@ const Navbar: React.FC<NavbarProps> = ({
                 type="search"
                 placeholder="Tìm khóa học..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  if (val === '') onSearch?.('');   // xóa hết → reset ngay
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    setSearchQuery('');
+                    onSearch?.('');                  // nhấn Esc → thoát search
+                  }
+                }}
                 className="navbar__search-input"
                 aria-label="Tìm kiếm khóa học"
               />
@@ -92,15 +105,15 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="navbar__right">
             <div className="navbar__auth">
               {isLoggedIn ? (
-                <button className="navbar__btn-profile" onClick={() => onNavigate('dashboard')}>
+                <button className="navbar__btn-profile" onClick={() => { setSearchQuery(''); onSearch?.(''); onNavigate('dashboard'); }}>
                   Hồ sơ
                 </button>
               ) : (
                 <>
-                  <button className="navbar__btn-ghost" onClick={() => onAuthOpen?.('login')}>
+                  <button className="navbar__btn-ghost" onClick={() => { setSearchQuery(''); onSearch?.(''); onAuthOpen?.('login'); }}>
                     Đăng nhập
                   </button>
-                  <button className="navbar__btn-primary" onClick={() => onAuthOpen?.('register')}>
+                  <button className="navbar__btn-primary" onClick={() => { setSearchQuery(''); onSearch?.(''); onAuthOpen?.('register'); }}>
                     Đăng ký
                   </button>
                 </>
@@ -125,7 +138,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <button
               key={link.id}
               className={`navbar__mobile-link ${currentPage === link.id ? 'navbar__mobile-link--active' : ''}`}
-              onClick={() => { onNavigate(link.id); setMenuOpen(false); }}
+              onClick={() => { setSearchQuery(''); onSearch?.(''); onNavigate(link.id); setMenuOpen(false); }}
             >
               {link.label}
             </button>
@@ -134,7 +147,7 @@ const Navbar: React.FC<NavbarProps> = ({
           {isLoggedIn ? (
             <button
               className="navbar__mobile-link"
-              onClick={() => { onNavigate('dashboard'); setMenuOpen(false); }}
+              onClick={() => { setSearchQuery(''); onSearch?.(''); onNavigate('dashboard'); setMenuOpen(false); }}
             >
               Hồ sơ
             </button>
@@ -142,13 +155,13 @@ const Navbar: React.FC<NavbarProps> = ({
             <div className="navbar__mobile-auth">
               <button
                 className="navbar__mobile-btn-outline"
-                onClick={() => { onAuthOpen?.('login'); setMenuOpen(false); }}
+                onClick={() => { setSearchQuery(''); onSearch?.(''); onAuthOpen?.('login'); setMenuOpen(false); }}
               >
                 Đăng nhập
               </button>
               <button
                 className="navbar__mobile-btn-primary"
-                onClick={() => { onAuthOpen?.('register'); setMenuOpen(false); }}
+                onClick={() => { setSearchQuery(''); onSearch?.(''); onAuthOpen?.('register'); setMenuOpen(false); }}
               >
                 Đăng ký miễn phí
               </button>

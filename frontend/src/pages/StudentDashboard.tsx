@@ -840,57 +840,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </div>
               </div>
 
-              {!loadingCourses && inProgressCourses.length > 0 && (
-                <div className="id-form-card overview-courses-card">
-                  <h3 className="id-form-card__title">
-                    Đang học ({inProgressCourses.length})
-                  </h3>
-                  <div className="overview-courses-list">
-                    {inProgressCourses.slice(0, 3).map((c) => (
-                      <div key={c.id} className="overview-course-item">
-                        <div className="overview-course-item__info">
-                          <div className="overview-course-item__title">
-                            {c.course_title}
-                          </div>
-                          {c.instructor_name && (
-                            <div className="overview-course-item__instructor">
-                              {c.instructor_name}
-                            </div>
-                          )}
-                          <div className="overview-course-item__progress">
-                            <div className="db-progress-bar">
-                              <div
-                                className="db-progress-bar__fill"
-                                style={{ width: `${c.progress}%` }}
-                              />
-                            </div>
-                            <span className="overview-course-item__pct">
-                              {c.progress}%
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          className="ad-btn-sm ad-btn-sm--view"
-                          onClick={() =>
-                            onNavigate("course-detail", c.course_slug)
-                          }
-                        >
-                          Tiếp tục
-                        </button>
-                      </div>
-                    ))}
-                    {inProgressCourses.length > 3 && (
-                      <button
-                        className="id-btn-secondary overview-view-all-btn"
-                        onClick={() => setActiveTab("courses")}
-                      >
-                        Xem tất cả {inProgressCourses.length} khóa →
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {!loadingPayments && payments.filter((p) => p.status === "success").length > 0 && (
                 <div className="payment-card">
                   <div className="payment-card-header">

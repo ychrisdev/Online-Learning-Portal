@@ -8,7 +8,7 @@
 
 .footer__grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr; /* brand | sản phẩm | hỗ trợ */
+  grid-template-columns: 1.5fr 1fr 1fr 1.6fr; /* brand | sản phẩm | hỗ trợ |gg map*/
   gap: var(--space-10);
   padding-bottom: var(--space-12);
   border-bottom: 1px solid rgba(119, 141, 169, 0.1);
@@ -145,7 +145,7 @@
 
 @media (max-width: 1024px) {
   .footer__grid {
-    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-8);
   }
   .footer__brand {
@@ -175,3 +175,20 @@
     grid-template-columns: 1fr;
   }
 }
+.footer__map-label {
+  font-size: var(--text-xs);
+  color: rgba(224, 225, 221, 0.4);
+  margin-bottom: var(--space-2);
+}
+
+.footer__map {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid rgba(119, 141, 169, 0.15);
+  opacity: 0.8;
+  transition: opacity var(--transition-fast);
+}
+
+.footer__map:hover { opacity: 1; }
+
+.footer__map iframe { display: block; }

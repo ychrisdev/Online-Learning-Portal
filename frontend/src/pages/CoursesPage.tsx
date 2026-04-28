@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import CourseListCard, { LEVEL_LABEL } from '../components/ui/CourseListCard';
 
 const API = 'http://127.0.0.1:8000';
@@ -44,7 +44,10 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
   onSearchChange,
 }) => {
   const [search, setSearch] = useState(initialSearch);
+  const gridRef = useRef<HTMLDivElement>(null);
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
   // Real data
   const [courses,    setCourses]    = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -98,6 +101,9 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
     })();
   }, []);
 
+  const scrollToGrid = () => {
+    gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   // ── Filter + sort ────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = [...courses];
@@ -132,9 +138,12 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
     return list;
   }, [courses, search, selectedCat, selectedLv, selectedPrice, sortBy]);
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const handleSearchChange = (val: string) => {
     setSearch(val);
     onSearchChange?.(val);
+    setPage(1);
   };
 
   const clearFilters = () => {
@@ -143,6 +152,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
     setSelectedLv('Tất cả');
     setSelectedPrice('all');
     setSortBy('popular');
+    setPage(1);
   };
 
   const hasFilters = !!(search || selectedCat || selectedLv !== 'Tất cả' || selectedPrice !== 'all');
@@ -152,7 +162,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
     <div className="courses-page">
 
       {/* Header */}
-      <div className="courses-header">
+      <div className="courses-header"  ref={gridRef}>
         <div className="container">
           <span className="courses-header__eyebrow">Tất cả khóa học</span>
           <h1 className="courses-header__title">Tìm khóa học phù hợp với bạn</h1>
@@ -179,7 +189,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
                 <button
                   key={lv}
                   className={`filter-pill${selectedLv === lv ? ' filter-pill--active' : ''}`}
-                  onClick={() => setSelectedLv(lv)}
+                  onClick={() => { setSelectedLv(lv); handleSearchChange('');setPage(1); scrollToGrid(); }}
                 >
                   {LEVEL_LABEL[lv]}
                 </button>
@@ -192,7 +202,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
             <div className="filter-categories">
               <button
                 className={`filter-cat${!selectedCat ? ' filter-cat--active' : ''}`}
-                onClick={() => setSelectedCat('')}
+                onClick={() => { setSelectedCat(''); handleSearchChange(''); setPage(1); scrollToGrid(); }}
               >
                 Tất cả
               </button>
@@ -200,7 +210,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
                 <button
                   key={cat.id}
                   className={`filter-cat${selectedCat === cat.slug ? ' filter-cat--active' : ''}`}
-                  onClick={() => setSelectedCat(selectedCat === cat.slug ? '' : cat.slug)}
+                  onClick={() => { setSelectedCat(selectedCat === cat.slug ? '' : cat.slug); handleSearchChange('');setPage(1); scrollToGrid(); }}
                 >
                   {cat.name}
                 </button>
@@ -215,7 +225,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
                 <button
                   key={p.value}
                   className={`filter-pill${selectedPrice === p.value ? ' filter-pill--active' : ''}`}
-                  onClick={() => setSelectedPrice(p.value)}
+                  onClick={() => { setSelectedPrice(p.value); handleSearchChange('');setPage(1); scrollToGrid(); }}
                 >
                   {p.label}
                 </button>
@@ -245,7 +255,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
                 <button
                   key={s.value}
                   className={`sort-btn${sortBy === s.value ? ' sort-btn--active' : ''}`}
-                  onClick={() => setSortBy(s.value)}
+                  onClick={() => { setSortBy(s.value); handleSearchChange(''); scrollToGrid()}}
                 >
                   {s.label}
                 </button>
@@ -265,15 +275,44 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
               <p>Không tìm thấy khóa học phù hợp.</p>              
             </div>
           ) : (
-            <div className="courses-grid">
-              {filtered.map(course => (
-                <CourseListCard
-                  key={course.id}
-                  course={course}
-                  onSelect={() => onNavigate('course-detail', course.slug ?? course.id)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="courses-grid">
+                {paginated.map(course => (
+                  <CourseListCard
+                    key={course.id}
+                    course={course}
+                    onSelect={() => onNavigate('course-detail', course.slug ?? course.id)}
+                  />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <div className="courses-pagination">
+                  <button
+                    className="pagination-btn"
+                    onClick={() => {setPage(p => Math.max(1, p - 1));scrollToGrid(); }}
+                    disabled={page === 1}
+                  >
+                    ← Trước
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      className={`pagination-btn${page === p ? ' pagination-btn--active' : ''}`}
+                      onClick={() => {setPage(p);scrollToGrid(); }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    className="pagination-btn"
+                    onClick={() => {setPage(p => Math.min(totalPages, p + 1));scrollToGrid(); }}
+                    disabled={page === totalPages}
+                  >
+                    Tiếp →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
