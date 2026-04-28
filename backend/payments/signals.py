@@ -9,11 +9,6 @@ from enrollments.models import Enrollment
 
 @receiver(post_save, sender=Transaction)
 def on_transaction_saved(sender, instance, **kwargs):
-    """
-    Tự động tạo Enrollment và cập nhật total_students
-    bất cứ khi nào Transaction chuyển sang SUCCESS —
-    dù qua API, Django Admin, hay shell.
-    """
     course = instance.course
 
     if instance.status == Transaction.Status.SUCCESS:
@@ -33,7 +28,7 @@ def on_transaction_saved(sender, instance, **kwargs):
         Enrollment.objects.filter(
             student=instance.student,
             course=course,
-        ).delete()
+        ).update(status=Enrollment.Status.REFUNDED)
 
     course.total_students = course.enrollments.filter(
         status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED]

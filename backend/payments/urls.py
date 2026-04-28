@@ -27,6 +27,10 @@ urlpatterns = [
     path('initiate/',   InitiatePaymentView.as_view(),   name='payment-initiate'),
     path('callback/',   PaymentCallbackView.as_view(),   name='payment-callback'),
     path('history/',    MyTransactionListView.as_view(),  name='transaction-history'),
+    
+    path('instructor/<uuid:id>/confirm-refund/', InstructorConfirmRefundView.as_view()),
+    path('instructor/<uuid:id>/', InstructorTransactionDetailView.as_view(), name='instructor-transaction-detail'),
+    path('instructor/',           InstructorTransactionListView.as_view(),  name='instructor-transaction-list'),
 
     # Admin
     path('admin/',               AdminTransactionListView.as_view(), name='admin-transaction-list'),
@@ -42,11 +46,6 @@ urlpatterns = [
     path('analytics/revenue/monthly/', InstructorRevenueMonthlyView.as_view()),
 
     path('revenue/', revenue_stats),
-
-     # Instructor
-    path('instructor/',           InstructorTransactionListView.as_view(),  name='instructor-transaction-list'),
-    path('instructor/<uuid:id>/', InstructorTransactionDetailView.as_view(), name='instructor-transaction-detail'),
-    path('instructor/<uuid:id>/confirm-refund/', InstructorConfirmRefundView.as_view()),
 
     #payment
     path('wallet-pay/', WalletPayView.as_view(), name='wallet-pay'),

@@ -310,7 +310,7 @@ class AdminApproveRefundView(APIView):
         transaction.save()
         return Response({'message': 'Đã duyệt, đang chờ giảng viên xác nhận.'})
 
-        # Hoàn tiền về ví sinh viên
+        """ # Hoàn tiền về ví sinh viên
         from wallet.services import refund_to_student
         try:
             refund_to_student(
@@ -322,7 +322,7 @@ class AdminApproveRefundView(APIView):
         except Exception:
             pass
 
-        return Response({'message': 'Đã duyệt hoàn tiền.'})
+        return Response({'message': 'Đã duyệt hoàn tiền.'}) """
 
 
 # THÊM VÀO CUỐI — admin từ chối hoàn tiền
@@ -459,11 +459,6 @@ class InstructorTransactionDetailView(generics.RetrieveAPIView):
         ).select_related('student', 'course')
     
 class InstructorConfirmRefundView(APIView):
-    """
-    POST /api/payments/instructor/<id>/confirm-refund/
-    Instructor xác nhận hoàn tiền → trừ ví instructor, cộng ví student
-    Nếu không đủ tiền → trả 400 kèm số tiền thiếu
-    """
     permission_classes = [IsAuthenticated, IsInstructor]
 
     def post(self, request, id):
@@ -478,7 +473,7 @@ class InstructorConfirmRefundView(APIView):
             course__instructor=request.user,
         )
 
-        amount = int(transaction.amount * Decimal('0.7'))  # 70% instructor đã nhận
+        amount = int(transaction.amount * Decimal('0.7'))
 
         with db_tx.atomic():
             instructor_wallet = Wallet.objects.select_for_update().get_or_create(
@@ -497,27 +492,31 @@ class InstructorConfirmRefundView(APIView):
             instructor_wallet.save()
 
             WalletTransaction.objects.create(
-                wallet        = instructor_wallet,
-                tx_type       = WalletTransaction.TxType.REFUND,
-                amount        = -amount,
-                balance_after = instructor_wallet.balance,
-                note          = f'Hoàn tiền khóa học: {transaction.course.title}',
-                ref_id        = str(transaction.id),
+                wallet=instructor_wallet,
+                tx_type=WalletTransaction.TxType.REFUND,
+                amount=-amount,
+                balance_after=instructor_wallet.balance,
+                note=f'Hoàn tiền khóa học: {transaction.course.title}',
+                ref_id=str(transaction.id),
             )
 
             refund_to_student(
-                student      = transaction.student,
-                amount       = amount,
-                course_title = transaction.course.title,
-                ref_id       = str(transaction.id),
+                student=transaction.student,
+                amount=amount,
+                course_title=transaction.course.title,
+                ref_id=str(transaction.id),
             )
 
             transaction.status = Transaction.Status.REFUNDED
             transaction.save()
 
-        send_refund_success_email(transaction)
-        return Response({'message': 'Hoàn tiền thành công.'})
-    
+        try:
+            send_refund_success_email(transaction)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error('Refund email failed: %s', e)
+
+        return Response({'message': 'Hoàn tiền thành công.'})    
 class WalletPayView(APIView):
     """
     POST /api/payments/wallet-pay/

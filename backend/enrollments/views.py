@@ -20,6 +20,7 @@ from .serializers import (
 )
 from .emails import send_certificate_email
 from payments.emails import send_enrollment_email
+from decimal import Decimal
 
 
 # ── Student ───────────────────────────────────────────────────────────────────
