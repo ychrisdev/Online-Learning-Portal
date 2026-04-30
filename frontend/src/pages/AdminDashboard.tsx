@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
 import { usePagination } from "../../src/hooks/usePagination";
@@ -153,9 +153,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [modalFilterCourse, setModalFilterCourse] = useState("");
   const [courseViewModal, setCourseViewModal] = useState(false);
   const [viewingCourse, setViewingCourse] = useState<any>(null);
+  const [courseDetailTab, setCourseDetailTab] = useState<
+    "overview" | "content" | "finance"
+  >("overview");
 
   const openViewCourse = async (c: any) => {
-    console.log("OPEN COURSE", c);
+    setCourseDetailTab("overview");
     setViewingCourse(c);
     setCourseViewModal(true);
     try {
@@ -451,6 +454,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setUserViewModal(false);
     setSelectedUser(null);
   };
+
+  const sectionsByCourse = useMemo(() => {
+    const map = new Map<string, any[]>();
+    sections.forEach((s) => {
+      const cid = String(s.course?.id ?? s.course);
+      if (!map.has(cid)) map.set(cid, []);
+      map.get(cid)!.push(s);
+    });
+    return map;
+  }, [sections]);
+
+  const lessonsBySection = useMemo(() => {
+    const map = new Map<string, any[]>();
+    lessons.forEach((l) => {
+      const sid = String(l.section?.id ?? l.section);
+      if (!map.has(sid)) map.set(sid, []);
+      map.get(sid)!.push(l);
+    });
+    return map;
+  }, [lessons]);
 
   const fetchUsers = useCallback(async () => {
     setLoadingUsers(true);
@@ -6119,87 +6142,459 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {courseViewModal && viewingCourse && (
             <div
               className="ad-modal-overlay"
-              onClick={() => setCourseViewModal(false)}
+              onClick={() => {
+                setCourseViewModal(false);
+              }}
             >
               <div
-                className="ad-modal ad-modal--payment"
+                className="ad-modal ad-modal--course-detail"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="ad-modal__header">
-                  <h2 className="ad-modal__title">Chi tiết khóa học</h2>
+                  <div className="cd-header-info">
+                    {viewingCourse.thumbnail && (
+                      <img
+                        src={viewingCourse.thumbnail}
+                        alt=""
+                        className="cd-header-thumb"
+                      />
+                    )}
+                    <div>
+                      <h2
+                        className="ad-modal__title"
+                        style={{ marginBottom: 4 }}
+                      >
+                        {viewingCourse.title || "—"}
+                      </h2>
+                      <div className="cd-hero__badges">
+                        <span
+                          className={`ad-badge ad-badge--${viewingCourse.status}`}
+                        >
+                          {STATUS_LABEL[viewingCourse.status] ??
+                            viewingCourse.status}
+                        </span>
+                        {viewingCourse.is_featured && (
+                          <span className="cd-hero__featured">★ Nổi bật</span>
+                        )}
+                        <span className="cd-hero__level">
+                          {{
+                            beginner: "Cơ bản",
+                            intermediate: "Trung cấp",
+                            advanced: "Nâng cao",
+                          }[viewingCourse.level as string] ??
+                            viewingCourse.level}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   <button
                     className="ad-modal__close"
-                    onClick={() => setCourseViewModal(false)}
+                    onClick={() => {
+                      setCourseViewModal(false);
+                    }}
                   >
                     ✕
                   </button>
                 </div>
-
-                <div className="ad-modal__body">
-                  {viewingCourse.thumbnail && (
-                    <img
-                      src={viewingCourse.thumbnail}
-                      alt=""
-                      className="ad-modal__course-thumb"
-                    />
-                  )}
-
-                  <h3 className="ad-modal__course-title">
-                    {viewingCourse.title || "—"}
-                  </h3>
-
-                  <div className="ad-modal__field">
-                    <span className="ad-modal__field-label">Giảng viên</span>
-                    <span className="ad-modal__field-value">
-                      {viewingCourse.instructor_name ||
-                        viewingCourse.instructor?.name ||
-                        "—"}
-                    </span>
-                  </div>
-
-                  <div className="ad-modal__field">
-                    <span className="ad-modal__field-label">Học phí</span>
-                    <span className="ad-modal__field-value ad-modal__field-value--price">
-                      {viewingCourse.sale_price || viewingCourse.price
-                        ? formatPrice(
-                            viewingCourse.sale_price ?? viewingCourse.price,
-                            "VND",
-                          )
-                        : "Miễn phí"}
-                    </span>
-                  </div>
-
-                  <div className="ad-modal__field">
-                    <span className="ad-modal__field-label">Học viên</span>
-                    <span className="ad-modal__field-value">
-                      {(viewingCourse.total_students ?? 0).toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="ad-modal__field">
-                    <span className="ad-modal__field-label">Trạng thái</span>
-                    <span
-                      className={`ad-badge ad-badge--${viewingCourse.status}`}
-                    >
-                      {STATUS_LABEL[viewingCourse.status] ??
-                        viewingCourse.status}
-                    </span>
-                  </div>
-
-                  {viewingCourse.description && (
-                    <>
-                      <div className="ad-modal__section-title">Mô tả</div>
-                      <p className="ad-modal__field-value--comment">
-                        {viewingCourse.description}
-                      </p>
-                    </>
-                  )}
+                <div className="cd-stat-bar">
+                  {[
+                    {
+                      val:
+                        viewingCourse.price === 0 || viewingCourse.price == null
+                          ? null
+                          : formatPrice(viewingCourse.revenue ?? 0, "VND"),
+                      lbl: "Doanh thu",
+                      green: true,
+                      isFree: viewingCourse.price === 0,
+                    },
+                    {
+                      val: (viewingCourse.total_students ?? 0).toLocaleString(),
+                      lbl: "Học viên",
+                    },
+                    {
+                      val:
+                        viewingCourse.avg_rating != null &&
+                        viewingCourse.avg_rating > 0
+                          ? `${Number(viewingCourse.avg_rating).toFixed(1)} ★`
+                          : "—",
+                      lbl: "Đánh giá TB",
+                    },
+                    {
+                      val: viewingCourse.refunded_count ?? 0,
+                      lbl: "Hoàn tiền",
+                    },
+                  ].map((s) => (
+                    <div key={s.lbl} className="cd-stat-bar__item">
+                      {s.isFree ? (
+                        <span className="cd-free-badge">MIỄN PHÍ</span>
+                      ) : (
+                        <span
+                          className="cd-stat-bar__val"
+                          style={s.green ? { color: "#4caf82" } : undefined}
+                        >
+                          {s.val}
+                        </span>
+                      )}
+                      <span className="cd-stat-bar__lbl">{s.lbl}</span>
+                    </div>
+                  ))}
                 </div>
+                <div className="cd-tabs">
+                  {(["overview", "content", "finance"] as const).map((t) => (
+                    <button
+                      key={t}
+                      className={`cd-tab${courseDetailTab === t ? " cd-tab--active" : ""}`}
+                      onClick={() => setCourseDetailTab(t)}
+                    >
+                      {
+                        {
+                          overview: "Tổng quan",
+                          content: "Nội dung",
+                          finance: "Tài chính",
+                        }[t]
+                      }
+                    </button>
+                  ))}
+                </div>
+                <div className="ad-modal__body ad-modal__body--course">
+                  {courseDetailTab === "overview" && (
+                    <div className="cd-tab-grid">
+                      <div className="cd-col">
+                        <p className="cd-col__heading">Thông tin chung</p>
+                        {[
+                          {
+                            label: "Giảng viên",
+                            value: viewingCourse.instructor_name || "—",
+                          },
+                          {
+                            label: "Danh mục",
+                            value: viewingCourse.category_name || "—",
+                          },
+                          {
+                            label: "Trình độ",
+                            value:
+                              {
+                                beginner: "Cơ bản",
+                                intermediate: "Trung cấp",
+                                advanced: "Nâng cao",
+                              }[viewingCourse.level as string] ?? "—",
+                          },
+                          {
+                            label: "Ngày tạo",
+                            value: viewingCourse.created_at
+                              ? new Date(
+                                  viewingCourse.created_at,
+                                ).toLocaleDateString("vi-VN")
+                              : "—",
+                          },
+                          {
+                            label: "Cập nhật",
+                            value: viewingCourse.updated_at
+                              ? new Date(
+                                  viewingCourse.updated_at,
+                                ).toLocaleDateString("vi-VN")
+                              : "—",
+                          },
+                          {
+                            label: "Xuất bản",
+                            value: viewingCourse.published_at
+                              ? new Date(
+                                  viewingCourse.published_at,
+                                ).toLocaleDateString("vi-VN")
+                              : "Chưa xuất bản",
+                          },
+                        ].map((r) => (
+                          <div key={r.label} className="cd-row">
+                            <span>{r.label}</span>
+                            <span>{r.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="cd-col">
+                        <p className="cd-col__heading">Mô tả</p>
+                        <p
+                          className="cd-desc__text"
+                          style={{ WebkitLineClamp: "unset", overflow: "auto" }}
+                        >
+                          {viewingCourse.description || (
+                            <em style={{ opacity: 0.4 }}>Chưa có mô tả</em>
+                          )}
+                        </p>
+                        {viewingCourse.requirements && (
+                          <>
+                            <p
+                              className="cd-col__heading"
+                              style={{ marginTop: 10 }}
+                            >
+                              Yêu cầu đầu vào
+                            </p>
+                            <p className="cd-desc__text">
+                              {viewingCourse.requirements}
+                            </p>
+                          </>
+                        )}
+                        {viewingCourse.what_you_learn && (
+                          <>
+                            <p
+                              className="cd-col__heading"
+                              style={{ marginTop: 10 }}
+                            >
+                              Học được gì
+                            </p>
+                            <p className="cd-desc__text">
+                              {viewingCourse.what_you_learn}
+                            </p>
+                          </>
+                        )}
+                        {(() => {
+                          const courseReviews = reviews.filter(
+                            (r) =>
+                              String(r.course ?? "") ===
+                              String(viewingCourse.id),
+                          );
+                          if (courseReviews.length === 0) return null;
+                          const breakdown = [5, 4, 3, 2, 1].map((star) => ({
+                            star,
+                            count: courseReviews.filter(
+                              (r) => r.rating === star,
+                            ).length,
+                          }));
+                          const maxCount = Math.max(
+                            ...breakdown.map((b) => b.count),
+                            1,
+                          );
+                          return (
+                            <div className="cd-rating-breakdown">
+                              <p
+                                className="cd-col__heading"
+                                style={{ marginTop: 8 }}
+                              >
+                                Phân bố đánh giá
+                              </p>
+                              {breakdown.map((b) => (
+                                <div key={b.star} className="cd-rating-row">
+                                  <span className="cd-rating-row__star">
+                                    {b.star}★
+                                  </span>
+                                  <div className="cd-rating-row__bar">
+                                    <div
+                                      className="cd-rating-row__fill"
+                                      style={{
+                                        width: `${(b.count / maxCount) * 100}%`,
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="cd-rating-row__count">
+                                    {b.count}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
 
+                  {courseDetailTab === "content" &&
+                    (() => {
+                      const courseSections =
+                        sectionsByCourse.get(String(viewingCourse.id)) ?? [];
+                      const courseLessons = courseSections.flatMap(
+                        (s) => lessonsBySection.get(String(s.id)) ?? [],
+                      );
+                      const totalLessons = courseLessons.length;
+                      const totalSections = courseSections.length;
+                      const vReviews = reviews.filter((r) => {
+                        const cid =
+                          typeof r.course === "object"
+                            ? r.course?.id
+                            : r.course;
+                        return String(cid) === String(viewingCourse.id);
+                      });
+
+                      return (
+                        <div>
+                          <div className="cd-content-summary">
+                            <div className="cd-content-stat">
+                              <span className="cd-content-stat__val">
+                                {totalSections}
+                              </span>
+                              <span className="cd-content-stat__lbl">
+                                Chương
+                              </span>
+                            </div>
+                            <div className="cd-content-stat">
+                              <span className="cd-content-stat__val">
+                                {totalLessons}
+                              </span>
+                              <span className="cd-content-stat__lbl">
+                                Bài học
+                              </span>
+                            </div>
+                            <div className="cd-content-stat">
+                              <span className="cd-content-stat__val">
+                                {vReviews.length}
+                              </span>
+                              <span className="cd-content-stat__lbl">
+                                Đánh giá
+                              </span>
+                            </div>
+                            <div className="cd-content-stat">
+                              <span className="cd-content-stat__val">
+                                {
+                                  courseLessons.filter(
+                                    (l) => l.video_url || l.video_file,
+                                  ).length
+                                }
+                              </span>
+                              <span className="cd-content-stat__lbl">
+                                Có video
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="cd-section-list">
+                            {courseSections.length === 0 ? (
+                              <p className="ad-empty">Chưa có chương nào.</p>
+                            ) : (
+                              courseSections.map((sec, si) => {
+                                const secLessons =
+                                  lessonsBySection.get(String(sec.id)) ?? [];
+                                return (
+                                  <div key={sec.id} className="cd-section-item">
+                                    <div className="cd-section-item__header">
+                                      <span className="cd-section-item__order">
+                                        {si + 1}
+                                      </span>
+                                      <span className="cd-section-item__title">
+                                        {sec.title}
+                                      </span>
+                                      <span className="cd-section-item__count">
+                                        {secLessons.length} bài
+                                      </span>
+                                    </div>
+                                    {secLessons.slice(0, 3).map((l, li) => (
+                                      <div key={l.id} className="cd-lesson-row">
+                                        <span className="cd-lesson-row__icon">
+                                          {l.video_url || l.video_file
+                                            ? "▶"
+                                            : l.content
+                                              ? "📄"
+                                              : "📎"}
+                                        </span>
+                                        <span className="cd-lesson-row__title">
+                                          {l.title}
+                                        </span>
+                                        {(l.is_preview_video ||
+                                          l.is_preview_article) && (
+                                          <span className="cd-lesson-row__preview">
+                                            Xem thử
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {secLessons.length > 3 && (
+                                      <p className="cd-lesson-more">
+                                        +{secLessons.length - 3} bài nữa
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                  {courseDetailTab === "finance" &&
+                    (() => {
+                      const totalOrders = viewingCourse.total_students ?? 0;
+                      const refunded = viewingCourse.refunded_count ?? 0;
+                      const refundRate =
+                        totalOrders > 0
+                          ? ((refunded / totalOrders) * 100).toFixed(1)
+                          : "0.0";
+                      const grossRev = viewingCourse.revenue ?? 0;
+                      const refundedAmount =
+                        viewingCourse.refunded_amount ??
+                        Math.round(
+                          grossRev * (refunded / Math.max(totalOrders, 1)),
+                        );
+                      const netRev = grossRev - refundedAmount;
+
+                      return (
+                        <div className="cd-tab-grid">
+                          <div className="cd-col">
+                            <p className="cd-col__heading">Giá bán</p>
+                            <div className="cd-row">
+                              <span>Giá gốc</span>
+                              <span>
+                                {viewingCourse.price > 0
+                                  ? formatPrice(viewingCourse.price, "VND")
+                                  : "Miễn phí"}
+                              </span>
+                            </div>
+                            {viewingCourse.discount_percent > 0 && (
+                              <div className="cd-row">
+                                <span>Giảm giá</span>
+                                <span>{viewingCourse.discount_percent}%</span>
+                              </div>
+                            )}
+                            <div className="cd-row">
+                              <span>Giá bán</span>
+                              <span className="cd-val--green">
+                                {(viewingCourse.sale_price ??
+                                  viewingCourse.price) > 0
+                                  ? formatPrice(
+                                      viewingCourse.sale_price ??
+                                        viewingCourse.price,
+                                      "VND",
+                                    )
+                                  : "Miễn phí"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="cd-col">
+                            <p className="cd-col__heading">Doanh thu</p>
+                            <div className="cd-row">
+                              <span>Tổng đơn</span>
+                              <span>{totalOrders.toLocaleString()}</span>
+                            </div>
+                            <div className="cd-row">
+                              <span>Hoàn tiền</span>
+                              <span
+                                style={{
+                                  color: refunded > 0 ? "#e07a5f" : undefined,
+                                }}
+                              >
+                                {refunded} ({refundRate}%)
+                              </span>
+                            </div>
+                            <div className="cd-row">
+                              <span>Doanh thu gộp</span>
+                              <span className="cd-val--green">
+                                {formatPrice(grossRev, "VND")}
+                              </span>
+                            </div>
+                            <div className="cd-row">
+                              <span>Doanh thu ròng</span>
+                              <span className="cd-val--green">
+                                {formatPrice(netRev, "VND")}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                </div>
                 <div className="ad-modal__footer">
                   <button
                     className="ad-modal__cancel"
-                    onClick={() => setCourseViewModal(false)}
+                    onClick={() => {
+                      setCourseViewModal(false);
+                    }}
                   >
                     Đóng
                   </button>
@@ -6259,7 +6654,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       </div>
                       <div className="ad-modal__field">
-                        <span className="ad-modal__field-label">Giảng viên</span>
+                        <span className="ad-modal__field-label">
+                          Giảng viên
+                        </span>
                         <span className="ad-modal__field-value">
                           {paymentDetail.instructor_name || "—"}
                         </span>
@@ -6269,7 +6666,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           Số tiền hoàn
                         </span>
                         <span className="ad-modal__field-value ad-modal__field-value--refund">
-                          {formatPrice((paymentDetail.amount ?? 0) * 0.7, "VND")}
+                          {formatPrice(
+                            (paymentDetail.amount ?? 0) * 0.7,
+                            "VND",
+                          )}
                         </span>
                       </div>
                       <div className="ad-modal__field">

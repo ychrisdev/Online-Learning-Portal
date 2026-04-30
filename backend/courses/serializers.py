@@ -194,7 +194,11 @@ class CourseAdminSerializer(serializers.ModelSerializer):
         from payments.models import Transaction
         from django.db.models import Sum
         result = obj.transactions.filter(
-            status__in=[Transaction.Status.SUCCESS, Transaction.Status.REFUND_REQUESTED]
+            status__in=[
+                Transaction.Status.SUCCESS,
+                Transaction.Status.REFUND_REQUESTED,
+                Transaction.Status.REFUND_APPROVED,
+            ]
         ).aggregate(total=Sum('amount'))
         return int(result['total'] or 0)
 
