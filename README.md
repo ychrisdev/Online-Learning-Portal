@@ -21,9 +21,17 @@ Nền tảng học tiếng Anh trực tuyến (A1–C2) với hệ thống phân
 
 ---
 ## Chạy dự án
-> **Thứ tự khởi động:** Redis → Django → Celery → Frontend
-### Backend
 
+> **Thứ tự khởi động:** Redis → Django → Celery → Frontend
+
+### Redis
+```bash
+net start Redis          # Windows
+sudo service redis start # Linux / WSL
+docker run -d -p 6379:6379 redis # Docker
+```
+
+### Backend
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -31,8 +39,13 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-### Frontend
+### Celery
+```bash
+cd backend
+celery -A core worker --loglevel=info -P solo
+```
 
+### Frontend
 ```bash
 cd frontend
 npm install
@@ -65,11 +78,10 @@ englishhub/
 ---
 
 ## Tính năng chính
-
-**Phân quyền** — Student / Instructor / Admin
-**Quản lý khóa học** — tạo, chỉnh sửa, xuất bản
-**Theo dõi tiến độ** — theo từng bài học
-**Thanh toán** — Ví EnglishHub, MoMo
-**Hoàn tiền** — quy trình 3 bước: Student → Admin → Instructor
-**Email tự động** — thông báo thanh toán, hoàn tiền, cảnh báo
-**Khóa tài khoản tự động** — giảng viên không hoàn tiền đúng hạn 48 tiếng
+* **Phân quyền** — Student / Instructor / Admin
+* **Quản lý khóa học** — tạo, chỉnh sửa, xuất bản
+* **Theo dõi tiến độ** — theo từng bài học
+* **Thanh toán** — Ví EnglishHub, MoMo
+* **Hoàn tiền** — quy trình 3 bước: Student → Admin → Instructor
+* **Email tự động** — thông báo thanh toán, hoàn tiền, cảnh báo
+* **Khóa tài khoản tự động** — giảng viên không hoàn tiền đúng hạn 48 tiếng
