@@ -102,7 +102,9 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
   }, []);
 
   const scrollToGrid = () => {
-    gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => {
+      gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
   // ── Filter + sort ────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -289,7 +291,7 @@ const CoursesPage: React.FC<CoursesPageProps> = ({
                 <div className="courses-pagination">
                   <button
                     className="pagination-btn"
-                    onClick={() => {setPage(p => Math.max(1, p - 1));scrollToGrid(); }}
+                    onClick={() => {setPage(p => Math.max(1, p - 1)); scrollToGrid(); }}
                     disabled={page === 1}
                   >
                     ← Trước

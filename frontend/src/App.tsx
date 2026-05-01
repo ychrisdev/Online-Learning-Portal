@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import HomePage from "./pages/HomePage";
@@ -9,6 +9,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AuthPage from "./pages/AuthPage";
+import PaymentReturn from "./pages/PaymentReturn";
 import "./styles/index.css";
 
 type Page =
@@ -19,7 +20,9 @@ type Page =
   | "dashboard"
   | "auth"
   | "policy"
-  | "payment";
+  | "payment"
+  | "payment-result"
+  | "payment-return";
 type Role = "student" | "instructor" | "admin";
 
 const NO_CHROME: Page[] = ["learning", "auth"];
@@ -40,12 +43,13 @@ const App: React.FC = () => {
     const page  = slashIdx === -1 ? hash : hash.slice(0, slashIdx);
     const param = slashIdx === -1 ? ""   : hash.slice(slashIdx + 1);
 
-    const valid: Page[] = ["home", "courses", "course-detail", "dashboard", "auth", "policy"];
+    const valid: Page[] = ["home", "courses", "course-detail", "dashboard", "auth", "policy","payment-result","payment-return"];
     const isLoggedIn = !!localStorage.getItem("access");
     let resolvedPage = valid.includes(page as Page) ? (page as Page) : "home";
 
     if (resolvedPage === "auth" && isLoggedIn) resolvedPage = "dashboard";
     if (resolvedPage === "dashboard" && !isLoggedIn) resolvedPage = "home";
+
 
     return {
       page: resolvedPage,
@@ -79,6 +83,16 @@ const App: React.FC = () => {
     setCurrentPage(page as Page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resultCode = params.get("resultCode");
+    const orderId    = params.get("orderId");
+    // Tab này được MoMo redirect về → render PaymentReturn
+    if (resultCode !== null && orderId) {
+      setCurrentPage("payment-return");
+    }
+  }, []);
 
   const handleAuthOpen = (mode: "login" | "register") => {
     setReturnPage(currentPage);
@@ -171,6 +185,7 @@ const App: React.FC = () => {
         )}
         {currentPage === "dashboard" && renderDashboard()}
         {currentPage === "policy" && <PolicyPage onNavigate={navigate} />}
+        {currentPage === "payment-return" && <PaymentReturn />}
       </main>
 
       {!hideChrome && <Footer onNavigate={navigate} />}

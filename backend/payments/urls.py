@@ -19,7 +19,10 @@ from .views import (
     InstructorTransactionDetailView,  # ← thêm
     InstructorConfirmRefundView,
     WalletPayView,
-    
+    MomoCreateView,
+    MomoIpnView,
+    MomoStatusView,
+    MomoCancelView,
 )
 
 urlpatterns = [
@@ -49,4 +52,9 @@ urlpatterns = [
 
     #payment
     path('wallet-pay/', WalletPayView.as_view(), name='wallet-pay'),
+    # MoMo
+    path('momo/create/',                MomoCreateView.as_view(),  name='momo-create'),
+    path('momo/ipn/',                   MomoIpnView.as_view(),     name='momo-ipn'),
+    path('momo/status/<str:ref_code>/', MomoStatusView.as_view(),  name='momo-status'),
+    path('momo/cancel/',                MomoCancelView.as_view(),  name='momo-cancel'),
 ]

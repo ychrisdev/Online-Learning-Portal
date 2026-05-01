@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Đăng ký khoá học thành công</title>
+  <title>Cảnh báo hoàn tiền</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
@@ -12,17 +12,11 @@
         <table width="560" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:12px;overflow:hidden;
                       border:1px solid #e5e7eb;">
-
           <!-- Header -->
           <tr>
             <td style="background:#1a56db;padding:28px 36px;">
               <table cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="width:32px;height:32px;background:rgba(255,255,255,0.2);
-                             border-radius:8px;text-align:center;vertical-align:middle;
-                             font-size:18px;line-height:32px;">
-                    &#127891;
-                  </td>
                   <td style="padding-left:10px;">
                     <span style="color:#ffffff;font-size:17px;font-weight:bold;">EnglishHub</span>
                   </td>
@@ -30,50 +24,29 @@
               </table>
             </td>
           </tr>
-
           <!-- Icon + tiêu đề -->
           <tr>
             <td style="padding:32px 36px 0;text-align:center;">
-
-              {% if is_free %}
-              <h1 style="margin:0 0 8px;font-size:24px;font-weight:bold;color:#111827;">
-                Đăng ký khoá học thành công!
+              <h1 style="margin:0 0 8px;font-size:22px;font-weight:bold;color:#111827;">
+                Còn 12 tiếng để hoàn tiền!
               </h1>
               <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
-                Bạn đã đăng ký thành công khoá học miễn phí.
+                Vui lòng xác nhận hoàn tiền trước hạn để tránh bị khóa tài khoản.
               </p>
-              {% else %}
-              <h1 style="margin:0 0 8px;font-size:18px;font-weight:bold;color:#111827;">
-                Thanh toán thành công!
-              </h1>
-              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
-                Giao dịch của bạn đã được xử lý thành công.
-              </p>
-              {% endif %}
             </td>
           </tr>
-
           <!-- Body -->
           <tr>
             <td style="padding:0 36px 32px;">
               <p style="margin:0 0 16px;font-size:15px;color:#111827;line-height:1.7;">
-                Xin chào <strong>{{ student_name }}</strong>,
+                Xin chào <strong>{{ instructor_name }}</strong>,
               </p>
-
-              {% if is_free %}
               <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.7;">
-                Bạn vừa đăng ký thành công khoá học
+                Bạn còn <strong style="color:#dc2626;">12 tiếng</strong> để xác nhận hoàn tiền
+                cho học viên <strong>{{ student_name }}</strong> — khoá học
                 <span style="color:#1a56db;font-weight:bold;">{{ course_title }}</span>.
-                Hãy bắt đầu học ngay hôm nay!
+                Nếu không xác nhận đúng hạn, tài khoản của bạn sẽ bị khóa tự động.
               </p>
-              {% else %}
-              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.7;">
-                Cảm ơn bạn đã thanh toán khoá học
-                <span style="color:#1a56db;font-weight:bold;">{{ course_title }}</span>.
-                Bạn có thể bắt đầu học ngay bây giờ!
-              </p>
-              {% endif %}
-
               <!-- Bảng thông tin -->
               <table width="100%" cellpadding="0" cellspacing="0"
                      style="background:#f9fafb;border-radius:8px;
@@ -81,6 +54,16 @@
                 <tr>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
                              font-size:13px;color:#6b7280;width:130px;">
+                    Học viên
+                  </td>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#111827;font-weight:bold;text-align:right;">
+                    {{ student_name }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#6b7280;">
                     Khoá học
                   </td>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
@@ -88,25 +71,14 @@
                     {{ course_title }}
                   </td>
                 </tr>
-
-                {% if is_free %}
-                <tr>
-                  <td style="padding:10px 20px;font-size:13px;color:#6b7280;">
-                    Ngày đăng ký
-                  </td>
-                  <td style="padding:10px 20px;font-size:13px;color:#111827;text-align:right;">
-                    {{ enrolled_at }}
-                  </td>
-                </tr>
-                {% else %}
                 <tr>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
                              font-size:13px;color:#6b7280;">
-                    Số tiền
+                    Số tiền cần hoàn
                   </td>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
-                             font-size:13px;color:#059669;font-weight:bold;text-align:right;">
-                    {{ amount }}
+                             font-size:13px;color:#dc2626;font-weight:bold;text-align:right;">
+                    {{ refund_amount }}
                   </td>
                 </tr>
                 <tr>
@@ -115,44 +87,36 @@
                     Mã giao dịch
                   </td>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
-                             font-size:13px;color:#1a56db;font-weight:bold;
-                             letter-spacing:0.5px;text-align:right;">
+                             font-size:13px;color:#6b7280;letter-spacing:0.5px;text-align:right;">
                     {{ ref_code }}
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
-                             font-size:13px;color:#6b7280;">
-                    Phương thức
-                  </td>
-                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
-                             font-size:13px;color:#111827;font-weight:bold;text-align:right;">
-                    {% if payment_method == "momo" %}
-                      MoMo
-                    {% elif payment_method == "wallet" %}
-                      Ví EnglishHub
-                    {% else %}
-                      {{ payment_method }}
-                    {% endif %}
-                  </td>
-                </tr>
-                <tr>
                   <td style="padding:10px 20px;font-size:13px;color:#6b7280;">
-                    Thời gian
+                    Hạn chót
                   </td>
-                  <td style="padding:10px 20px;font-size:13px;color:#111827;text-align:right;">
-                    {{ paid_at }}
+                  <td style="padding:10px 20px;font-size:13px;color:#dc2626;
+                             font-weight:bold;text-align:right;">
+                    {{ deadline }}
                   </td>
                 </tr>
-                {% endif %}
               </table>
-
+              <!-- Cảnh báo -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#fef2f2;border-radius:8px;
+                            border:1px solid #fecaca;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:14px 20px;font-size:13px;color:#991b1b;line-height:1.7;">
+                    &#128274; Nếu không xác nhận trước <strong>{{ deadline }}</strong>,
+                    tài khoản của bạn sẽ bị khóa tự động.
+                  </td>
+                </tr>
+              </table>
               <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.7;">
-                Chúc bạn học tập hiệu quả cùng EnglishHub!
+                Vui lòng đăng nhập vào hệ thống EnglishHub để xác nhận hoàn tiền ngay.
               </p>
             </td>
           </tr>
-
           <!-- Footer -->
           <tr>
             <td style="padding:16px 36px;border-top:1px solid #e5e7eb;text-align:center;">
@@ -162,7 +126,6 @@
               </p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>

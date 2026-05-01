@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tài khoản bị khóa</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:12px;overflow:hidden;
+                      border:1px solid #e5e7eb;">
+          <!-- Header -->
+          <tr>
+            <td style="background:#1a56db;padding:28px 36px;">
+              <table cellpadding="0" cellspacing="0">
+                <tr>                  
+                  <td style="padding-left:10px;">
+                    <span style="color:#ffffff;font-size:17px;font-weight:bold;">EnglishHub</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Icon + tiêu đề -->
+          <tr>
+            <td style="padding:32px 36px 0;text-align:center;">              
+              <h1 style="margin:0 0 8px;font-size:22px;font-weight:bold;color:#111827;">
+                Tài khoản đã bị khóa
+              </h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
+                Do không xác nhận hoàn tiền đúng hạn 48 tiếng quy định.
+              </p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:0 36px 32px;">
+              <p style="margin:0 0 16px;font-size:15px;color:#111827;line-height:1.7;">
+                Xin chào <strong>{{ instructor_name }}</strong>,
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.7;">
+                Tài khoản của bạn đã bị khóa tự động do không xác nhận hoàn tiền cho khoá học
+                <span style="color:#1a56db;font-weight:bold;">{{ course_title }}</span>
+                trong thời hạn quy định.
+              </p>
+              <!-- Bảng thông tin -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#f9fafb;border-radius:8px;
+                            border:1px solid #e5e7eb;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#6b7280;width:130px;">
+                    Khoá học
+                  </td>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#111827;font-weight:bold;text-align:right;">
+                    {{ course_title }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#6b7280;">
+                    Số tiền cần hoàn
+                  </td>
+                  <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
+                             font-size:13px;color:#dc2626;font-weight:bold;text-align:right;">
+                    {{ refund_amount }}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 20px;font-size:13px;color:#6b7280;">
+                    Mã giao dịch
+                  </td>
+                  <td style="padding:10px 20px;font-size:13px;color:#6b7280;
+                             letter-spacing:0.5px;text-align:right;">
+                    {{ ref_code }}
+                  </td>
+                </tr>
+              </table>
+              <!-- Ghi chú -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#fffbeb;border-radius:8px;
+                            border:1px solid #fde68a;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:14px 20px;font-size:13px;color:#92400e;line-height:1.7;">
+                    &#9203; Để mở khóa tài khoản, vui lòng liên hệ admin EnglishHub
+                    và hoàn tất nghĩa vụ hoàn tiền cho học viên.
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.7;">
+                Nếu có thắc mắc, vui lòng liên hệ đội ngũ hỗ trợ EnglishHub.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 36px;border-top:1px solid #e5e7eb;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
+                Email này được gửi tự động, vui lòng không trả lời.<br/>
+                © 2025 EnglishHub. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

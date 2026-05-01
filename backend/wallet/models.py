@@ -20,7 +20,7 @@ class Wallet(models.Model):
 class WalletTransaction(models.Model):
     class TxType(models.TextChoices):
         DEPOSIT    = 'deposit',    'Nạp tiền'
-        PAYMENT    = 'payment',    'Thanh toán khóa học'
+        PAYMENT    = 'payment',    'Thanh toán'
         REFUND     = 'refund',     'Hoàn tiền'
         REVENUE    = 'revenue',    'Nhận doanh thu'
         WITHDRAWAL = 'withdrawal', 'Rút tiền'

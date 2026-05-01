@@ -51,6 +51,16 @@ class InitiatePaymentView(APIView):
                 {'detail': 'Bạn đã đăng ký khoá học này rồi.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        
+        if Transaction.objects.filter(
+            student=request.user,
+            course=course,
+            status=Transaction.Status.PENDING,
+        ).exists():
+            return Response(
+                {'detail': 'Bạn đã có giao dịch đang chờ xử lý cho khóa học này.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         method = serializer.validated_data['method']
 
@@ -305,9 +315,25 @@ class AdminApproveRefundView(APIView):
         transaction = generics.get_object_or_404(
             Transaction, id=id, status=Transaction.Status.REFUND_REQUESTED,
         )
-        transaction.status = Transaction.Status.REFUND_APPROVED  # ← trạng thái mới
-        transaction.refund_approved_at = timezone.now()
+        from datetime import timedelta
+
+        now = timezone.now()
+        transaction.status             = Transaction.Status.REFUND_APPROVED
+        transaction.refund_approved_at = now
+        transaction.refund_deadline    = now + timedelta(hours=48)
         transaction.save()
+
+        # Schedule tasks
+        from payments.tasks import send_refund_warning_email_task, auto_lock_instructor_task
+        tx_id = str(transaction.id)
+        send_refund_warning_email_task.apply_async(args=[tx_id], countdown=36*3600)  # sau 36 tiếng
+        auto_lock_instructor_task.apply_async(args=[tx_id],      countdown=48*3600)  # sau 48 tiếng
+        try:
+            from .emails import send_refund_approved_email, send_refund_request_to_instructor_email
+            send_refund_approved_email(transaction)           # gửi cho student
+            send_refund_request_to_instructor_email(transaction)  # gửi cho instructor
+        except Exception:
+            pass
         return Response({'message': 'Đã duyệt, đang chờ giảng viên xác nhận.'})
 
         """ # Hoàn tiền về ví sinh viên
@@ -555,3 +581,235 @@ class WalletPayView(APIView):
         _activate_enrollment(transaction)
 
         return Response({'message': 'Thanh toán bằng ví thành công.'})
+    
+# ── MoMo ──────────────────────────────────────────────────────
+import hashlib
+import hmac as hmac_module
+import requests
+from django.conf import settings
+
+def _momo_signature(raw: str) -> str:
+    return hmac_module.new(
+        settings.MOMO_SECRET_KEY.encode("utf-8"),
+        raw.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+class MomoCreateView(APIView):
+    """
+    POST /api/payments/momo/create/
+    Body: { course_id }
+    Trả về: { ref_code, qr_code_url, deep_link, pay_url }
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        course_id = request.data.get('course_id')
+        course = generics.get_object_or_404(Course, id=course_id)
+
+        if Enrollment.objects.filter(
+            student=request.user,
+            course=course,
+            status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
+        ).exists():
+            return Response(
+                {'detail': 'Bạn đã đăng ký khoá học này rồi.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        price = int(course.sale_price or course.price or 0)
+        if price == 0:
+            return Response({'detail': 'Khoá học miễn phí, không cần thanh toán MoMo.'}, status=400)
+
+        existing = Transaction.objects.filter(
+            student=request.user,
+            course=course,
+            status=Transaction.Status.PENDING,
+            method=Transaction.Method.MOMO,
+        ).first()
+
+        if existing:
+            # Đổi ref_code mới để MoMo không từ chối orderId cũ đã từng gửi
+            existing.ref_code = f"ORD{uuid.uuid4().hex[:16].upper()}"
+            existing.save(update_fields=["ref_code"])
+            tx = existing
+        else:
+            tx = Transaction.objects.create(
+                student=request.user,
+                course=course,
+                amount=price,
+                method=Transaction.Method.MOMO,
+                status=Transaction.Status.PENDING,
+            )
+
+        order_id     = tx.ref_code
+        request_id   = tx.ref_code
+        order_info   = f"Thanh toan khoa hoc {course.title}"
+        redirect_url = settings.MOMO_REDIRECT_URL
+        ipn_url      = settings.MOMO_IPN_URL
+        amount_str   = str(price)
+        extra_data   = ""
+        request_type = "captureWallet"
+
+        raw = (
+            f"accessKey={settings.MOMO_ACCESS_KEY}"
+            f"&amount={amount_str}"
+            f"&extraData={extra_data}"
+            f"&ipnUrl={ipn_url}"
+            f"&orderId={order_id}"
+            f"&orderInfo={order_info}"
+            f"&partnerCode={settings.MOMO_PARTNER_CODE}"
+            f"&redirectUrl={redirect_url}"
+            f"&requestId={request_id}"
+            f"&requestType={request_type}"
+        )
+        signature = _momo_signature(raw)
+
+        payload = {
+            "partnerCode": settings.MOMO_PARTNER_CODE,
+            "accessKey":   settings.MOMO_ACCESS_KEY,
+            "requestId":   request_id,
+            "amount":      amount_str,
+            "orderId":     order_id,
+            "orderInfo":   order_info,
+            "redirectUrl": redirect_url,
+            "ipnUrl":      ipn_url,
+            "extraData":   extra_data,
+            "requestType": request_type,
+            "signature":   signature,
+            "lang":        "vi",
+        }
+
+        try:
+            resp = requests.post(settings.MOMO_ENDPOINT, json=payload, timeout=15)
+            data = resp.json()
+        except Exception as e:
+            tx.status = Transaction.Status.FAILED
+            tx.save(update_fields=["status"])
+            return Response({'detail': f'Lỗi kết nối MoMo: {str(e)}'}, status=500)
+
+        if data.get('resultCode') != 0:
+            tx.status = Transaction.Status.FAILED
+            tx.save(update_fields=["status"])
+            return Response({'detail': data.get('message', 'MoMo lỗi.')}, status=400)
+
+        return Response({
+            'ref_code':    tx.ref_code,
+            'qr_code_url': data.get('qrCodeUrl'),
+            'deep_link':   data.get('deeplink'),
+            'pay_url':     data.get('payUrl'),
+        })
+
+
+from rest_framework.decorators import permission_classes as pc
+from rest_framework.permissions import AllowAny
+
+class MomoIpnView(APIView):
+    """
+    POST /api/payments/momo/ipn/
+    MoMo gọi về sau khi user quét QR
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        d = request.data
+
+        raw = (
+            f"accessKey={settings.MOMO_ACCESS_KEY}"
+            f"&amount={d.get('amount')}"
+            f"&extraData={d.get('extraData','')}"
+            f"&message={d.get('message','')}"
+            f"&orderId={d.get('orderId')}"
+            f"&orderInfo={d.get('orderInfo','')}"
+            f"&orderType={d.get('orderType','')}"
+            f"&partnerCode={d.get('partnerCode')}"
+            f"&payType={d.get('payType','')}"
+            f"&requestId={d.get('requestId')}"
+            f"&responseTime={d.get('responseTime','')}"
+            f"&resultCode={d.get('resultCode')}"
+            f"&transId={d.get('transId','')}"
+        )
+        expected = _momo_signature(raw)
+        if expected != d.get('signature'):
+            return Response({'resultCode': 1, 'message': 'Invalid signature'})
+
+        try:
+            tx = Transaction.objects.get(ref_code=d['orderId'])
+        except Transaction.DoesNotExist:
+            return Response({'resultCode': 1, 'message': 'Not found'})
+
+        result_code = int(d.get('resultCode', -1))
+
+        if result_code == 0 and tx.status == Transaction.Status.PENDING:
+            tx.status      = Transaction.Status.SUCCESS
+            tx.gateway_ref = str(d.get('transId', ''))
+            tx.paid_at     = timezone.now()
+            tx.save(update_fields=['status', 'gateway_ref', 'paid_at'])
+            _activate_enrollment(tx)
+            if tx.amount and int(tx.amount) > 0:
+                from wallet.services import pay_instructor_revenue
+                try:
+                    pay_instructor_revenue(
+                        course=tx.course,
+                        amount=int(tx.amount),
+                        transaction_id=str(tx.id),
+                    )
+                except Exception:
+                    pass
+        elif result_code != 0 and tx.status == Transaction.Status.PENDING:
+            tx.status = Transaction.Status.FAILED
+            tx.save(update_fields=['status'])
+            try:
+                from .emails import send_payment_failed_email
+                send_payment_failed_email(tx)
+            except Exception:
+                pass
+
+        return Response({'resultCode': 0, 'message': 'OK'})
+
+
+class MomoStatusView(APIView):
+    """
+    GET /api/payments/momo/status/<ref_code>/
+    Frontend polling trạng thái
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, ref_code):
+        try:
+            tx = Transaction.objects.get(ref_code=ref_code, student=request.user)
+        except Transaction.DoesNotExist:
+            return Response({'detail': 'Không tìm thấy.'}, status=404)
+        return Response({'status': tx.status})
+    
+class MomoCancelView(APIView):
+    """
+    POST /api/payments/momo/cancel/
+    Frontend gọi khi MoMo redirect về với resultCode != 0
+    Cập nhật transaction PENDING → FAILED để lần sau tạo được orderId mới
+    """
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        order_id    = request.data.get("order_id")
+        result_code = request.data.get("result_code")
+        if not order_id:
+            return Response({"detail": "Thiếu order_id."}, status=400)
+        try:
+            tx = Transaction.objects.get(
+                ref_code=order_id,
+                status=Transaction.Status.PENDING,
+            )
+            tx.status = Transaction.Status.FAILED
+            tx.save(update_fields=["status"])
+            # Gửi email thông báo thất bại
+            try:
+                from .emails import send_payment_failed_email
+                send_payment_failed_email(tx)
+            except Exception:
+                pass
+        except Transaction.DoesNotExist:
+            pass
+        return Response({"message": "OK"})

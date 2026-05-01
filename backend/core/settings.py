@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_spectacular',     # Swagger / OpenAPI docs
     'corsheaders',
+    'django_celery_beat', #Celery
 
     # Local apps
     'accounts',
@@ -204,3 +205,16 @@ CACHES = {
         'LOCATION': 'cache_table',
     }
 }
+
+# ── MoMo Test ─────────────────────────────────────────────────
+MOMO_PARTNER_CODE = "MOMO"
+MOMO_ACCESS_KEY   = "F8BBA842ECF85"
+MOMO_SECRET_KEY   = "K951B6PE1waDMi640xX08PD3vg6EkVlz"
+MOMO_ENDPOINT     = "https://test-payment.momo.vn/v2/gateway/api/create"
+MOMO_REDIRECT_URL = "http://localhost:5173"
+MOMO_IPN_URL      = "https://mop-swarm-banister.ngrok-free.dev/api/payments/momo/ipn/"
+
+# ── Celery ─────────────────────────────────────────────────
+CELERY_BROKER_URL        = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND    = 'redis://localhost:6379/0'
+CELERY_TIMEZONE          = 'Asia/Ho_Chi_Minh'

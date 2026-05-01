@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Đăng ký khoá học thành công</title>
+  <title>Thanh toán thất bại</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
@@ -12,7 +12,6 @@
         <table width="560" cellpadding="0" cellspacing="0"
                style="background:#ffffff;border-radius:12px;overflow:hidden;
                       border:1px solid #e5e7eb;">
-
           <!-- Header -->
           <tr>
             <td style="background:#1a56db;padding:28px 36px;">
@@ -30,50 +29,28 @@
               </table>
             </td>
           </tr>
-
           <!-- Icon + tiêu đề -->
           <tr>
-            <td style="padding:32px 36px 0;text-align:center;">
-
-              {% if is_free %}
-              <h1 style="margin:0 0 8px;font-size:24px;font-weight:bold;color:#111827;">
-                Đăng ký khoá học thành công!
+            <td style="padding:32px 36px 0;text-align:center;">              
+              <h1 style="margin:0 0 8px;font-size:22px;font-weight:bold;color:#111827;">
+                Thanh toán thất bại
               </h1>
               <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
-                Bạn đã đăng ký thành công khoá học miễn phí.
+                Giao dịch của bạn không được xử lý thành công.
               </p>
-              {% else %}
-              <h1 style="margin:0 0 8px;font-size:18px;font-weight:bold;color:#111827;">
-                Thanh toán thành công!
-              </h1>
-              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
-                Giao dịch của bạn đã được xử lý thành công.
-              </p>
-              {% endif %}
             </td>
           </tr>
-
           <!-- Body -->
           <tr>
             <td style="padding:0 36px 32px;">
               <p style="margin:0 0 16px;font-size:15px;color:#111827;line-height:1.7;">
                 Xin chào <strong>{{ student_name }}</strong>,
               </p>
-
-              {% if is_free %}
               <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.7;">
-                Bạn vừa đăng ký thành công khoá học
-                <span style="color:#1a56db;font-weight:bold;">{{ course_title }}</span>.
-                Hãy bắt đầu học ngay hôm nay!
+                Rất tiếc, giao dịch thanh toán cho khoá học
+                <span style="color:#1a56db;font-weight:bold;">{{ course_title }}</span>
+                đã thất bại. Bạn chưa bị trừ tiền.
               </p>
-              {% else %}
-              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.7;">
-                Cảm ơn bạn đã thanh toán khoá học
-                <span style="color:#1a56db;font-weight:bold;">{{ course_title }}</span>.
-                Bạn có thể bắt đầu học ngay bây giờ!
-              </p>
-              {% endif %}
-
               <!-- Bảng thông tin -->
               <table width="100%" cellpadding="0" cellspacing="0"
                      style="background:#f9fafb;border-radius:8px;
@@ -88,52 +65,34 @@
                     {{ course_title }}
                   </td>
                 </tr>
-
-                {% if is_free %}
-                <tr>
-                  <td style="padding:10px 20px;font-size:13px;color:#6b7280;">
-                    Ngày đăng ký
-                  </td>
-                  <td style="padding:10px 20px;font-size:13px;color:#111827;text-align:right;">
-                    {{ enrolled_at }}
-                  </td>
-                </tr>
-                {% else %}
                 <tr>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
                              font-size:13px;color:#6b7280;">
                     Số tiền
                   </td>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
-                             font-size:13px;color:#059669;font-weight:bold;text-align:right;">
+                             font-size:13px;color:#111827;text-align:right;">
                     {{ amount }}
                   </td>
                 </tr>
                 <tr>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
                              font-size:13px;color:#6b7280;">
-                    Mã giao dịch
+                    Mã tham chiếu
                   </td>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
-                             font-size:13px;color:#1a56db;font-weight:bold;
-                             letter-spacing:0.5px;text-align:right;">
+                             font-size:13px;color:#6b7280;letter-spacing:0.5px;text-align:right;">
                     {{ ref_code }}
                   </td>
                 </tr>
                 <tr>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
                              font-size:13px;color:#6b7280;">
-                    Phương thức
+                    Lý do
                   </td>
                   <td style="padding:10px 20px;border-bottom:1px solid #e5e7eb;
-                             font-size:13px;color:#111827;font-weight:bold;text-align:right;">
-                    {% if payment_method == "momo" %}
-                      MoMo
-                    {% elif payment_method == "wallet" %}
-                      Ví EnglishHub
-                    {% else %}
-                      {{ payment_method }}
-                    {% endif %}
+                             font-size:13px;color:#dc2626;text-align:right;">
+                    {{ reason }}
                   </td>
                 </tr>
                 <tr>
@@ -141,18 +100,26 @@
                     Thời gian
                   </td>
                   <td style="padding:10px 20px;font-size:13px;color:#111827;text-align:right;">
-                    {{ paid_at }}
+                    {{ failed_at }}
                   </td>
                 </tr>
-                {% endif %}
               </table>
-
+              <!-- Gợi ý -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:#fffbeb;border-radius:8px;
+                            border:1px solid #fde68a;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:14px 20px;font-size:13px;color:#92400e;line-height:1.7;">
+                    &#9888; Nếu bạn đã bị trừ tiền, vui lòng liên hệ hỗ trợ để được hoàn tiền.
+                    Trong trường hợp khác, bạn có thể thử thanh toán lại.
+                  </td>
+                </tr>
+              </table>
               <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.7;">
-                Chúc bạn học tập hiệu quả cùng EnglishHub!
+                Nếu cần hỗ trợ, vui lòng liên hệ chúng tôi qua email hoặc truy cập trang web EnglishHub.
               </p>
             </td>
           </tr>
-
           <!-- Footer -->
           <tr>
             <td style="padding:16px 36px;border-top:1px solid #e5e7eb;text-align:center;">
@@ -162,7 +129,6 @@
               </p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>

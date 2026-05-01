@@ -84,6 +84,12 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
+const METHOD_LABEL: Record<string, string> = {
+  wallet: "Ví điện tử",
+  momo: "MoMo",
+  bank: "Chuyển khoản ngân hàng",
+};
+
 const authHeaders = (extra: Record<string, string> = {}) => ({
   Authorization: `Bearer ${localStorage.getItem("access")}`,
   ...extra,
@@ -280,6 +286,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
           course_id: item.course ?? "",
           course_title: item.course_title ?? "",
           created_at: item.created_at ?? "",
+          instructor_name: item.instructor_name ?? "",
           amount: Number(item.amount) ?? 0,
           status: item.status ?? "success",
           method: item.method ?? "",
@@ -313,11 +320,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
       setLoadingPayments(false);
     })();
   }, []);
-
-  useEffect(() => {
-    if (activeTab !== "payments") return;
-    fetchPayments();
-  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab !== "certificates") return;
@@ -703,7 +705,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     },
                     {
                       label: "Phương thức",
-                      value: paymentDetail.method || "—",
+                      value: METHOD_LABEL[paymentDetail.method] || paymentDetail.method || "—",
                     },
                     {
                       label: "Mã GD",
@@ -1641,7 +1643,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                   "qad-answer qad-answer--correct-chosen";
                                 badgeEl = (
                                   <span className="qad-badge qad-badge--correct">
-                                    True
+                                    Đúng - đã chọn
                                   </span>
                                 );
                               } else if (isChosen && !isCorrect) {
@@ -1649,7 +1651,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                   "qad-answer qad-answer--wrong-chosen";
                                 badgeEl = (
                                   <span className="qad-badge qad-badge--wrong">
-                                    False
+                                    Sai - đã chọn
                                   </span>
                                 );
                               } else if (!isChosen && isCorrect) {
@@ -1657,7 +1659,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                   "qad-answer qad-answer--correct-missed";
                                 badgeEl = (
                                   <span className="qad-badge qad-badge--missed">
-                                    Correct answer
+                                    Đáp án đúng
                                   </span>
                                 );
                               }
