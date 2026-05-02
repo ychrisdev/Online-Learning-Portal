@@ -104,6 +104,31 @@ class LessonAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display  = ['course', 'student', 'rating', 'created_at']
-    list_filter   = ['rating']
-    search_fields = ['course__title', 'student__username']
+    list_display    = ['course', 'student', 'rating', 'is_hidden', 'is_reported', 'report_dismissed', 'created_at']
+    list_filter     = ['rating', 'is_hidden', 'is_reported', 'report_dismissed']
+    search_fields   = ['course__title', 'student__username', 'comment']
+    readonly_fields = ['course', 'student', 'rating', 'comment', 'created_at', 'updated_at',
+                       'edit_count', 'hidden_at', 'is_reported', 'report_reason',
+                       'reported_by', 'attempt_number']
+    fieldsets = (
+        ('Thông tin đánh giá', {
+            'fields': ('course', 'student', 'rating', 'comment', 'edit_count', 'attempt_number'),
+        }),
+        ('Kiểm duyệt', {
+            'fields': ('is_hidden', 'hidden_at', 'is_reported', 'report_reason', 'reported_by', 'report_dismissed'),
+        }),
+        ('Thời gian', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+
+    @admin.action(description='Ẩn các đánh giá đã chọn')
+    def hide_reviews(self, request, queryset):
+        from django.utils import timezone
+        queryset.update(is_hidden=True, hidden_at=timezone.now())
+
+    @admin.action(description='Bỏ qua báo cáo (dismiss)')
+    def dismiss_reports(self, request, queryset):
+        queryset.update(report_dismissed=True, is_reported=False)
+
+    actions = ['hide_reviews', 'dismiss_reports']

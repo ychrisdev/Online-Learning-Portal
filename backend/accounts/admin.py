@@ -60,14 +60,15 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
-    list_display  = ['user', 'country']
-    list_filter   = ['gender']
+    list_display  = ['user', 'phone_number', 'gender', 'country', 'city', 'education']  # ← thêm các field
+    list_filter   = ['gender', 'education', 'country']                                   # ← thêm education, country
     search_fields = ['user__username', 'user__email', 'user__full_name']
 
 
 @admin.register(InstructorProfile)
 class InstructorProfileAdmin(admin.ModelAdmin):
-    list_display  = ['user', 'title', 'years_experience', 'avg_rating']
-    list_filter   = []
-    search_fields = ['user__username', 'user__email', 'user__full_name']
+    list_display    = ['user', 'title', 'years_experience', 'avg_rating', 'total_students', 'total_courses']  # ← thêm 2 field
+    list_filter     = ['years_experience']                                                                     # ← thêm
+    search_fields   = ['user__username', 'user__email', 'user__full_name', 'title', 'specializations']        # ← thêm title, specializations
     readonly_fields = ['total_students', 'total_courses', 'avg_rating']
+
