@@ -246,6 +246,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastRefundStatusRef = useRef<string>("");
   const allAnswersRef = useRef<Record<string, Set<string>>>({});
   const selectedRef = useRef<Set<string>>(new Set());
   const currentQRef = useRef<number>(0);
@@ -257,6 +258,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const [certificateCode, setCertificateCode]       = useState<string | undefined>(undefined);
   const [certificateShownFor, setCertificateShownFor] = useState<string | null>(null);
 
+  // ── Refund cancelled alert ───────────────────────────────────────────────────
+  const [showRefundCancelledAlert, setShowRefundCancelledAlert] = useState(false);
   // ── Toast state ──────────────────────────────────────────────────────────────
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -519,6 +522,24 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       );
       if (enrolled && typeof enrolled.progress_pct === "number") {
         setProgressPct(enrolled.progress_pct);
+      }
+
+      // ── Check ngay sau khi cập nhật tiến độ ──
+      if (lastRefundStatusRef.current === "refund_requested") {
+        const refundRes = await refreshAndRetry(`${API}/api/payments/history/`);
+        if (refundRes.ok) {
+          const refundData = await refundRes.json();
+          const refundList = Array.isArray(refundData) ? refundData : (refundData.results ?? []);
+          const tx = refundList.find(
+            (t: any) =>
+              (t.course === course.id || t.course_id === course.id) &&
+              t.status === "refund_requested"
+          );
+          if (!tx) {
+            lastRefundStatusRef.current = "";
+            setTimeout(() => setShowRefundCancelledAlert(true), 2000);
+          }
+        }
       }
     } catch (err) {
       console.log(err);
@@ -788,6 +809,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     }, 1000);
     return () => clearInterval(timerRef.current!);
   }, [quizStarted]);
+
   useEffect(() => {
     if (!isLoggedIn || !course) return;
     const checkEnrollment = async () => {
@@ -808,6 +830,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
               if (typeof enrolled.progress_pct === "number")
                 setProgressPct(enrolled.progress_pct);
             }
+          }
+          // Lưu trạng thái refund ban đầu
+          const refundRes = await refreshAndRetry(`${API}/api/payments/history/`);
+          if (refundRes.ok) {
+            const refundData = await refundRes.json();
+            const refundList = Array.isArray(refundData) ? refundData : (refundData.results ?? []);
+            const tx = refundList.find(
+              (t: any) =>
+                (t.course === course.id || t.course_id === course.id) &&
+                t.status === "refund_requested"
+            );
+            lastRefundStatusRef.current = tx ? "refund_requested" : "";
           }
         }
       } catch {}
@@ -2011,6 +2045,24 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         />
       )}
 
+      {/* Refund cancelled alert */}
+      {showRefundCancelledAlert && (
+        <div className="cd-alert-overlay">
+          <div className="cd-alert-box">
+            <div className="cd-alert-box__icon">⚠️</div>
+            <h3 className="cd-alert-box__title">Yêu cầu hoàn tiền đã bị hủy</h3>
+            <p className="cd-alert-box__msg">
+              Yêu cầu hoàn tiền của bạn đã bị tự động hủy do bạn đã học quá 20% khóa học.
+            </p>
+            <button
+              className="cd-alert-box__btn"
+              onClick={() => setShowRefundCancelledAlert(false)}
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </div>
+      )}
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </>

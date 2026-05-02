@@ -356,7 +356,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
         {/* Header */}
         <div className="modal__header">
           <h2 className="modal__title">{titles[step]}</h2>
-          <button className="modal__close" onClick={onClose}>✕</button>
+          <button className="modal__close" onClick={() => {
+            if (momoTabRef.current && !momoTabRef.current.closed) {
+              momoTabRef.current.close();
+            }
+            onClose();
+          }}>✕</button>
         </div>
 
         <div className="modal__body">
@@ -373,7 +378,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
                 )}
                 <div className="pm-course-info">
                   <div className="pm-course-title">{course.title}</div>
-                  <div className="pm-course-instructor">👤 {course.instructor_name}</div>
+                  <div className="pm-course-instructor">{course.instructor_name}</div>
                   <div className="pm-course-price-row">
                     <span className="pm-price-main">
                       {isFree ? "Miễn phí" : formatPrice(price, "VND")}
@@ -392,7 +397,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
               {!isFree && (
                 <div className="pm-wallet-box">
                   <div className="pm-wallet-box__header">
-                    <span className="pm-wallet-box__icon">💳</span>
                     <span className="pm-wallet-box__label">Thanh toán bằng ví</span>
                   </div>
                   {loadingWallet ? (
@@ -420,24 +424,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
 
               {/* Chọn phương thức */}
               {!isFree && (
-                <div className="pm-method-group">
+                <div className="pm-methods">
                   <button
-                    className={`pm-method-btn ${method === "wallet" ? "pm-method-btn--active" : ""}`}
+                    className={`pm-method ${method === "wallet" ? "pm-method--active" : ""}`}
                     onClick={() => setMethod("wallet")}
                     disabled={walletBalance !== null && walletBalance < price}
                   >
-                    💳 Ví EnglishHub
+                    <div className="pm-method__info">
+                      <span className="pm-method__label">Ví EnglishHub</span>
+                      <span className="pm-method__desc">Thanh toán bằng số dư ví</span>
+                    </div>
+                    <div className="pm-method__radio">
+                      <div className="pm-method__radio-dot" />
+                    </div>
                   </button>
                   <button
-                    className={`pm-method-btn ${method === "momo" ? "pm-method-btn--active" : ""}`}
+                    className={`pm-method ${method === "momo" ? "pm-method--active" : ""}`}
                     onClick={() => setMethod("momo")}
                   >
-                    <img
-                      src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png"
-                      alt="MoMo"
-                      style={{ height: 20, marginRight: 6 }}
-                    />
-                    MoMo
+                    <div className="pm-method__info">
+                      <span className="pm-method__label">MoMo</span>
+                      <span className="pm-method__desc">Thanh toán qua ví MoMo</span>
+                    </div>
+                    <div className="pm-method__radio">
+                      <div className="pm-method__radio-dot" />
+                    </div>
                   </button>
                 </div>
               )}
@@ -450,7 +461,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
                 </span>
               </div>
 
-              {errorMsg && <div className="pm-error">⚠️ {errorMsg}</div>}
+              {errorMsg && <div className="pm-error">{errorMsg}</div>}
 
               <button
                 className="pm-btn-pay"
@@ -470,7 +481,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
                   ? "Đăng ký miễn phí"
                   : `Thanh toán ${formatPrice(price, "VND")}`}
               </button>
-              <p className="pm-note">🔒 Thông tin thanh toán được mã hóa an toàn</p>
+              <p className="pm-note">Thông tin thanh toán được mã hóa an toàn</p>
             </>
           )}
 
@@ -520,7 +531,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
               </div>
               <div className="pm-result__actions">
                 <button className="pm-btn-success" onClick={onSuccess}>
-                  ▶ Bắt đầu học ngay
+                  Bắt đầu học ngay
                 </button>
               </div>
             </div>
@@ -529,7 +540,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
           {/* ── FAILED ── */}
           {step === "failed" && (
             <div className="pm-result">
-              <div className="pm-result__icon pm-result__icon--failed">❌</div>
+              <div className="pm-result__icon pm-result__icon--failed" />
               <div className="pm-result__title">Thanh toán thất bại</div>
               <div className="pm-result__sub">
                 {errorMsg || "Giao dịch chưa được xử lý."}

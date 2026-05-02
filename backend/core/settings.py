@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-stmo2b7&c0@!2%mm3i3cip397y_0su&91efjvk@7af=-84_3$v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'mop-swarm-banister.ngrok-free.dev']
 
 
 # Application definition
@@ -134,7 +134,7 @@ REST_FRAMEWORK = {
 # ── JWT ───────────────────────────────────────────────────────────────────────
  
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME':  timedelta(hours=24),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS':  True,    # refresh mới mỗi lần dùng
     'BLACKLIST_AFTER_ROTATION': True,  # vô hiệu refresh cũ sau khi rotate
@@ -211,7 +211,7 @@ MOMO_PARTNER_CODE = "MOMO"
 MOMO_ACCESS_KEY   = "F8BBA842ECF85"
 MOMO_SECRET_KEY   = "K951B6PE1waDMi640xX08PD3vg6EkVlz"
 MOMO_ENDPOINT     = "https://test-payment.momo.vn/v2/gateway/api/create"
-MOMO_REDIRECT_URL = "http://localhost:5173"
+MOMO_REDIRECT_URL = "http://localhost:5173/"
 MOMO_IPN_URL      = "https://mop-swarm-banister.ngrok-free.dev/api/payments/momo/ipn/"
 
 # ── Celery ─────────────────────────────────────────────────
