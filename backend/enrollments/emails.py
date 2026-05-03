@@ -45,7 +45,7 @@ def send_certificate_email(certificate) -> bool:
 
     try:
         send_mail(
-            subject=f'[EnglishHub] Chúc mừng! Bạn đã nhận được chứng chỉ khoá học {course_title}',
+            subject=f'[EnglishHub] Chúc mừng! Bạn đã nhận được hoàn thành khoá học {course_title}',
             message=plain_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[recipient_email],

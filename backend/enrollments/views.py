@@ -265,7 +265,7 @@ class MyCertificateByCourseView(APIView):
         ).select_related('enrollment__course').first()
 
         if not cert:
-            return Response({'detail': 'Chưa có chứng chỉ.'}, status=404)
+            return Response({'detail': 'Chưa có khóa học hoàn thành.'}, status=404)
 
         return Response({
             'certificate_code': cert.cert_number,

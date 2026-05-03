@@ -97,13 +97,13 @@ class Certificate(models.Model):
     enrollment  = models.OneToOneField(
         Enrollment, on_delete=models.CASCADE, related_name='certificate'
     )
-    cert_number = models.CharField('Mã chứng chỉ', max_length=50, unique=True)
+    cert_number = models.CharField('Mã hoàn thành', max_length=50, unique=True)
     issued_at   = models.DateTimeField('Ngày cấp', auto_now_add=True)
 
     class Meta:
         db_table            = 'certificates'
-        verbose_name        = 'Chứng chỉ'
-        verbose_name_plural = 'Chứng chỉ'
+        verbose_name        = 'Mã hoàn thành khóa học'
+        verbose_name_plural = 'Mã hoàn thành khóa học'
 
     def __str__(self):
         return f"Cert #{self.cert_number}"
