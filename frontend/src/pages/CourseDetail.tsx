@@ -1989,7 +1989,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           setShowCertificate(true);
                         }}
                       >
-                        🏆 Chứng chỉ
+                        🏆 Chứng nhận
                       </button>
                     )}
                   </div>

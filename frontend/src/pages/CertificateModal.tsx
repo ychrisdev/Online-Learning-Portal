@@ -97,14 +97,14 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
         )}
 
         <div className="cert-card">
-          <div className="cert-card__label">Mã chứng chỉ của bạn</div>
+          <div className="cert-card__label">Mã hoàn thành khóa học</div>
           {certificateCode ? (
             <>
               <div className="cert-card__code">{certificateCode}</div>             
             </>
           ) : (
             <div className="cert-card__pending">
-              Chứng chỉ đang được xử lý. Bạn sẽ nhận được mã qua email.
+              Mã khóa học đang được xử lý. Bạn sẽ nhận được mã qua email.
             </div>
           )}
         </div>

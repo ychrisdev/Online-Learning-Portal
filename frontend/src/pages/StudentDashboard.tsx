@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef  } from "react";
 import { formatPrice, formatDate } from "../utils/format";
 import "../styles/pages/StudentDashboard.css";
+import Pagination from "../components/ui/Pagination";
 
 interface StudentDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -22,7 +23,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "courses", label: "Khóa học của tôi" },
   { id: "quizzes", label: "Lịch sử kiểm tra" },
   { id: "payments", label: "Lịch sử thanh toán" },
-  { id: "certificates", label: "Chứng chỉ" },
+  { id: "certificates", label: "Chứng nhận" },
   { id: "wallet", label: "Ví tiền" },
 ];
 
@@ -207,7 +208,21 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [walletPanel, setWalletPanel] = useState<"deposit" | "withdraw" | null>(
     null,
   );
+  // Pagination states
+  const PAGE_SIZE = 10;
+  const [coursePage, setCoursePage] = useState(1);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [quizPage, setQuizPage] = useState(1);
+  const [certPage, setCertPage] = useState(1);
+  const [walletTxPage, setWalletTxPage] = useState(1);
 
+  const mainRef = useRef<HTMLElement>(null);
+
+  const scrollToTop = () => {
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
+  };
   useEffect(() => {
     (async () => {
       const res = await fetch(`${API}/api/auth/profile/`, {
@@ -643,6 +658,18 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const thumbnailSrc = (t: string | null) =>
     !t ? null : t.startsWith("http") ? t : `${API}${t}`;
 
+  const totalCoursePages = Math.ceil(activeCourses.length / PAGE_SIZE);
+  const pagedCourses = activeCourses.slice((coursePage - 1) * PAGE_SIZE, coursePage * PAGE_SIZE);
+
+  const totalPaymentPages = Math.ceil(payments.length / PAGE_SIZE);
+  const pagedPayments = payments.slice((paymentPage - 1) * PAGE_SIZE, paymentPage * PAGE_SIZE);
+
+  const totalCertPages = Math.ceil(certificates.length / PAGE_SIZE);
+  const pagedCerts = certificates.slice((certPage - 1) * PAGE_SIZE, certPage * PAGE_SIZE);
+
+  const totalWalletPages = Math.ceil(walletTxs.length / PAGE_SIZE);
+  const pagedWalletTxs = walletTxs.slice((walletTxPage - 1) * PAGE_SIZE, walletTxPage * PAGE_SIZE);
+
   return (
     <div className="db-page">
       {toast && (
@@ -799,7 +826,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
           </button>
         </aside>
 
-        <main className="db-main">
+        <main className="db-main" ref={mainRef}>
           {activeTab === "overview" && (
             <div className="db-content">
               <div className="db-page-header">
@@ -937,7 +964,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                           </td>
                         </tr>
                       ) : (
-                        activeCourses.map((c) => (
+                        pagedCourses.map((c) => (
                           <tr key={c.id}>
                             <td>
                               <div className="ad-user-cell">
@@ -989,6 +1016,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       )}
                     </tbody>
                   </table>
+                  <Pagination page={coursePage} totalPages={totalCoursePages} total={activeCourses.length} pageSize={PAGE_SIZE} onPage={(p) => { setCoursePage(p); scrollToTop(); }} />
                 </div>
               )}
             </div>
@@ -1029,7 +1057,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      payments.map((p) => {
+                      pagedPayments.map((p) => {
                         const status = p.status ?? "pending";
                         return (
                           <tr key={p.id}>
@@ -1091,6 +1119,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination page={paymentPage} totalPages={totalPaymentPages} total={payments.length} pageSize={PAGE_SIZE} onPage={(p) => { setPaymentPage(p); scrollToTop(); }} />
               </div>
             </div>
           )}
@@ -1434,7 +1463,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <select
                     className="quiz-filter-select"
                     value={quizSortCourse}
-                    onChange={(e) => setQuizSortCourse(e.target.value)}
+                    onChange={(e) => { setQuizSortCourse(e.target.value); setQuizPage(1); }}
                   >
                     <option value="all">Tất cả khóa học</option>
                     {[
@@ -1455,7 +1484,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <select
                     className="quiz-filter-select"
                     value={quizSortResult}
-                    onChange={(e) => setQuizSortResult(e.target.value as any)}
+                    onChange={(e) => { setQuizSortResult(e.target.value as any); setQuizPage(1); }}
                   >
                     <option value="all">Tất cả kết quả</option>
                     <option value="passed">Đạt</option>
@@ -1477,6 +1506,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     if (quizSortResult === "failed" && a.passed) return false;
                     return true;
                   });
+                  const totalQuizPages = Math.ceil(filtered.length / PAGE_SIZE);
+                  const pagedQuiz = filtered.slice((quizPage - 1) * PAGE_SIZE, quizPage * PAGE_SIZE);
                   return (
                     <div className="ad-table-wrap">
                       <table className="ad-table">
@@ -1504,7 +1535,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                               </td>
                             </tr>
                           ) : (
-                            filtered.map((a) => {
+                            pagedQuiz.map((a) => {
                               const start = a.started_at
                                 ? new Date(a.started_at)
                                 : null;
@@ -1575,6 +1606,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                           )}
                         </tbody>
                       </table>
+                      <Pagination page={quizPage} totalPages={totalQuizPages} total={filtered.length} pageSize={PAGE_SIZE} onPage={(p) => { setQuizPage(p); scrollToTop(); }} />
                     </div>
                   );
                 })()
@@ -1688,7 +1720,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
           {activeTab === "certificates" && (
             <div className="id-content">
               <div className="id-page-header">
-                <h1 className="id-page-title">Chứng chỉ của tôi</h1>
+                <h1 className="id-page-title">Chứng nhận của tôi</h1>
                 <p className="id-page-sub">
                   {loadingCerts
                     ? "Đang tải…"
@@ -1705,7 +1737,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     <thead>
                       <tr>
                         <th>Khóa học</th>
-                        <th>Mã chứng chỉ</th>
+                        <th>Mã hoàn thành khóa học</th>
                         <th>Ngày cấp</th>
                         <th>Trạng thái</th>
                       </tr>
@@ -1715,12 +1747,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         <tr>
                           <td colSpan={4} className="ad-table__empty-cell">
                             <span className="ad-table__empty-text">
-                              Bạn chưa có chứng chỉ nào.
+                              Bạn chưa có khóa học hoàn thành nào.
                             </span>
                           </td>
                         </tr>
                       ) : (
-                        certificates.map((cert) => (
+                        pagedCerts.map((cert) => (
                           <tr key={cert.id}>
                             <td className="cert-course-title">
                               {cert.course_title}
@@ -1745,6 +1777,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       )}
                     </tbody>
                   </table>
+                  <Pagination page={certPage} totalPages={totalCertPages} total={certificates.length} pageSize={PAGE_SIZE} onPage={(p) => { setCertPage(p); scrollToTop(); }} />
                 </div>
               )}
             </div>
@@ -1969,7 +2002,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                             </tr>
                           </thead>
                           <tbody>
-                            {walletTxs.map((tx) => (
+                            {pagedWalletTxs.map((tx) => (
                               <tr key={tx.id}>
                                 <td>
                                   <span
@@ -2003,6 +2036,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                             ))}
                           </tbody>
                         </table>
+                        <Pagination page={walletTxPage} totalPages={totalWalletPages} total={walletTxs.length} pageSize={PAGE_SIZE} onPage={(p) => { setWalletTxPage(p); scrollToTop(); }} />
                       </div>
                     )}
                   </div>

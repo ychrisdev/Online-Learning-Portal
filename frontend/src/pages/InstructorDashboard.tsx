@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   BarChart,
   Bar,
@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { formatPrice } from "../utils/format";
 import { getUserId } from "../utils/auth";
+import Pagination from "../components/ui/Pagination";
 
 interface InstructorDashboardProps {
   onNavigate: (page: string, courseId?: string) => void;
@@ -482,7 +483,21 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [walletPanel, setWalletPanel] = useState<"deposit" | "withdraw" | null>(
     null,
   );
+  const mainRef = useRef<HTMLElement>(null);
+  const PAGE_SIZE = 8;
+  const [enrollPage, setEnrollPage] = useState(1);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [walletTxPage, setWalletTxPage] = useState(1);
+  const [refundPage, setRefundPage] = useState(1);
+  const [sectionPage, setSectionPage] = useState(1);
+  const [lessonPage, setLessonPage] = useState(1);
+  const [quizPage, setQuizPage] = useState(1);
+  const [coursePage, setCoursePage] = useState(1);
 
+  const scrollToTop = () => {
+    setTimeout(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, 0);
+  };
   useEffect(() => {
     (async () => {
       const res = await fetch(`${API}/api/auth/me/`, {
@@ -887,7 +902,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       isCollapsible && !alertExpanded
         ? adminEditAlerts.slice(0, PREVIEW_COUNT)
         : adminEditAlerts;
-
+  
     return (
       <div className="ad-edit-alert ad-edit-alert--no-mb">
         <div className="ad-edit-alert__header">
@@ -1053,6 +1068,40 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     if (discount <= 0) return formatPrice(price, "VND");
     return formatPrice(Math.round(price * (1 - discount / 100)), "VND");
   };
+  const totalSectionPages = Math.ceil(
+    sections.filter((s) => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse).length / PAGE_SIZE
+  );
+  const pagedSections = sections
+    .filter((s) => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse)
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    .slice((sectionPage - 1) * PAGE_SIZE, sectionPage * PAGE_SIZE);
+
+  const filteredLessons = lessons; // lessons đã được filter từ API
+  const totalLessonPages = Math.ceil(filteredLessons.length / PAGE_SIZE);
+  const pagedLessons = filteredLessons.slice((lessonPage - 1) * PAGE_SIZE, lessonPage * PAGE_SIZE);
+
+  const filteredQuizzes = quizzes.filter((q) =>
+    !filterQuizLesson || String(q.lesson?.id ?? q.lesson) === filterQuizLesson
+  );
+  const totalQuizPages = Math.ceil(filteredQuizzes.length / PAGE_SIZE);
+  const pagedQuizzes = filteredQuizzes.slice((quizPage - 1) * PAGE_SIZE, quizPage * PAGE_SIZE);
+  const totalEnrollPages = Math.ceil(filteredEnrollments.length / PAGE_SIZE);
+  const pagedEnrollments = filteredEnrollments.slice((enrollPage - 1) * PAGE_SIZE, enrollPage * PAGE_SIZE);
+
+  const totalPaymentPages = Math.ceil(filteredPayments.length / PAGE_SIZE);
+  const pagedPayments = filteredPayments.slice((paymentPage - 1) * PAGE_SIZE, paymentPage * PAGE_SIZE);
+
+  const totalReviewPages = Math.ceil(filteredReviews.length / PAGE_SIZE);
+  const pagedReviews = filteredReviews.slice((reviewPage - 1) * PAGE_SIZE, reviewPage * PAGE_SIZE);
+
+  const totalWalletTxPages = Math.ceil(walletTxs.length / PAGE_SIZE);
+  const pagedWalletTxs = walletTxs.slice((walletTxPage - 1) * PAGE_SIZE, walletTxPage * PAGE_SIZE);
+
+  const totalRefundPages = Math.ceil(refundRequests.length / PAGE_SIZE);
+  const pagedRefunds = refundRequests.slice((refundPage - 1) * PAGE_SIZE, refundPage * PAGE_SIZE);
+
+  const totalCoursePages = Math.ceil(filteredCourses.length / PAGE_SIZE);
+  const pagedCourses = filteredCourses.slice((coursePage - 1) * PAGE_SIZE, coursePage * PAGE_SIZE);
 
   const openEditCourse = async (c: any) => {
     setEditCourseError("");
@@ -2233,7 +2282,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
           </button>
         </aside>
 
-        <main className="id-main">
+        <main className="id-main" ref={mainRef}>
           {renderAdminEditAlert()}
           {activeTab === "overview" && (
             <div className="id-content">
@@ -2869,12 +2918,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm kiếm khóa học..."
                   value={courseSearch}
-                  onChange={(e) => setCourseSearch(e.target.value)}
+                  onChange={(e) => { setCourseSearch(e.target.value); setCoursePage(1); }}
                 />
                 <select
                   className="ad-select"
                   value={courseStatusFilter}
-                  onChange={(e) => setCourseStatusFilter(e.target.value as any)}
+                  onChange={(e) => { setCourseStatusFilter(e.target.value as any); setCoursePage(1); }}
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="draft">Nháp</option>
@@ -2954,7 +3003,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCourses.map((c) => {
+                      {pagedCourses.map((c) => {
                         const price =
                           c.sale_price != null
                             ? Number(c.sale_price)
@@ -3138,6 +3187,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       })}
                     </tbody>
                   </table>
+                  <Pagination page={coursePage} totalPages={totalCoursePages} total={filteredCourses.length} pageSize={PAGE_SIZE} onPage={(p) => { setCoursePage(p); scrollToTop(); }} />
                 </div>
               )}
             </div>
@@ -3209,7 +3259,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <select
                     className="ad-select"
                     value={filterSectionCourse}
-                    onChange={(e) => setFilterSectionCourse(e.target.value)}
+                    // select khóa học trong tab sections
+                    onChange={(e) => { setFilterSectionCourse(e.target.value); setSectionPage(1); }}
                   >
                     <option value="">Tất cả khóa học</option>
                     {courses.map((c) => (
@@ -3264,18 +3315,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           Không có chương nào.
                         </td>
                       </tr>
-                    ) : (
-                      sections
-                        .filter(
-                          (s) =>
-                            !filterSectionCourse ||
-                            String(s.course?.id ?? s.course) ===
-                              filterSectionCourse,
-                        )
-                        .sort(
-                          (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0),
-                        )
-                        .map((s) => (
+                    ) : (                    
+                        pagedSections.map((s) => (
                           <tr key={s.id}>
                             <td className="id-td-center">
                               {s.order_index ?? "—"}
@@ -3321,6 +3362,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination page={sectionPage} totalPages={totalSectionPages} total={sections.filter((s) => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse).length} pageSize={PAGE_SIZE} onPage={(p) => { setSectionPage(p); scrollToTop(); }} />
               </div>
 
               {showSectionModal && (
@@ -3455,10 +3497,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <select
                     className="ad-select"
                     value={filterLessonCourse}
-                    onChange={(e) => {
-                      setFilterLessonCourse(e.target.value);
-                      setFilterLessonSection("");
-                    }}
+                    onChange={(e) => { setFilterLessonCourse(e.target.value); setFilterLessonSection(""); setLessonPage(1); }}
                   >
                     <option value="">Tất cả khóa học</option>
                     {courses.map((c) => (
@@ -3470,7 +3509,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <select
                     className="ad-select"
                     value={filterLessonSection}
-                    onChange={(e) => setFilterLessonSection(e.target.value)}
+                    onChange={(e) => { setFilterLessonSection(e.target.value); setLessonPage(1); }}
                   >
                     <option value="">Tất cả chương</option>
                     {sections
@@ -3530,7 +3569,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      lessons.map((l) => (
+                      pagedLessons.map((l) => (
                         <tr key={l.id}>
                           <td className="id-td-center">
                             {l.order_index ?? "—"}
@@ -3578,6 +3617,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination page={lessonPage} totalPages={totalLessonPages} total={lessons.length} pageSize={PAGE_SIZE} onPage={(p) => { setLessonPage(p); scrollToTop(); }} />
               </div>
 
               {lessonModal &&
@@ -4008,7 +4048,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <select
                     className="ad-select"
                     value={filterQuizLesson}
-                    onChange={(e) => setFilterQuizLesson(e.target.value)}
+                    onChange={(e) => { setFilterQuizLesson(e.target.value); setQuizPage(1); }}
                   >
                     <option value="">Tất cả bài học</option>
                     {lessons.map((l) => (
@@ -4059,14 +4099,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      quizzes
-                        .filter(
-                          (q) =>
-                            !filterQuizLesson ||
-                            String(q.lesson?.id ?? q.lesson) ===
-                              filterQuizLesson,
-                        )
-                        .map((q) => {
+                        pagedQuizzes.map((q) => {
                           const lesson = lessons.find(
                             (l) => l.id === (q.lesson?.id ?? q.lesson),
                           );
@@ -4227,6 +4260,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination page={quizPage} totalPages={totalQuizPages} total={filteredQuizzes.length} pageSize={PAGE_SIZE} onPage={(p) => { setQuizPage(p); scrollToTop(); }} />
               </div>
 
               {quizModal &&
@@ -4764,12 +4798,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm theo tên học viên, khóa học..."
                   value={searchEnrollment}
-                  onChange={(e) => setSearchEnrollment(e.target.value)}
+                  onChange={(e) => { setSearchEnrollment(e.target.value); setEnrollPage(1); }}
                 />
                 <select
                   className="ad-select"
                   value={filterEnrollStatus}
-                  onChange={(e) => setFilterEnrollStatus(e.target.value)}
+                  onChange={(e) => { setFilterEnrollStatus(e.target.value); setEnrollPage(1); }}
                 >
                   <option value="">Tất cả trạng thái</option>
                   <option value="active">Đang học</option>
@@ -4813,7 +4847,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredEnrollments.map((e) => {
+                      pagedEnrollments.map((e) => {
                         const status = e.status ?? "active";
                         const progress =
                           e.progress_pct ?? e.progress_percent ?? null;
@@ -4885,6 +4919,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination page={enrollPage} totalPages={totalEnrollPages} total={filteredEnrollments.length} pageSize={PAGE_SIZE} onPage={(p) => { setEnrollPage(p); scrollToTop(); }} />
               </div>
             </div>
           )}
@@ -4905,12 +4940,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm theo học viên, khóa học..."
                   value={searchPayment}
-                  onChange={(e) => setSearchPayment(e.target.value)}
+                  onChange={(e) => { setSearchPayment(e.target.value); setPaymentPage(1); }}
                 />
                 <select
                   className="ad-select"
                   value={filterPayStatus}
-                  onChange={(e) => setFilterPayStatus(e.target.value)}
+                  onChange={(e) => { setFilterPayStatus(e.target.value); setPaymentPage(1); }}
                 >
                   <option value="">Tất cả trạng thái</option>
                   <option value="success">Thành công</option>
@@ -4957,7 +4992,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredPayments.map((p) => {
+                      pagedPayments.map((p) => {
                         const status = p.status ?? "pending";
                         return (
                           <tr key={p.id}>
@@ -5003,6 +5038,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination page={paymentPage} totalPages={totalPaymentPages} total={filteredPayments.length} pageSize={PAGE_SIZE} onPage={(p) => { setPaymentPage(p); scrollToTop(); }} />
               </div>
 
               {showPaymentModal && (
@@ -5221,12 +5257,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm theo học viên, khóa học, nội dung..."
                   value={searchReview}
-                  onChange={(e) => setSearchReview(e.target.value)}
+                  onChange={(e) => { setSearchReview(e.target.value); setReviewPage(1); }}
                 />
                 <select
                   className="ad-select"
                   value={filterReviewRating}
-                  onChange={(e) => setFilterReviewRating(e.target.value)}
+                  onChange={(e) => { setFilterReviewRating(e.target.value); setReviewPage(1); }}
                 >
                   <option value="">Tất cả số sao</option>
                   {[5, 4, 3, 2, 1].map((s) => (
@@ -5238,7 +5274,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <select
                   className="ad-select"
                   value={filterReviewCourse}
-                  onChange={(e) => setFilterReviewCourse(e.target.value)}
+                  onChange={(e) => { setFilterReviewCourse(e.target.value); setReviewPage(1); }}
                 >
                   <option value="">Tất cả khóa học</option>
                   {courses.map((c) => (
@@ -5286,7 +5322,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                      filteredReviews.map((r) => (
+                      pagedReviews.map((r) => (
                         <tr
                           key={r.id}
                           style={{ opacity: r.is_hidden ? 0.5 : 1 }}
@@ -5338,7 +5374,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 Xem
                               </button>
 
-                              {/* Nút Báo cáo (có điều kiện) */}
+                              {/*Nút Báo cáo (có điều kiện) */}
                               {!r.is_hidden &&
                                 !r.is_reported &&
                                 !r.report_dismissed && (
@@ -5356,6 +5392,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
+                <Pagination page={reviewPage} totalPages={totalReviewPages} total={filteredReviews.length} pageSize={PAGE_SIZE} onPage={(p) => { setReviewPage(p); scrollToTop(); }} />
               </div>
 
               {reviewModal === "view" && selectedReview && (
@@ -6005,7 +6042,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             </tr>
                           </thead>
                           <tbody>
-                            {walletTxs.map((tx) => (
+                            {pagedWalletTxs.map((tx) => (
                               <tr key={`tx-${tx.id}`}>
                                 <td>
                                   <span
@@ -6049,6 +6086,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             ))}
                           </tbody>
                         </table>
+                        <Pagination page={walletTxPage} totalPages={totalWalletTxPages} total={walletTxs.length} pageSize={PAGE_SIZE} onPage={(p) => { setWalletTxPage(p); scrollToTop(); }} />
                       </div>
                     )}
                   </div>
@@ -6092,7 +6130,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </tr>
                       </thead>
                       <tbody>
-                        {refundRequests.map((r) => (
+                        {pagedRefunds.map((r) => (
                           <React.Fragment key={r.id}>
                             <tr>
                               <td>
@@ -6155,6 +6193,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         ))}
                       </tbody>
                     </table>
+                    <Pagination page={refundPage} totalPages={totalRefundPages} total={refundRequests.length} pageSize={PAGE_SIZE} onPage={(p) => { setRefundPage(p); scrollToTop(); }} />
                   </div>
                 </div>
               )}

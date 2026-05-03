@@ -108,7 +108,7 @@
 /* ── Main content ────────────────────────────────────────────── */
 .id-main {
   min-width: 0;
-  overflow-x: hidden; 
+  overflow-y: auto; 
 }
 .id-content {
   display: flex;

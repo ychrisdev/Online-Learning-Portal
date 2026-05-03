@@ -10,8 +10,12 @@ interface AdminDashboardProps {
 }
 
 const API = "http://127.0.0.1:8000";
-const PAGE_SIZE = 10;
-
+const PAGE_SIZE = 8;
+const scrollToTop = () => {
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, 0);
+};
 const authHeader = (): Record<string, string> => {
   const token = localStorage.getItem("access");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -4118,7 +4122,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </span>
                       </div>
                       <div className="ad-modal__section-title">
-                        Chứng chỉ hoàn thành
+                        Khóa học hoàn thành
                       </div>
                       {loadingCerts ? (
                         <p className="ad-modal__field-value ad-modal__field-value--dim">
@@ -4126,7 +4130,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </p>
                       ) : certificates.length === 0 ? (
                         <p className="ad-modal__field-value ad-modal__field-value--dim">
-                          Chưa có chứng chỉ nào
+                          Chưa có khóa học nào hoàn thành
                         </p>
                       ) : (
                         certificates.map((cert, i) => (
@@ -4135,7 +4139,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               {cert.course_title}
                             </div>
                             <div className="ad-modal__cert-meta">
-                              <span>🎓 {cert.cert_number}</span>
+                              <span>{cert.cert_number}</span>
                               <span>
                                 {" "}
                                 {cert.issued_at
@@ -4216,7 +4220,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                       <div className="ad-modal__field">
                         <span className="ad-modal__field-label">
-                          Đánh giá TB
+                          Đánh giá TBF
                         </span>
                         <span className="ad-modal__field-value">
                           {ip.avg_rating != null
@@ -4746,7 +4750,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgUsers.totalPages}
                   total={pgUsers.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgUsers.goTo}
+                  onPage={(p) => { pgUsers.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -4923,7 +4927,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgCourses.totalPages}
                   total={pgCourses.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgCourses.goTo}
+                  onPage={(p) => { pgCourses.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -5026,7 +5030,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgSections.totalPages}
                   total={pgSections.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgSections.goTo}
+                  onPage={(p) => { pgSections.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -5149,7 +5153,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgLessons.totalPages}
                   total={pgLessons.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgLessons.goTo}
+                  onPage={(p) => { pgLessons.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -5329,7 +5333,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgQuizzes.totalPages}
                   total={pgQuizzes.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgQuizzes.goTo}
+                  onPage={(p) => { pgQuizzes.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -5481,7 +5485,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgEnrollments.totalPages}
                   total={pgEnrollments.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgEnrollments.goTo}
+                  onPage={(p) => { pgEnrollments.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -5599,7 +5603,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgCategories.totalPages}
                   total={pgCategories.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgCategories.goTo}
+                  onPage={(p) => { pgCategories.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -5736,7 +5740,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgPayments.totalPages}
                   total={pgPayments.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgPayments.goTo}
+                  onPage={(p) => { pgPayments.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
@@ -5929,7 +5933,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgReviews.totalPages}
                   total={pgReviews.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgReviews.goTo}
+                  onPage={(p) => { pgReviews.goTo(p); scrollToTop(); }}
                 />
               </div>
 
@@ -6985,7 +6989,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgRefunds.totalPages}
                   total={pgRefunds.total}
                   pageSize={PAGE_SIZE}
-                  onPage={pgRefunds.goTo}
+                  onPage={(p) => { pgRefunds.goTo(p); scrollToTop(); }}
                 />
               </div>
             </div>
