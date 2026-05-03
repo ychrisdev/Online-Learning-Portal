@@ -191,6 +191,9 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',   # CRA dev server
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
 EMAIL_BACKEND      = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST         = 'smtp.gmail.com'
 EMAIL_PORT         = 587
