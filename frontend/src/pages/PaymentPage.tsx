@@ -25,7 +25,7 @@ const authHeader = (): Record<string, string> => {
 
 type Step =
   | "select"
-  | "processing"   // thanh toán ví đang xử lý
+  | "processing" // thanh toán ví đang xử lý
   | "momo_waiting" // đã mở tab MoMo, đang chờ kết quả
   | "success"
   | "failed";
@@ -36,19 +36,23 @@ interface PaymentModalProps {
   onSuccess: () => void;
 }
 
-const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess }) => {
-  const [step, setStep]               = useState<Step>("select");
-  const [loading, setLoading]         = useState(false);
-  const [errorMsg, setErrorMsg]       = useState<string | null>(null);
+const PaymentModal: React.FC<PaymentModalProps> = ({
+  course,
+  onClose,
+  onSuccess,
+}) => {
+  const [step, setStep] = useState<Step>("select");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loadingWallet, setLoadingWallet] = useState(true);
-  const [method, setMethod]           = useState<"wallet" | "momo">("wallet");
-  const [momoRef, setMomoRef]         = useState<string>("");
+  const [method, setMethod] = useState<"wallet" | "momo">("wallet");
+  const [momoRef, setMomoRef] = useState<string>("");
 
   // Refs để cleanup
-  const pollingRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-  const timeoutRef  = useRef<ReturnType<typeof setTimeout>  | null>(null);
-  const momoTabRef  = useRef<Window | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const momoTabRef = useRef<Window | null>(null);
 
   // Tính giá
   const price =
@@ -62,12 +66,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
   // ── Khóa scroll khi modal mở ──────────────────────────────────────────────
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, []);
 
   // ── Đóng bằng Esc ─────────────────────────────────────────────────────────
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, [onClose]);
@@ -77,7 +85,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
     (async () => {
       setLoadingWallet(true);
       try {
-        const res = await fetch(`${API}/api/wallet/`, { headers: authHeader() });
+        const res = await fetch(`${API}/api/wallet/`, {
+          headers: authHeader(),
+        });
         const data = res.ok ? await res.json() : { balance: 0 };
         setWalletBalance(Number(data.balance));
       } catch {
@@ -91,8 +101,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
   // ── Cleanup polling khi unmount ────────────────────────────────────────────
   useEffect(() => {
     return () => {
-      if (pollingRef.current)  clearInterval(pollingRef.current);
-      if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
@@ -112,8 +122,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
       };
 
       // Dừng polling
-      if (pollingRef.current)  clearInterval(pollingRef.current);
-      if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       if (resultCode === "0") {
         setStep("success");
@@ -121,7 +131,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
         setErrorMsg(
           resultCode === "1006"
             ? "Giao dịch đã bị hủy."
-            : `Thanh toán thất bại (mã lỗi: ${resultCode}).`
+            : `Thanh toán thất bại (mã lỗi: ${resultCode}).`,
         );
         setStep("failed");
       }
@@ -142,8 +152,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
       localStorage.removeItem("momo_pending_result");
       localStorage.removeItem("momo_pending_ref");
 
-      if (pollingRef.current)  clearInterval(pollingRef.current);
-      if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       if (val === "0") {
         setStep("success");
@@ -151,7 +161,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
         setErrorMsg(
           val === "1006"
             ? "Giao dịch đã bị hủy."
-            : `Thanh toán thất bại (mã lỗi: ${val}).`
+            : `Thanh toán thất bại (mã lỗi: ${val}).`,
         );
         setStep("failed");
       }
@@ -189,11 +199,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
     }, 3000);
 
     // Timeout 10 phút
-    timeoutRef.current = setTimeout(() => {
-      clearInterval(pollingRef.current!);
-      setErrorMsg("Hết thời gian chờ. Vui lòng kiểm tra lại hoặc thử lại.");
-      setStep("failed");
-    }, 10 * 60 * 1000);
+    timeoutRef.current = setTimeout(
+      () => {
+        clearInterval(pollingRef.current!);
+        setErrorMsg("Hết thời gian chờ. Vui lòng kiểm tra lại hoặc thử lại.");
+        setStep("failed");
+      },
+      10 * 60 * 1000,
+    );
   };
 
   // ── Thanh toán MoMo ───────────────────────────────────────────────────────
@@ -250,8 +263,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
             setStep((currentStep) => {
               // Chỉ xử lý nếu vẫn đang ở trạng thái chờ
               if (currentStep === "momo_waiting") {
-                if (pollingRef.current)  clearInterval(pollingRef.current);
-                if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+                if (pollingRef.current) clearInterval(pollingRef.current);
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
                 setErrorMsg("Giao dịch đã bị hủy hoặc tab thanh toán bị đóng.");
                 return "failed";
               }
@@ -285,6 +298,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
         return;
       }
 
+      let ref_code: string | null = null;
+
       // Bước 1: initiate
       const initiateRes = await fetch(`${API}/api/payments/initiate/`, {
         method: "POST",
@@ -293,15 +308,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
       });
       const initiateData = await initiateRes.json();
       if (!initiateRes.ok) {
+        if (
+          initiateData.detail?.includes("đang chờ xử lý") ||
+          initiateData.detail?.includes("pending")
+        ) {
+          const directRes = await fetch(`${API}/api/payments/wallet-pay/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeader() },
+            body: JSON.stringify({ course_id: course.id }),
+          });
+          const directData = await directRes.json();
+          if (!directRes.ok) {
+            setErrorMsg(directData.detail ?? "Thanh toán ví thất bại.");
+            setStep("failed");
+            return;
+          }
+          setStep("success");
+          return;
+        }
         setErrorMsg(initiateData.detail ?? "Không thể khởi tạo thanh toán.");
         return;
       }
 
-      const ref_code =
-        initiateData.ref_code ?? initiateData.transaction?.ref_code;
+      ref_code = initiateData.ref_code ?? initiateData.transaction?.ref_code;
       setStep("processing");
 
-      // Bước 2: wallet-pay
       const walletRes = await fetch(`${API}/api/payments/wallet-pay/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeader() },
@@ -330,8 +361,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
   const handleRetry = () => {
     setStep("select");
     setErrorMsg(null);
-    if (pollingRef.current)  clearInterval(pollingRef.current);
-    if (timeoutRef.current)  clearTimeout(timeoutRef.current);
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     // Đóng tab MoMo nếu vẫn còn mở
     if (momoTabRef.current && !momoTabRef.current.closed) {
       momoTabRef.current.close();
@@ -340,53 +371,69 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
   };
 
   const titles: Record<Step, string> = {
-    select:       "Đăng ký khóa học",
-    processing:   "Đang xử lý",
+    select: "Đăng ký khóa học",
+    processing: "Đang xử lý",
     momo_waiting: "Đang chờ thanh toán MoMo",
-    success:      "Thanh toán thành công",
-    failed:       "Thanh toán thất bại",
+    success: "Thanh toán thành công",
+    failed: "Thanh toán thất bại",
   };
 
   return (
     <div
       className="modal-overlay"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="modal modal--md">
         {/* Header */}
         <div className="modal__header">
           <h2 className="modal__title">{titles[step]}</h2>
-          <button className="modal__close" onClick={() => {
-            if (momoTabRef.current && !momoTabRef.current.closed) {
-              momoTabRef.current.close();
-            }
-            onClose();
-          }}>✕</button>
+          <button
+            className="modal__close"
+            onClick={() => {
+              if (momoTabRef.current && !momoTabRef.current.closed) {
+                momoTabRef.current.close();
+              }
+              onClose();
+            }}
+          >
+            ✕
+          </button>
         </div>
 
         <div className="modal__body">
-
           {/* ── SELECT ── */}
           {step === "select" && (
             <>
               {/* Thông tin khoá học */}
               <div className="pm-course-card">
                 {course.thumbnail ? (
-                  <img className="pm-course-thumb" src={course.thumbnail} alt={course.title} />
+                  <img
+                    className="pm-course-thumb"
+                    src={course.thumbnail}
+                    alt={course.title}
+                  />
                 ) : (
                   <div className="pm-course-thumb-placeholder">📚</div>
                 )}
                 <div className="pm-course-info">
                   <div className="pm-course-title">{course.title}</div>
-                  <div className="pm-course-instructor">{course.instructor_name}</div>
+                  <div className="pm-course-instructor">
+                    {course.instructor_name}
+                  </div>
                   <div className="pm-course-price-row">
                     <span className="pm-price-main">
                       {isFree ? "Miễn phí" : formatPrice(price, "VND")}
                     </span>
                     {!isFree && course.discount_percent > 0 && (
                       <>
-                        <span className="pm-price-original">{formatPrice(course.price, "VND")}</span>
-                        <span className="pm-price-badge">-{course.discount_percent}%</span>
+                        <span className="pm-price-original">
+                          {formatPrice(course.price, "VND")}
+                        </span>
+                        <span className="pm-price-badge">
+                          -{course.discount_percent}%
+                        </span>
                       </>
                     )}
                   </div>
@@ -397,28 +444,38 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
               {!isFree && (
                 <div className="pm-wallet-box">
                   <div className="pm-wallet-box__header">
-                    <span className="pm-wallet-box__label">Thanh toán bằng ví</span>
+                    <span className="pm-wallet-box__label">
+                      Thanh toán bằng ví
+                    </span>
                   </div>
                   {loadingWallet ? (
-                    <div className="pm-wallet-box__loading">Đang tải số dư…</div>
+                    <div className="pm-wallet-box__loading">
+                      Đang tải số dư…
+                    </div>
                   ) : (
                     <div className="pm-wallet-box__balance-row">
                       <span>Số dư hiện tại</span>
-                      <span className={
-                        walletBalance !== null && walletBalance < price
-                          ? "pm-wallet-box__balance pm-wallet-box__balance--low"
-                          : "pm-wallet-box__balance"
-                      }>
+                      <span
+                        className={
+                          walletBalance !== null && walletBalance < price
+                            ? "pm-wallet-box__balance pm-wallet-box__balance--low"
+                            : "pm-wallet-box__balance"
+                        }
+                      >
                         {formatPrice(walletBalance ?? 0, "VND")}
                       </span>
                     </div>
                   )}
-                  {walletBalance !== null && walletBalance < price && !loadingWallet && (
-                    <div className="pm-wallet-box__insufficient">
-                      ⚠ Số dư không đủ — cần nạp thêm{" "}
-                      <strong>{formatPrice(price - walletBalance, "VND")}</strong>
-                    </div>
-                  )}
+                  {walletBalance !== null &&
+                    walletBalance < price &&
+                    !loadingWallet && (
+                      <div className="pm-wallet-box__insufficient">
+                        ⚠ Số dư không đủ — cần nạp thêm{" "}
+                        <strong>
+                          {formatPrice(price - walletBalance, "VND")}
+                        </strong>
+                      </div>
+                    )}
                 </div>
               )}
 
@@ -432,7 +489,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
                   >
                     <div className="pm-method__info">
                       <span className="pm-method__label">Ví EnglishHub</span>
-                      <span className="pm-method__desc">Thanh toán bằng số dư ví</span>
+                      <span className="pm-method__desc">
+                        Thanh toán bằng số dư ví
+                      </span>
                     </div>
                     <div className="pm-method__radio">
                       <div className="pm-method__radio-dot" />
@@ -444,7 +503,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
                   >
                     <div className="pm-method__info">
                       <span className="pm-method__label">MoMo</span>
-                      <span className="pm-method__desc">Thanh toán qua ví MoMo</span>
+                      <span className="pm-method__desc">
+                        Thanh toán qua ví MoMo
+                      </span>
                     </div>
                     <div className="pm-method__radio">
                       <div className="pm-method__radio-dot" />
@@ -478,10 +539,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
                 {loading
                   ? "Đang xử lý…"
                   : isFree
-                  ? "Đăng ký miễn phí"
-                  : `Thanh toán ${formatPrice(price, "VND")}`}
+                    ? "Đăng ký miễn phí"
+                    : `Thanh toán ${formatPrice(price, "VND")}`}
               </button>
-              <p className="pm-note">Thông tin thanh toán được mã hóa an toàn</p>
+              <p className="pm-note">
+                Thông tin thanh toán được mã hóa an toàn
+              </p>
             </>
           )}
 
@@ -490,7 +553,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
             <div className="pm-processing">
               <div className="pm-spinner" />
               <div className="pm-processing__title">Đang xử lý thanh toán</div>
-              <div className="pm-processing__sub">Vui lòng không đóng cửa sổ này…</div>
+              <div className="pm-processing__sub">
+                Vui lòng không đóng cửa sổ này…
+              </div>
             </div>
           )}
 
@@ -498,7 +563,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
           {step === "momo_waiting" && (
             <div className="pm-processing">
               <div className="pm-spinner" />
-              <div className="pm-processing__title">Đang chờ xác nhận từ MoMo</div>
+              <div className="pm-processing__title">
+                Đang chờ xác nhận từ MoMo
+              </div>
               <div className="pm-processing__sub">
                 Vui lòng hoàn tất thanh toán trên tab MoMo vừa mở.
                 <br />
@@ -557,7 +624,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ course, onClose, onSuccess 
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>

@@ -25,12 +25,6 @@ from .serializers import (
 from .emails import send_enrollment_email, send_payment_success_email, send_refund_success_email
 
 class InitiatePaymentView(APIView):
-    """
-    POST /api/payments/initiate/
-    Tạo transaction pending và trả về thông tin để redirect sang gateway — 5.1.5
-
-    Với khoá học FREE (price=0): tự động kích hoạt enrollment luôn.
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -41,7 +35,6 @@ class InitiatePaymentView(APIView):
             Course, id=serializer.validated_data['course_id']
         )
 
-        # ✅ Dùng Enrollment.objects trực tiếp, tránh AttributeError
         if Enrollment.objects.filter(
             student=request.user,
             course=course,
@@ -52,7 +45,7 @@ class InitiatePaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         
-        if Transaction.objects.filter(
+        """ if Transaction.objects.filter(
             student=request.user,
             course=course,
             status=Transaction.Status.PENDING,
@@ -60,11 +53,16 @@ class InitiatePaymentView(APIView):
             return Response(
                 {'detail': 'Bạn đã có giao dịch đang chờ xử lý cho khóa học này.'},
                 status=status.HTTP_400_BAD_REQUEST,
-            )
+            ) """
 
         method = serializer.validated_data['method']
+        
+        Transaction.objects.filter(
+            student=request.user,
+            course=course,
+            status=Transaction.Status.PENDING,
+        ).update(status=Transaction.Status.FAILED)
 
-        # ✅ Xử lý sale_price an toàn khi None
         sale_price = course.sale_price
         if sale_price is None:
             sale_price = course.price or 0
@@ -545,23 +543,45 @@ class InstructorConfirmRefundView(APIView):
 
         return Response({'message': 'Hoàn tiền thành công.'})    
 class WalletPayView(APIView):
-    """
-    POST /api/payments/wallet-pay/
-    Trừ ví student + activate enrollment sau khi initiate thành công.
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         ref_code = request.data.get('ref_code')
-        if not ref_code:
-            return Response({'detail': 'Thiếu ref_code.'}, status=400)
+        course_id = request.data.get('course_id')
+        
+        if not ref_code and not course_id:
+            return Response({'detail': 'Thiếu ref_code hoặc course_id.'}, status=400)
 
-        transaction = generics.get_object_or_404(
-            Transaction,
-            ref_code=ref_code,
-            student=request.user,
-            status=Transaction.Status.PENDING,
-        )
+        if ref_code:
+            try:
+                transaction = Transaction.objects.get(
+                    ref_code=ref_code,
+                    student=request.user,
+                    status__in=[Transaction.Status.PENDING, Transaction.Status.FAILED],
+                )
+                if transaction.status == Transaction.Status.FAILED:
+                    transaction.status = Transaction.Status.PENDING
+                    transaction.method = Transaction.Method.WALLET
+                    transaction.save(update_fields=['status', 'method'])
+            except Transaction.DoesNotExist:
+                return Response({'detail': 'Không tìm thấy giao dịch hợp lệ.'}, status=404)
+        else:
+            from courses.models import Course
+            course = generics.get_object_or_404(Course, id=course_id)
+            if Enrollment.objects.filter(
+                student=request.user,
+                course=course,
+                status__in=[Enrollment.Status.ACTIVE, Enrollment.Status.COMPLETED],
+            ).exists():
+                return Response({'detail': 'Bạn đã đăng ký khoá học này rồi.'}, status=400)
+            price = int(course.sale_price or course.price or 0)
+            transaction = Transaction.objects.create(
+                student=request.user,
+                course=course,
+                amount=price,
+                method=Transaction.Method.WALLET,
+                status=Transaction.Status.PENDING,
+            )
 
         from wallet.services import pay_for_course
         try:

@@ -254,12 +254,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
   const [progressMap, setProgressMap] = useState<Record<string, boolean>>({});
   const [progressPct, setProgressPct] = useState<number>(0);
   // Thêm vào sau progressPct state:
-  const [showCertificate, setShowCertificate]       = useState(false);
-  const [certificateCode, setCertificateCode]       = useState<string | undefined>(undefined);
-  const [certificateShownFor, setCertificateShownFor] = useState<string | null>(null);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const [certificateCode, setCertificateCode] = useState<string | undefined>(
+    undefined,
+  );
+  const [certificateShownFor, setCertificateShownFor] = useState<string | null>(
+    null,
+  );
 
   // ── Refund cancelled alert ───────────────────────────────────────────────────
-  const [showRefundCancelledAlert, setShowRefundCancelledAlert] = useState(false);
+  const [showRefundCancelledAlert, setShowRefundCancelledAlert] =
+    useState(false);
   // ── Toast state ──────────────────────────────────────────────────────────────
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -360,7 +365,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       } catch {}
     };
     fetchMyReviews();
-    }, [isLoggedIn, course?.slug]);
+  }, [isLoggedIn, course?.slug]);
 
   useEffect(() => {
     if (!progressPct || progressPct < 100 || !isEnrolled || !courseId) return;
@@ -371,14 +376,14 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     const fetchAndShow = async () => {
       try {
         const res = await refreshAndRetry(
-          `${API}/api/enrollments/certificate/?course_id=${courseId}`
+          `${API}/api/enrollments/certificate/?course_id=${courseId}`,
         );
         if (res.ok) {
           const data = await res.json();
           setCertificateCode(data.certificate_code ?? undefined);
         }
       } catch {}
-      localStorage.setItem(key, '1');
+      localStorage.setItem(key, "1");
       setTimeout(() => setShowCertificate(true), 600);
     };
 
@@ -425,7 +430,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     setShowPayment(true);
   };
 
-  const fetchLessonContent = async (lessonId: string, isPreview: boolean, lessonHasQuiz?: boolean) => {
+  const fetchLessonContent = async (
+    lessonId: string,
+    isPreview: boolean,
+    lessonHasQuiz?: boolean,
+  ) => {
     if (!isPreview && !isEnrolled) {
       if (!isLoggedIn) {
         onNavigate("auth");
@@ -529,11 +538,13 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         const refundRes = await refreshAndRetry(`${API}/api/payments/history/`);
         if (refundRes.ok) {
           const refundData = await refundRes.json();
-          const refundList = Array.isArray(refundData) ? refundData : (refundData.results ?? []);
+          const refundList = Array.isArray(refundData)
+            ? refundData
+            : (refundData.results ?? []);
           const tx = refundList.find(
             (t: any) =>
               (t.course === course.id || t.course_id === course.id) &&
-              t.status === "refund_requested"
+              t.status === "refund_requested",
           );
           if (!tx) {
             lastRefundStatusRef.current = "";
@@ -590,7 +601,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
       try {
         const attemptRes = await refreshAndRetry(
-          `${API}/api/quizzes/${data.id}/attempts/`
+          `${API}/api/quizzes/${data.id}/attempts/`,
         );
         if (attemptRes.ok) {
           const attemptData = await attemptRes.json();
@@ -832,14 +843,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
             }
           }
           // Lưu trạng thái refund ban đầu
-          const refundRes = await refreshAndRetry(`${API}/api/payments/history/`);
+          const refundRes = await refreshAndRetry(
+            `${API}/api/payments/history/`,
+          );
           if (refundRes.ok) {
             const refundData = await refundRes.json();
-            const refundList = Array.isArray(refundData) ? refundData : (refundData.results ?? []);
+            const refundList = Array.isArray(refundData)
+              ? refundData
+              : (refundData.results ?? []);
             const tx = refundList.find(
               (t: any) =>
                 (t.course === course.id || t.course_id === course.id) &&
-                t.status === "refund_requested"
+                t.status === "refund_requested",
             );
             lastRefundStatusRef.current = tx ? "refund_requested" : "";
           }
@@ -906,7 +921,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
     <>
       <div className="cd-page">
         <div className="container cd-layout">
-          <div className="cd-main">            
+          <div className="cd-main">
             <h1 className="cd-hero__title">{course.title}</h1>
 
             <div className="cd-tabs">
@@ -956,30 +971,38 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   />
                 ) : (
                   <>
-                    
                     {sections.map((section) => (
                       <div key={section.id} className="cd-chapter">
                         <button
                           className="cd-chapter__header"
                           onClick={() =>
                             setExpandedSection(
-                              expandedSection === section.id ? null : section.id,
+                              expandedSection === section.id
+                                ? null
+                                : section.id,
                             )
                           }
                         >
                           <span className="cd-chapter__icon">
                             {expandedSection === section.id ? "▾" : "▸"}
                           </span>
-                          <span className="cd-chapter__title">{section.title}</span>
+                          <span className="cd-chapter__title">
+                            {section.title}
+                          </span>
                           {isEnrolled ? (
                             <span className="cd-chapter__count">
-                              {section.lessons?.reduce((done: number, l: any) => {
-                                const lessonDone = progressMap[l.id] ?? false;
-                                const quizDone = l.quiz
-                                  ? (progressMap[`quiz_${l.id}`] ?? false)
-                                  : true;
-                                return done + (lessonDone && quizDone ? 1 : 0);
-                              }, 0) ?? 0}
+                              {section.lessons?.reduce(
+                                (done: number, l: any) => {
+                                  const lessonDone = progressMap[l.id] ?? false;
+                                  const quizDone = l.quiz
+                                    ? (progressMap[`quiz_${l.id}`] ?? false)
+                                    : true;
+                                  return (
+                                    done + (lessonDone && quizDone ? 1 : 0)
+                                  );
+                                },
+                                0,
+                              ) ?? 0}
                               /{section.lessons?.length ?? 0}
                             </span>
                           ) : (
@@ -990,85 +1013,92 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         </button>
                         {expandedSection === section.id && (
                           <div className="cd-chapter__lessons">
-                            {section.lessons?.map((lesson: any, idx: number) => {
-                              const lessonIsPreview =
-                                lesson.is_preview_video ||
-                                lesson.is_preview_article ||
-                                lesson.is_preview_resource;
-                              return (
-                                <button
-                                  key={lesson.id}
-                                  className={`cd-lesson-row${
-                                    activeLessonId === lesson.id
-                                      ? " cd-lesson-row--active"
-                                      : ""
-                                  }`}
-                                  onClick={() => {
-                                    setLessonTargetTab("lesson");
-                                    setReturnTab("lesson");
-                                    fetchLessonContent(lesson.id, lessonIsPreview, !!lesson.quiz);
-                                  }}
-                                >
-                                  <span className="cd-lesson-row__num">
-                                    {idx + 1}
-                                  </span>                                  
-                                  <span className="cd-lesson-row__title">
-                                    {lesson.title}
-                                  </span>
-                                  {lesson.quiz && isEnrolled && (
-                                    <span
-                                      role="button"
-                                      className="cd-lesson-row__quiz-btn"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        resetQuizState();
-                                        setReturnTab("quiz");
-                                        setActiveLessonId(lesson.id);
-                                        setActiveTab("quiz");
-                                        setQuizFetchKey((k) => k + 1);
-                                      }}
-                                      title="Làm bài kiểm tra"
-                                      style={{ cursor: "pointer" }}
-                                    >
+                            {section.lessons?.map(
+                              (lesson: any, idx: number) => {
+                                const lessonIsPreview =
+                                  lesson.is_preview_video ||
+                                  lesson.is_preview_article ||
+                                  lesson.is_preview_resource;
+                                return (
+                                  <button
+                                    key={lesson.id}
+                                    className={`cd-lesson-row${
+                                      activeLessonId === lesson.id
+                                        ? " cd-lesson-row--active"
+                                        : ""
+                                    }`}
+                                    onClick={() => {
+                                      setLessonTargetTab("lesson");
+                                      setReturnTab("lesson");
+                                      fetchLessonContent(
+                                        lesson.id,
+                                        lessonIsPreview,
+                                        !!lesson.quiz,
+                                      );
+                                    }}
+                                  >
+                                    <span className="cd-lesson-row__num">
+                                      {idx + 1}
                                     </span>
-                                  )}
-                                  {lesson.quiz && !isEnrolled && (
-                                    <span className="cd-lesson-row__quiz">📝</span>
-                                  )}
-                                  {isEnrolled ? (
-                                    <span
-                                      className={`cd-lesson-row__done${
-                                        progressMap[lesson.id] &&
-                                        (!lesson.quiz ||
-                                          progressMap[`quiz_${lesson.id}`])
-                                          ? " cd-lesson-row__done--completed"
-                                          : ""
-                                      }`}
-                                    >
-                                      {(progressMap[lesson.id] ? 1 : 0) +
-                                        (lesson.quiz &&
-                                        progressMap[`quiz_${lesson.id}`]
-                                          ? 1
-                                          : 0)}
-                                      /{lesson.quiz ? 2 : 1}
+                                    <span className="cd-lesson-row__title">
+                                      {lesson.title}
                                     </span>
-                                  ) : (
-                                    <>
-                                      {lessonIsPreview && (
-                                        <span className="cd-lesson-row__preview">
-                                          Xem thử
-                                        </span>
-                                      )}
-                                      {!lessonIsPreview && (
-                                        <span className="cd-lesson-row__lock">
-                                          🔒
-                                        </span>
-                                      )}
-                                    </>
-                                  )}
-                                </button>
-                              );
-                            })}
+                                    {lesson.quiz && isEnrolled && (
+                                      <span
+                                        role="button"
+                                        className="cd-lesson-row__quiz-btn"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          resetQuizState();
+                                          setReturnTab("quiz");
+                                          setActiveLessonId(lesson.id);
+                                          setActiveTab("quiz");
+                                          setQuizFetchKey((k) => k + 1);
+                                        }}
+                                        title="Làm bài kiểm tra"
+                                        style={{ cursor: "pointer" }}
+                                      ></span>
+                                    )}
+                                    {lesson.quiz && !isEnrolled && (
+                                      <span className="cd-lesson-row__quiz">
+                                        📝
+                                      </span>
+                                    )}
+                                    {isEnrolled ? (
+                                      <span
+                                        className={`cd-lesson-row__done${
+                                          progressMap[lesson.id] &&
+                                          (!lesson.quiz ||
+                                            progressMap[`quiz_${lesson.id}`])
+                                            ? " cd-lesson-row__done--completed"
+                                            : ""
+                                        }`}
+                                      >
+                                        {(progressMap[lesson.id] ? 1 : 0) +
+                                          (lesson.quiz &&
+                                          progressMap[`quiz_${lesson.id}`]
+                                            ? 1
+                                            : 0)}
+                                        /{lesson.quiz ? 2 : 1}
+                                      </span>
+                                    ) : (
+                                      <>
+                                        {lessonIsPreview && (
+                                          <span className="cd-lesson-row__preview">
+                                            Xem thử
+                                          </span>
+                                        )}
+                                        {!lessonIsPreview && (
+                                          <span className="cd-lesson-row__lock">
+                                            🔒
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </button>
+                                );
+                              },
+                            )}
                           </div>
                         )}
                       </div>
@@ -1249,17 +1279,26 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   /* ── Error / Không có quiz ── */
                   <EmptyState
                     title={
-                      quizError === "No Quiz matches the given query." || quizError.includes("No Quiz")
+                      quizError === "No Quiz matches the given query." ||
+                      quizError.includes("No Quiz")
                         ? "Bài học này không có bài kiểm tra"
                         : "Không thể tải bài kiểm tra"
                     }
                     subtitle={
-                      quizError === "No Quiz matches the given query." || quizError.includes("No Quiz")
+                      quizError === "No Quiz matches the given query." ||
+                      quizError.includes("No Quiz")
                         ? "Hãy chọn một bài học khác có bài kiểm tra."
                         : quizError
                     }
                     actions={
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          flexWrap: "wrap",
+                          justifyContent: "center",
+                        }}
+                      >
                         <button
                           className="cd-btn-secondary"
                           onClick={() => setActiveTab("lesson")}
@@ -1321,7 +1360,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                             color: quizResult.passed ? "#4caf82" : "#e05c5c",
                           }}
                         >
-                          {quizResult.score/10}/10
+                          {quizResult.score / 10}/10
                         </span>
                       </div>
                       <div className="cd-quiz__result-info-row">
@@ -1381,12 +1420,20 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
                     {/* Actions */}
                     <div className="cd-quiz__result-actions">
-                      {quizBlocked || (quizMaxAttempts > 0 && quizAttemptCount >= quizMaxAttempts) ? (
-                        <button className="cd-btn-enroll cd-btn-enroll--disabled" disabled>
+                      {quizBlocked ||
+                      (quizMaxAttempts > 0 &&
+                        quizAttemptCount >= quizMaxAttempts) ? (
+                        <button
+                          className="cd-btn-enroll cd-btn-enroll--disabled"
+                          disabled
+                        >
                           Hết lượt
                         </button>
                       ) : (
-                        <button className="cd-btn-enroll" onClick={handleRestartQuiz}>
+                        <button
+                          className="cd-btn-enroll"
+                          onClick={handleRestartQuiz}
+                        >
                           Làm lại
                         </button>
                       )}
@@ -1441,7 +1488,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                           <div className="quiz__info">
                             <span>Số lần làm: </span>
                             <span>
-                              {quizAttemptCount}/{apiQuiz.max_attempts}                              
+                              {quizAttemptCount}/{apiQuiz.max_attempts}
                             </span>
                           </div>
                         </li>
@@ -1456,10 +1503,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                       )}
                     </ul>
 
-                    {quizBlocked || (quizMaxAttempts > 0 && quizAttemptCount >= quizMaxAttempts) ? (
-                      <p className="cd-btn-enroll">
-                        Hết lượt làm bài
-                      </p>
+                    {quizBlocked ||
+                    (quizMaxAttempts > 0 &&
+                      quizAttemptCount >= quizMaxAttempts) ? (
+                      <p className="cd-btn-enroll">Hết lượt làm bài</p>
                     ) : (
                       <button
                         className="cd-btn-enroll"
@@ -1475,7 +1522,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                               setCurrentAttemptId(attempt_id);
                               setQuizStarted(true);
                             } else {
-                              const err = await startRes.json().catch(() => ({}));
+                              const err = await startRes
+                                .json()
+                                .catch(() => ({}));
                               const detail = Array.isArray(err)
                                 ? err[0]
                                 : (err.detail ?? "Không thể bắt đầu làm bài.");
@@ -1530,9 +1579,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
                         {/* Hint for multiple choice */}
                         {isMultipleType(currentQuestion.question_type) && (
-                          <p className="cd-quiz__hint">
-                            Chọn nhiều đáp án
-                          </p>
+                          <p className="cd-quiz__hint">Chọn nhiều đáp án</p>
                         )}
 
                         {/* Options */}
@@ -1550,9 +1597,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
 
                               if (answered) {
                                 if (ans.is_correct === true) {
-                                  cls += " cd-quiz__option--correct";                                  
+                                  cls += " cd-quiz__option--correct";
                                 } else if (isSelected) {
-                                  cls += " cd-quiz__option--wrong";                                  
+                                  cls += " cd-quiz__option--wrong";
                                 }
                                 cls += " cd-quiz__option--disabled";
                               } else if (isSelected) {
@@ -1625,7 +1672,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                   </span>
 
                                   <p className="cd-quiz__explanation">
-                                    Giải thích: 
+                                    Giải thích:
                                     {quizExplanations[currentQuestion.id] ||
                                       currentQuestion.explanation ||
                                       "Không có giải thích."}
@@ -1836,9 +1883,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                 <div className="cd-rv-form">
                   <h3 className="cd-rv-form-title">Viết đánh giá của bạn</h3>
                   {reviewSent ? (
-                    <div className="cd-rv-success">
-                      Cảm ơn bạn đã đánh giá!
-                    </div>
+                    <div className="cd-rv-success">Cảm ơn bạn đã đánh giá!</div>
                   ) : myReviewId ? (
                     <p className="cd-rv-note">
                       Bạn đang có đánh giá hiển thị. Hãy chỉnh sửa đánh giá đó.
@@ -1928,7 +1973,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                   <div className="cd-price-card__price-row">
                     <span className="cd-price-card__price">
                       {(course.sale_price ?? course.price ?? 0) > 0
-                        ? formatPrice(course.sale_price ?? course.price ?? 0, "VND")
+                        ? formatPrice(
+                            course.sale_price ?? course.price ?? 0,
+                            "VND",
+                          )
                         : "Miễn phí"}
                     </span>
                     {discount > 0 && course.price > 0 && (
@@ -1936,7 +1984,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                         <span className="cd-price-card__original">
                           {formatPrice(course.price, "VND")}
                         </span>
-                        <span className="cd-price-card__discount">-{discount}%</span>
+                        <span className="cd-price-card__discount">
+                          -{discount}%
+                        </span>
                       </>
                     )}
                   </div>
@@ -1972,18 +2022,22 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                     />
                   </div>
                   <div className="cd-progress-bar-row">
-                    <span className="cd-progress-bar-label">Tiến độ: {progressPct}%</span>
+                    <span className="cd-progress-bar-label">
+                      Tiến độ: {progressPct}%
+                    </span>
                     {progressPct === 100 && (
                       <button
                         className="cd-progress-cert-btn"
                         onClick={async () => {
                           try {
                             const res = await refreshAndRetry(
-                              `${API}/api/enrollments/certificate/?course_id=${courseId}`
+                              `${API}/api/enrollments/certificate/?course_id=${courseId}`,
                             );
                             if (res.ok) {
                               const data = await res.json();
-                              setCertificateCode(data.certificate_code ?? undefined);
+                              setCertificateCode(
+                                data.certificate_code ?? undefined,
+                              );
                             }
                           } catch {}
                           setShowCertificate(true);
@@ -2007,11 +2061,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
       </div>
       {showCertificate && (
         <CertificateModal
-          courseName={course?.title ?? ''}
+          courseName={course?.title ?? ""}
           studentName={
-            localStorage.getItem('full_name') ||
-            localStorage.getItem('username') ||
-            ''
+            localStorage.getItem("full_name") ||
+            localStorage.getItem("username") ||
+            ""
           }
           certificateCode={certificateCode}
           onClose={() => setShowCertificate(false)}
@@ -2025,6 +2079,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
             setIsEnrolled(true);
             setShowPayment(false);
             setActiveTab("lesson");
+
+            try {
+              const courseRes = await refreshAndRetry(
+                `${API}/api/courses/${course.slug}/`,
+              );
+              if (courseRes.ok) {
+                const courseData = await courseRes.json();
+                setCourse(courseData);
+                setSections(courseData.sections ?? []);
+              }
+            } catch {}
+
             try {
               const res = await refreshAndRetry(`${API}/api/enrollments/`);
               if (res.ok) {
@@ -2032,10 +2098,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                 const list = Array.isArray(data) ? data : (data.results ?? []);
                 const enrolled = list.find(
                   (e: any) =>
-                    e.course === course.id || e.course_id === course.id,
+                    e.course === course.id || e.course_id === course.id || e.course_slug === course.slug,
                 );
                 if (enrolled) {
-                  fetchProgress(enrolled.id);
+                  await fetchProgress(enrolled.id);
                   if (typeof enrolled.progress_pct === "number")
                     setProgressPct(enrolled.progress_pct);
                 }
@@ -2052,7 +2118,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
             <div className="cd-alert-box__icon">⚠️</div>
             <h3 className="cd-alert-box__title">Yêu cầu hoàn tiền đã bị hủy</h3>
             <p className="cd-alert-box__msg">
-              Yêu cầu hoàn tiền của bạn đã bị tự động hủy do bạn đã học quá 20% khóa học.
+              Yêu cầu hoàn tiền của bạn đã bị tự động hủy do bạn đã học quá 20%
+              khóa học.
             </p>
             <button
               className="cd-alert-box__btn"
