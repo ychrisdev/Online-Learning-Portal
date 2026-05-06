@@ -103,27 +103,43 @@ class InstructorStudentSerializer(serializers.ModelSerializer):
     student_name  = serializers.CharField(source='student.full_name', read_only=True)
     student_email = serializers.CharField(source='student.email', read_only=True)
     progress_pct  = serializers.SerializerMethodField()
+    display_status = serializers.SerializerMethodField()
 
     class Meta:
         model  = Enrollment
-        fields = ['id', 'student_name', 'student_email', 'status', 'enrolled_at', 'progress_pct']
+        fields = ['id', 'student_name', 'student_email', 'display_status', 'status', 'enrolled_at', 'progress_pct']
 
     def get_progress_pct(self, obj):
         return _calc_progress_pct(obj)
+    
+    def get_display_status(self, obj):
+        if obj.status == Enrollment.Status.ACTIVE:
+            pct = _calc_progress_pct(obj)
+            if pct >= 100:
+                return 'completed'
+        return obj.status
     
 class AdminEnrollmentSerializer(serializers.ModelSerializer):
     student_name  = serializers.CharField(source='student.full_name', read_only=True)
     student_email = serializers.CharField(source='student.email',     read_only=True)
     course_title  = serializers.CharField(source='course.title',      read_only=True)
     progress_pct  = serializers.SerializerMethodField()
+    display_status = serializers.SerializerMethodField()
 
     class Meta:
         model  = Enrollment
         fields = [
             'id', 'student_name', 'student_email',
-            'course_title', 'status', 'paid_amount',
+            'course_title', 'status', 'display_status', 'paid_amount',
             'enrolled_at', 'completed_at', 'progress_pct',
         ]
 
     def get_progress_pct(self, obj):
         return _calc_progress_pct(obj)
+
+    def get_display_status(self, obj):
+        if obj.status == Enrollment.Status.ACTIVE:
+            pct = _calc_progress_pct(obj)
+            if pct >= 100:
+                return 'completed'
+        return obj.status

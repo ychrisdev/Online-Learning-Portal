@@ -382,7 +382,8 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         (e.student_name ?? "").toLowerCase().includes(q) ||
         (e.course_title ?? "").toLowerCase().includes(q);
       const matchStatus =
-        !filterEnrollStatus || (e.status ?? "") === filterEnrollStatus;
+        !filterEnrollStatus ||
+        (e.display_status ?? e.status ?? "") === filterEnrollStatus;
       return matchSearch && matchStatus;
     });
   }, [enrollments, searchEnrollment, filterEnrollStatus]);
@@ -496,7 +497,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [coursePage, setCoursePage] = useState(1);
 
   const scrollToTop = () => {
-    setTimeout(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, 0);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
   };
   useEffect(() => {
     (async () => {
@@ -902,7 +905,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       isCollapsible && !alertExpanded
         ? adminEditAlerts.slice(0, PREVIEW_COUNT)
         : adminEditAlerts;
-  
+
     return (
       <div className="ad-edit-alert ad-edit-alert--no-mb">
         <div className="ad-edit-alert__header">
@@ -1069,39 +1072,73 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     return formatPrice(Math.round(price * (1 - discount / 100)), "VND");
   };
   const totalSectionPages = Math.ceil(
-    sections.filter((s) => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse).length / PAGE_SIZE
+    sections.filter(
+      (s) =>
+        !filterSectionCourse ||
+        String(s.course?.id ?? s.course) === filterSectionCourse,
+    ).length / PAGE_SIZE,
   );
   const pagedSections = sections
-    .filter((s) => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse)
+    .filter(
+      (s) =>
+        !filterSectionCourse ||
+        String(s.course?.id ?? s.course) === filterSectionCourse,
+    )
     .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
     .slice((sectionPage - 1) * PAGE_SIZE, sectionPage * PAGE_SIZE);
 
   const filteredLessons = lessons; // lessons đã được filter từ API
   const totalLessonPages = Math.ceil(filteredLessons.length / PAGE_SIZE);
-  const pagedLessons = filteredLessons.slice((lessonPage - 1) * PAGE_SIZE, lessonPage * PAGE_SIZE);
+  const pagedLessons = filteredLessons.slice(
+    (lessonPage - 1) * PAGE_SIZE,
+    lessonPage * PAGE_SIZE,
+  );
 
-  const filteredQuizzes = quizzes.filter((q) =>
-    !filterQuizLesson || String(q.lesson?.id ?? q.lesson) === filterQuizLesson
+  const filteredQuizzes = quizzes.filter(
+    (q) =>
+      !filterQuizLesson ||
+      String(q.lesson?.id ?? q.lesson) === filterQuizLesson,
   );
   const totalQuizPages = Math.ceil(filteredQuizzes.length / PAGE_SIZE);
-  const pagedQuizzes = filteredQuizzes.slice((quizPage - 1) * PAGE_SIZE, quizPage * PAGE_SIZE);
+  const pagedQuizzes = filteredQuizzes.slice(
+    (quizPage - 1) * PAGE_SIZE,
+    quizPage * PAGE_SIZE,
+  );
   const totalEnrollPages = Math.ceil(filteredEnrollments.length / PAGE_SIZE);
-  const pagedEnrollments = filteredEnrollments.slice((enrollPage - 1) * PAGE_SIZE, enrollPage * PAGE_SIZE);
+  const pagedEnrollments = filteredEnrollments.slice(
+    (enrollPage - 1) * PAGE_SIZE,
+    enrollPage * PAGE_SIZE,
+  );
 
   const totalPaymentPages = Math.ceil(filteredPayments.length / PAGE_SIZE);
-  const pagedPayments = filteredPayments.slice((paymentPage - 1) * PAGE_SIZE, paymentPage * PAGE_SIZE);
+  const pagedPayments = filteredPayments.slice(
+    (paymentPage - 1) * PAGE_SIZE,
+    paymentPage * PAGE_SIZE,
+  );
 
   const totalReviewPages = Math.ceil(filteredReviews.length / PAGE_SIZE);
-  const pagedReviews = filteredReviews.slice((reviewPage - 1) * PAGE_SIZE, reviewPage * PAGE_SIZE);
+  const pagedReviews = filteredReviews.slice(
+    (reviewPage - 1) * PAGE_SIZE,
+    reviewPage * PAGE_SIZE,
+  );
 
   const totalWalletTxPages = Math.ceil(walletTxs.length / PAGE_SIZE);
-  const pagedWalletTxs = walletTxs.slice((walletTxPage - 1) * PAGE_SIZE, walletTxPage * PAGE_SIZE);
+  const pagedWalletTxs = walletTxs.slice(
+    (walletTxPage - 1) * PAGE_SIZE,
+    walletTxPage * PAGE_SIZE,
+  );
 
   const totalRefundPages = Math.ceil(refundRequests.length / PAGE_SIZE);
-  const pagedRefunds = refundRequests.slice((refundPage - 1) * PAGE_SIZE, refundPage * PAGE_SIZE);
+  const pagedRefunds = refundRequests.slice(
+    (refundPage - 1) * PAGE_SIZE,
+    refundPage * PAGE_SIZE,
+  );
 
   const totalCoursePages = Math.ceil(filteredCourses.length / PAGE_SIZE);
-  const pagedCourses = filteredCourses.slice((coursePage - 1) * PAGE_SIZE, coursePage * PAGE_SIZE);
+  const pagedCourses = filteredCourses.slice(
+    (coursePage - 1) * PAGE_SIZE,
+    coursePage * PAGE_SIZE,
+  );
 
   const openEditCourse = async (c: any) => {
     setEditCourseError("");
@@ -2918,12 +2955,18 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm kiếm khóa học..."
                   value={courseSearch}
-                  onChange={(e) => { setCourseSearch(e.target.value); setCoursePage(1); }}
+                  onChange={(e) => {
+                    setCourseSearch(e.target.value);
+                    setCoursePage(1);
+                  }}
                 />
                 <select
                   className="ad-select"
                   value={courseStatusFilter}
-                  onChange={(e) => { setCourseStatusFilter(e.target.value as any); setCoursePage(1); }}
+                  onChange={(e) => {
+                    setCourseStatusFilter(e.target.value as any);
+                    setCoursePage(1);
+                  }}
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="draft">Nháp</option>
@@ -3187,7 +3230,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       })}
                     </tbody>
                   </table>
-                  <Pagination page={coursePage} totalPages={totalCoursePages} total={filteredCourses.length} pageSize={PAGE_SIZE} onPage={(p) => { setCoursePage(p); scrollToTop(); }} />
+                  <Pagination
+                    page={coursePage}
+                    totalPages={totalCoursePages}
+                    total={filteredCourses.length}
+                    pageSize={PAGE_SIZE}
+                    onPage={(p) => {
+                      setCoursePage(p);
+                      scrollToTop();
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -3260,7 +3312,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     className="ad-select"
                     value={filterSectionCourse}
                     // select khóa học trong tab sections
-                    onChange={(e) => { setFilterSectionCourse(e.target.value); setSectionPage(1); }}
+                    onChange={(e) => {
+                      setFilterSectionCourse(e.target.value);
+                      setSectionPage(1);
+                    }}
                   >
                     <option value="">Tất cả khóa học</option>
                     {courses.map((c) => (
@@ -3315,54 +3370,70 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           Không có chương nào.
                         </td>
                       </tr>
-                    ) : (                    
-                        pagedSections.map((s) => (
-                          <tr key={s.id}>
-                            <td className="id-td-center">
-                              {s.order_index ?? "—"}
-                            </td>
-                            <td>
-                              <span className="ad-table__title">{s.title}</span>
-                            </td>
-                            <td>
-                              {courses.find(
-                                (c) => c.id === (s.course?.id ?? s.course),
-                              )?.title ?? "—"}
-                            </td>
-                            <td className="ad-table__muted">
-                              {s.description || "—"}
-                            </td>
-                            <td>
-                              <div className="tbl-actions">
-                                <button
-                                  className="tbl-btn tbl-btn--edit"
-                                  onClick={() => openEditSection(s)}
-                                >
-                                  Sửa
-                                </button>
-                                <button
-                                  className="tbl-btn tbl-btn--view"
-                                  onClick={() => {
-                                    setFilterLessonSection(s.id);
-                                    setActiveTab("lessons" as Tab);
-                                  }}
-                                >
-                                  Bài học
-                                </button>
-                                <button
-                                  className="tbl-btn tbl-btn--ban"
-                                  onClick={() => handleDeleteSection(s)}
-                                >
-                                  Xóa
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                    ) : (
+                      pagedSections.map((s) => (
+                        <tr key={s.id}>
+                          <td className="id-td-center">
+                            {s.order_index ?? "—"}
+                          </td>
+                          <td>
+                            <span className="ad-table__title">{s.title}</span>
+                          </td>
+                          <td>
+                            {courses.find(
+                              (c) => c.id === (s.course?.id ?? s.course),
+                            )?.title ?? "—"}
+                          </td>
+                          <td className="ad-table__muted">
+                            {s.description || "—"}
+                          </td>
+                          <td>
+                            <div className="tbl-actions">
+                              <button
+                                className="tbl-btn tbl-btn--edit"
+                                onClick={() => openEditSection(s)}
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                className="tbl-btn tbl-btn--view"
+                                onClick={() => {
+                                  setFilterLessonSection(s.id);
+                                  setActiveTab("lessons" as Tab);
+                                }}
+                              >
+                                Bài học
+                              </button>
+                              <button
+                                className="tbl-btn tbl-btn--ban"
+                                onClick={() => handleDeleteSection(s)}
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
-                <Pagination page={sectionPage} totalPages={totalSectionPages} total={sections.filter((s) => !filterSectionCourse || String(s.course?.id ?? s.course) === filterSectionCourse).length} pageSize={PAGE_SIZE} onPage={(p) => { setSectionPage(p); scrollToTop(); }} />
+                <Pagination
+                  page={sectionPage}
+                  totalPages={totalSectionPages}
+                  total={
+                    sections.filter(
+                      (s) =>
+                        !filterSectionCourse ||
+                        String(s.course?.id ?? s.course) ===
+                          filterSectionCourse,
+                    ).length
+                  }
+                  pageSize={PAGE_SIZE}
+                  onPage={(p) => {
+                    setSectionPage(p);
+                    scrollToTop();
+                  }}
+                />
               </div>
 
               {showSectionModal && (
@@ -3497,7 +3568,11 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <select
                     className="ad-select"
                     value={filterLessonCourse}
-                    onChange={(e) => { setFilterLessonCourse(e.target.value); setFilterLessonSection(""); setLessonPage(1); }}
+                    onChange={(e) => {
+                      setFilterLessonCourse(e.target.value);
+                      setFilterLessonSection("");
+                      setLessonPage(1);
+                    }}
                   >
                     <option value="">Tất cả khóa học</option>
                     {courses.map((c) => (
@@ -3509,7 +3584,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <select
                     className="ad-select"
                     value={filterLessonSection}
-                    onChange={(e) => { setFilterLessonSection(e.target.value); setLessonPage(1); }}
+                    onChange={(e) => {
+                      setFilterLessonSection(e.target.value);
+                      setLessonPage(1);
+                    }}
                   >
                     <option value="">Tất cả chương</option>
                     {sections
@@ -3617,7 +3695,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
-                <Pagination page={lessonPage} totalPages={totalLessonPages} total={lessons.length} pageSize={PAGE_SIZE} onPage={(p) => { setLessonPage(p); scrollToTop(); }} />
+                <Pagination
+                  page={lessonPage}
+                  totalPages={totalLessonPages}
+                  total={lessons.length}
+                  pageSize={PAGE_SIZE}
+                  onPage={(p) => {
+                    setLessonPage(p);
+                    scrollToTop();
+                  }}
+                />
               </div>
 
               {lessonModal &&
@@ -4048,7 +4135,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <select
                     className="ad-select"
                     value={filterQuizLesson}
-                    onChange={(e) => { setFilterQuizLesson(e.target.value); setQuizPage(1); }}
+                    onChange={(e) => {
+                      setFilterQuizLesson(e.target.value);
+                      setQuizPage(1);
+                    }}
                   >
                     <option value="">Tất cả bài học</option>
                     {lessons.map((l) => (
@@ -4099,168 +4189,169 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         </td>
                       </tr>
                     ) : (
-                        pagedQuizzes.map((q) => {
-                          const lesson = lessons.find(
-                            (l) => l.id === (q.lesson?.id ?? q.lesson),
-                          );
-                          const isExpanded = expandedQuizId === q.id;
-                          return (
-                            <React.Fragment key={q.id}>
+                      pagedQuizzes.map((q) => {
+                        const lesson = lessons.find(
+                          (l) => l.id === (q.lesson?.id ?? q.lesson),
+                        );
+                        const isExpanded = expandedQuizId === q.id;
+                        return (
+                          <React.Fragment key={q.id}>
+                            <tr>
+                              <td>
+                                <span className="ad-table__title">
+                                  {q.title}
+                                </span>
+                              </td>
+                              <td className="ad-table__muted">
+                                {lesson?.title ?? "—"}
+                              </td>
+                              <td>{q.pass_score}%</td>
+                              <td>
+                                {q.time_limit > 0
+                                  ? `${q.time_limit} phút`
+                                  : "Không giới hạn"}
+                              </td>
+                              <td>
+                                <div className="tbl-actions">
+                                  <button
+                                    className="tbl-btn tbl-btn--edit"
+                                    onClick={() => openEditQuiz(q)}
+                                  >
+                                    Sửa
+                                  </button>
+                                  <button
+                                    className="tbl-btn tbl-btn--neutral"
+                                    onClick={() => openAttemptList(q)}
+                                  >
+                                    Lịch sử
+                                  </button>
+                                  <button
+                                    className="tbl-btn tbl-btn--view"
+                                    onClick={() => {
+                                      setExpandedQuizId(
+                                        isExpanded ? null : q.id,
+                                      );
+                                      if (!isExpanded) fetchQuestions(q.id);
+                                    }}
+                                  >
+                                    {isExpanded ? "Ẩn" : "Câu hỏi"}
+                                  </button>
+                                  <button
+                                    className="tbl-btn tbl-btn--ban"
+                                    onClick={() => openDeleteQuiz(q)}
+                                  >
+                                    Xóa
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && (
                               <tr>
-                                <td>
-                                  <span className="ad-table__title">
-                                    {q.title}
-                                  </span>
-                                </td>
-                                <td className="ad-table__muted">
-                                  {lesson?.title ?? "—"}
-                                </td>
-                                <td>{q.pass_score}%</td>
-                                <td>
-                                  {q.time_limit > 0
-                                    ? `${q.time_limit} phút`
-                                    : "Không giới hạn"}
-                                </td>
-                                <td>
-                                  <div className="tbl-actions">
+                                <td colSpan={6} className="id-td-no-pad">
+                                  <div className="id-expand-panel">
+                                    {loadingQ ? (
+                                      <p className="ad-empty">
+                                        Đang tải câu hỏi…
+                                      </p>
+                                    ) : questions.length === 0 ? (
+                                      <p className="ad-empty">
+                                        Chưa có câu hỏi nào.
+                                      </p>
+                                    ) : (
+                                      questions.map((ques, idx) => (
+                                        <div
+                                          key={ques.id}
+                                          className="id-question-card"
+                                        >
+                                          <div className="id-question-card__row">
+                                            <div className="id-flex-1">
+                                              <span className="id-question-card__meta">
+                                                Câu {idx + 1} ·{" "}
+                                                {
+                                                  (
+                                                    {
+                                                      single: "Chọn 1",
+                                                      multiple: "Chọn nhiều",
+                                                      true_false: "Đúng/Sai",
+                                                    } as Record<string, string>
+                                                  )[ques.question_type]
+                                                }{" "}
+                                                · {ques.points} điểm
+                                              </span>
+                                              <p className="id-question-card__content">
+                                                {ques.content}
+                                              </p>
+                                              <div className="id-answer-tags">
+                                                {ques.answers?.map((a: any) => (
+                                                  <span
+                                                    key={a.id}
+                                                    style={{
+                                                      fontSize: 12,
+                                                      padding: "2px 8px",
+                                                      borderRadius: 5,
+                                                      background: a.is_correct
+                                                        ? "rgba(76,175,130,0.15)"
+                                                        : "rgba(255,255,255,0.04)",
+                                                      color: a.is_correct
+                                                        ? "#4caf82"
+                                                        : "rgba(224,225,221,0.5)",
+                                                      border: `0.5px solid ${a.is_correct ? "rgba(76,175,130,0.3)" : "rgba(255,255,255,0.08)"}`,
+                                                    }}
+                                                  >
+                                                    {a.is_correct ? "✓ " : ""}
+                                                    {a.content}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            <div className="tbl-actions">
+                                              <button
+                                                className="tbl-btn tbl-btn--edit"
+                                                onClick={() =>
+                                                  openEditQuestion(ques)
+                                                }
+                                              >
+                                                Sửa
+                                              </button>
+                                              <button
+                                                className="tbl-btn tbl-btn--ban"
+                                                onClick={() =>
+                                                  openDeleteQuestion(ques)
+                                                }
+                                              >
+                                                Xóa
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
                                     <button
-                                      className="tbl-btn tbl-btn--edit"
-                                      onClick={() => openEditQuiz(q)}
+                                      className="ad-btn-sm ad-btn-sm--approve id-mt-4"
+                                      onClick={() => openAddQuestion(q.id)}
                                     >
-                                      Sửa
-                                    </button>
-                                    <button
-                                      className="tbl-btn tbl-btn--neutral"
-                                      onClick={() => openAttemptList(q)}
-                                    >
-                                      Lịch sử
-                                    </button>
-                                    <button
-                                      className="tbl-btn tbl-btn--view"
-                                      onClick={() => {
-                                        setExpandedQuizId(
-                                          isExpanded ? null : q.id,
-                                        );
-                                        if (!isExpanded) fetchQuestions(q.id);
-                                      }}
-                                    >
-                                      {isExpanded ? "Ẩn" : "Câu hỏi"}
-                                    </button>
-                                    <button
-                                      className="tbl-btn tbl-btn--ban"
-                                      onClick={() => openDeleteQuiz(q)}
-                                    >
-                                      Xóa
+                                      ＋ Thêm câu hỏi
                                     </button>
                                   </div>
                                 </td>
                               </tr>
-                              {isExpanded && (
-                                <tr>
-                                  <td colSpan={6} className="id-td-no-pad">
-                                    <div className="id-expand-panel">
-                                      {loadingQ ? (
-                                        <p className="ad-empty">
-                                          Đang tải câu hỏi…
-                                        </p>
-                                      ) : questions.length === 0 ? (
-                                        <p className="ad-empty">
-                                          Chưa có câu hỏi nào.
-                                        </p>
-                                      ) : (
-                                        questions.map((ques, idx) => (
-                                          <div
-                                            key={ques.id}
-                                            className="id-question-card"
-                                          >
-                                            <div className="id-question-card__row">
-                                              <div className="id-flex-1">
-                                                <span className="id-question-card__meta">
-                                                  Câu {idx + 1} ·{" "}
-                                                  {
-                                                    (
-                                                      {
-                                                        single: "Chọn 1",
-                                                        multiple: "Chọn nhiều",
-                                                        true_false: "Đúng/Sai",
-                                                      } as Record<
-                                                        string,
-                                                        string
-                                                      >
-                                                    )[ques.question_type]
-                                                  }{" "}
-                                                  · {ques.points} điểm
-                                                </span>
-                                                <p className="id-question-card__content">
-                                                  {ques.content}
-                                                </p>
-                                                <div className="id-answer-tags">
-                                                  {ques.answers?.map(
-                                                    (a: any) => (
-                                                      <span
-                                                        key={a.id}
-                                                        style={{
-                                                          fontSize: 12,
-                                                          padding: "2px 8px",
-                                                          borderRadius: 5,
-                                                          background:
-                                                            a.is_correct
-                                                              ? "rgba(76,175,130,0.15)"
-                                                              : "rgba(255,255,255,0.04)",
-                                                          color: a.is_correct
-                                                            ? "#4caf82"
-                                                            : "rgba(224,225,221,0.5)",
-                                                          border: `0.5px solid ${a.is_correct ? "rgba(76,175,130,0.3)" : "rgba(255,255,255,0.08)"}`,
-                                                        }}
-                                                      >
-                                                        {a.is_correct
-                                                          ? "✓ "
-                                                          : ""}
-                                                        {a.content}
-                                                      </span>
-                                                    ),
-                                                  )}
-                                                </div>
-                                              </div>
-                                              <div className="tbl-actions">
-                                                <button
-                                                  className="tbl-btn tbl-btn--edit"
-                                                  onClick={() =>
-                                                    openEditQuestion(ques)
-                                                  }
-                                                >
-                                                  Sửa
-                                                </button>
-                                                <button
-                                                  className="tbl-btn tbl-btn--ban"
-                                                  onClick={() =>
-                                                    openDeleteQuestion(ques)
-                                                  }
-                                                >
-                                                  Xóa
-                                                </button>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))
-                                      )}
-                                      <button
-                                        className="ad-btn-sm ad-btn-sm--approve id-mt-4"
-                                        onClick={() => openAddQuestion(q.id)}
-                                      >
-                                        ＋ Thêm câu hỏi
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })
+                            )}
+                          </React.Fragment>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
-                <Pagination page={quizPage} totalPages={totalQuizPages} total={filteredQuizzes.length} pageSize={PAGE_SIZE} onPage={(p) => { setQuizPage(p); scrollToTop(); }} />
+                <Pagination
+                  page={quizPage}
+                  totalPages={totalQuizPages}
+                  total={filteredQuizzes.length}
+                  pageSize={PAGE_SIZE}
+                  onPage={(p) => {
+                    setQuizPage(p);
+                    scrollToTop();
+                  }}
+                />
               </div>
 
               {quizModal &&
@@ -4798,12 +4889,18 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm theo tên học viên, khóa học..."
                   value={searchEnrollment}
-                  onChange={(e) => { setSearchEnrollment(e.target.value); setEnrollPage(1); }}
+                  onChange={(e) => {
+                    setSearchEnrollment(e.target.value);
+                    setEnrollPage(1);
+                  }}
                 />
                 <select
                   className="ad-select"
                   value={filterEnrollStatus}
-                  onChange={(e) => { setFilterEnrollStatus(e.target.value); setEnrollPage(1); }}
+                  onChange={(e) => {
+                    setFilterEnrollStatus(e.target.value);
+                    setEnrollPage(1);
+                  }}
                 >
                   <option value="">Tất cả trạng thái</option>
                   <option value="active">Đang học</option>
@@ -4848,7 +4945,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       </tr>
                     ) : (
                       pagedEnrollments.map((e) => {
-                        const status = e.status ?? "active";
+                        const status = e.display_status ?? e.status ?? "active";
                         const progress =
                           e.progress_pct ?? e.progress_percent ?? null;
                         const ENROLL_STATUS: Record<string, string> = {
@@ -4919,7 +5016,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
-                <Pagination page={enrollPage} totalPages={totalEnrollPages} total={filteredEnrollments.length} pageSize={PAGE_SIZE} onPage={(p) => { setEnrollPage(p); scrollToTop(); }} />
+                <Pagination
+                  page={enrollPage}
+                  totalPages={totalEnrollPages}
+                  total={filteredEnrollments.length}
+                  pageSize={PAGE_SIZE}
+                  onPage={(p) => {
+                    setEnrollPage(p);
+                    scrollToTop();
+                  }}
+                />
               </div>
             </div>
           )}
@@ -4940,12 +5046,18 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm theo học viên, khóa học..."
                   value={searchPayment}
-                  onChange={(e) => { setSearchPayment(e.target.value); setPaymentPage(1); }}
+                  onChange={(e) => {
+                    setSearchPayment(e.target.value);
+                    setPaymentPage(1);
+                  }}
                 />
                 <select
                   className="ad-select"
                   value={filterPayStatus}
-                  onChange={(e) => { setFilterPayStatus(e.target.value); setPaymentPage(1); }}
+                  onChange={(e) => {
+                    setFilterPayStatus(e.target.value);
+                    setPaymentPage(1);
+                  }}
                 >
                   <option value="">Tất cả trạng thái</option>
                   <option value="success">Thành công</option>
@@ -5038,7 +5150,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
-                <Pagination page={paymentPage} totalPages={totalPaymentPages} total={filteredPayments.length} pageSize={PAGE_SIZE} onPage={(p) => { setPaymentPage(p); scrollToTop(); }} />
+                <Pagination
+                  page={paymentPage}
+                  totalPages={totalPaymentPages}
+                  total={filteredPayments.length}
+                  pageSize={PAGE_SIZE}
+                  onPage={(p) => {
+                    setPaymentPage(p);
+                    scrollToTop();
+                  }}
+                />
               </div>
 
               {showPaymentModal && (
@@ -5091,8 +5212,20 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 "VND",
                               ),
                             },
-                            ...(["refund_requested", "refund_approved", "refunded"].includes(paymentDetail.status)
-                              ? [{ label: "Số tiền hoàn", value: formatPrice((paymentDetail.amount ?? 0) * 0.7, "VND") }]
+                            ...([
+                              "refund_requested",
+                              "refund_approved",
+                              "refunded",
+                            ].includes(paymentDetail.status)
+                              ? [
+                                  {
+                                    label: "Số tiền hoàn",
+                                    value: formatPrice(
+                                      (paymentDetail.amount ?? 0) * 0.7,
+                                      "VND",
+                                    ),
+                                  },
+                                ]
                               : []),
                             {
                               label: "Trạng thái",
@@ -5257,12 +5390,18 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   type="search"
                   placeholder="Tìm theo học viên, khóa học, nội dung..."
                   value={searchReview}
-                  onChange={(e) => { setSearchReview(e.target.value); setReviewPage(1); }}
+                  onChange={(e) => {
+                    setSearchReview(e.target.value);
+                    setReviewPage(1);
+                  }}
                 />
                 <select
                   className="ad-select"
                   value={filterReviewRating}
-                  onChange={(e) => { setFilterReviewRating(e.target.value); setReviewPage(1); }}
+                  onChange={(e) => {
+                    setFilterReviewRating(e.target.value);
+                    setReviewPage(1);
+                  }}
                 >
                   <option value="">Tất cả số sao</option>
                   {[5, 4, 3, 2, 1].map((s) => (
@@ -5274,7 +5413,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <select
                   className="ad-select"
                   value={filterReviewCourse}
-                  onChange={(e) => { setFilterReviewCourse(e.target.value); setReviewPage(1); }}
+                  onChange={(e) => {
+                    setFilterReviewCourse(e.target.value);
+                    setReviewPage(1);
+                  }}
                 >
                   <option value="">Tất cả khóa học</option>
                   {courses.map((c) => (
@@ -5392,7 +5534,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
-                <Pagination page={reviewPage} totalPages={totalReviewPages} total={filteredReviews.length} pageSize={PAGE_SIZE} onPage={(p) => { setReviewPage(p); scrollToTop(); }} />
+                <Pagination
+                  page={reviewPage}
+                  totalPages={totalReviewPages}
+                  total={filteredReviews.length}
+                  pageSize={PAGE_SIZE}
+                  onPage={(p) => {
+                    setReviewPage(p);
+                    scrollToTop();
+                  }}
+                />
               </div>
 
               {reviewModal === "view" && selectedReview && (
@@ -6086,7 +6237,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                             ))}
                           </tbody>
                         </table>
-                        <Pagination page={walletTxPage} totalPages={totalWalletTxPages} total={walletTxs.length} pageSize={PAGE_SIZE} onPage={(p) => { setWalletTxPage(p); scrollToTop(); }} />
+                        <Pagination
+                          page={walletTxPage}
+                          totalPages={totalWalletTxPages}
+                          total={walletTxs.length}
+                          pageSize={PAGE_SIZE}
+                          onPage={(p) => {
+                            setWalletTxPage(p);
+                            scrollToTop();
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -6193,7 +6353,16 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         ))}
                       </tbody>
                     </table>
-                    <Pagination page={refundPage} totalPages={totalRefundPages} total={refundRequests.length} pageSize={PAGE_SIZE} onPage={(p) => { setRefundPage(p); scrollToTop(); }} />
+                    <Pagination
+                      page={refundPage}
+                      totalPages={totalRefundPages}
+                      total={refundRequests.length}
+                      pageSize={PAGE_SIZE}
+                      onPage={(p) => {
+                        setRefundPage(p);
+                        scrollToTop();
+                      }}
+                    />
                   </div>
                 </div>
               )}

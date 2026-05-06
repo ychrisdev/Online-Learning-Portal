@@ -1579,7 +1579,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       ).includes(q) ||
       normalize(e.course_title ?? e.course?.title ?? "").includes(q);
     const matchStatus =
-      !filterEnrollStatus || (e.status ?? "") === filterEnrollStatus;
+      !filterEnrollStatus ||
+      (e.display_status ?? e.status ?? "") === filterEnrollStatus;
     return matchSearch && matchStatus;
   });
 
@@ -4750,7 +4751,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgUsers.totalPages}
                   total={pgUsers.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgUsers.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgUsers.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -4927,7 +4931,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgCourses.totalPages}
                   total={pgCourses.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgCourses.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgCourses.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -5030,7 +5037,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgSections.totalPages}
                   total={pgSections.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgSections.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgSections.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -5153,7 +5163,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgLessons.totalPages}
                   total={pgLessons.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgLessons.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgLessons.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -5333,7 +5346,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgQuizzes.totalPages}
                   total={pgQuizzes.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgQuizzes.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgQuizzes.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -5408,7 +5424,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </tr>
                     ) : (
                       pgEnrollments.pageItems.map((e) => {
-                        const status = e.status ?? "active";
+                        const status = e.display_status ?? e.status ?? "active";
                         const progress =
                           e.progress_pct ?? e.progress_percent ?? null;
                         const ENROLL_STATUS: Record<string, string> = {
@@ -5485,7 +5501,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgEnrollments.totalPages}
                   total={pgEnrollments.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgEnrollments.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgEnrollments.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -5603,7 +5622,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgCategories.totalPages}
                   total={pgCategories.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgCategories.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgCategories.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -5740,7 +5762,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgPayments.totalPages}
                   total={pgPayments.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgPayments.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgPayments.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
@@ -5933,7 +5958,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgReviews.totalPages}
                   total={pgReviews.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgReviews.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgReviews.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
 
@@ -6989,7 +7017,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   totalPages={pgRefunds.totalPages}
                   total={pgRefunds.total}
                   pageSize={PAGE_SIZE}
-                  onPage={(p) => { pgRefunds.goTo(p); scrollToTop(); }}
+                  onPage={(p) => {
+                    pgRefunds.goTo(p);
+                    scrollToTop();
+                  }}
                 />
               </div>
             </div>
