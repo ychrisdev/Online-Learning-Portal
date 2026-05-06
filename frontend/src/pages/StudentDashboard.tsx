@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef  } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { formatPrice, formatDate } from "../utils/format";
 import "../styles/pages/StudentDashboard.css";
 import Pagination from "../components/ui/Pagination";
@@ -53,6 +53,7 @@ interface Payment {
   method: string;
   ref_code: string;
   refund_requested_once: boolean;
+  progress_pct?: number;
 }
 
 interface UserForm {
@@ -125,7 +126,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onNavigate,
   onLogout,
 }) => {
-  const [visibleProgress, setVisibleProgress] = useState<Record<string, number>>({});
+  const [visibleProgress, setVisibleProgress] = useState<
+    Record<string, number>
+  >({});
   const [quizSortCourse, setQuizSortCourse] = useState<string>("all");
   const [quizSortResult, setQuizSortResult] = useState<
     "all" | "passed" | "failed"
@@ -269,23 +272,37 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
   const fetchPayments = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/payments/history/`, { headers: authHeaders() });
-      const payList = res.ok ? toList(await res.json()) : [];
-      setPayments(payList.map((item: any) => ({
-        id: item.id,
-        course_id: item.course ?? "",
-        course_title: item.course_title ?? "",
-        instructor_name: item.instructor_name ?? "",
-        created_at: item.created_at ?? "",
-        amount: Number(item.amount) ?? 0,
-        status: item.status ?? "success",
-        method: item.method ?? "",
-        ref_code: item.ref_code ?? "",
-        refund_requested_once: item.refund_requested_once ?? false,
-      })));
+      const [payRes, enrollRes] = await Promise.all([
+        fetch(`${API}/api/payments/history/`, { headers: authHeaders() }),
+        fetch(`${API}/api/enrollments/`, { headers: authHeaders() }),
+      ]);
+      const payList = payRes.ok ? toList(await payRes.json()) : [];
+      const enrollList = enrollRes.ok ? toList(await enrollRes.json()) : [];
+
+      const progressByCourse: Record<string, number> = {};
+      enrollList.forEach((e: any) => {
+        const cid = e.course ?? e.course_id ?? e.id;
+        progressByCourse[cid] = e.progress_pct ?? e.progress ?? 0;
+      });
+
+      setPayments(
+        payList.map((item: any) => ({
+          id: item.id,
+          course_id: item.course ?? "",
+          course_title: item.course_title ?? "",
+          instructor_name: item.instructor_name ?? "",
+          created_at: item.created_at ?? "",
+          amount: Number(item.amount) ?? 0,
+          status: item.status ?? "success",
+          method: item.method ?? "",
+          ref_code: item.ref_code ?? "",
+          refund_requested_once: item.refund_requested_once ?? false,
+          progress_pct: progressByCourse[item.course ?? ""] ?? 0,
+        })),
+      );
     } catch {}
   }, []);
-  
+
   useEffect(() => {
     (async () => {
       setLoadingCourses(true);
@@ -295,6 +312,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
           fetch(`${API}/api/enrollments/`, { headers: authHeaders() }),
           fetch(`${API}/api/payments/history/`, { headers: authHeaders() }),
         ]);
+        const enrollList = enrollRes.ok ? toList(await enrollRes.json()) : [];
+        const progressByCourse: Record<string, number> = {};
+        enrollList.forEach((e: any) => {
+          const cid = e.course ?? e.course_id ?? e.id;
+          progressByCourse[cid] = e.progress_pct ?? e.progress ?? 0;
+        });
         const payList = payRes.ok ? toList(await payRes.json()) : [];
         const mappedPayments: Payment[] = payList.map((item: any) => ({
           id: item.id,
@@ -307,13 +330,17 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
           method: item.method ?? "",
           ref_code: item.ref_code ?? "",
           refund_requested_once: item.refund_requested_once ?? false,
+          progress_pct: progressByCourse[item.course ?? ""] ?? 0,
         }));
         setPayments(mappedPayments);
-        const enrollList = enrollRes.ok ? toList(await enrollRes.json()) : [];
         const mappedCourses: EnrolledCourse[] = enrollList.map((item: any) => {
           const courseId = item.course ?? item.course_id ?? item.id;
           const p = mappedPayments.find(
-            (p) => p.course_id === courseId && ["success", "refund_requested", "refund_approved"].includes(p.status),
+            (p) =>
+              p.course_id === courseId &&
+              ["success", "refund_requested", "refund_approved"].includes(
+                p.status,
+              ),
           );
           return {
             id: item.id,
@@ -388,7 +415,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     if (activeTab !== "courses") return;
     const timer = setTimeout(() => {
       const map: Record<string, number> = {};
-      activeCourses.forEach((c) => { map[c.id] = c.progress ?? 0; });
+      activeCourses.forEach((c) => {
+        map[c.id] = c.progress ?? 0;
+      });
       setVisibleProgress(map);
     }, 100);
     return () => clearTimeout(timer);
@@ -659,16 +688,28 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
     !t ? null : t.startsWith("http") ? t : `${API}${t}`;
 
   const totalCoursePages = Math.ceil(activeCourses.length / PAGE_SIZE);
-  const pagedCourses = activeCourses.slice((coursePage - 1) * PAGE_SIZE, coursePage * PAGE_SIZE);
+  const pagedCourses = activeCourses.slice(
+    (coursePage - 1) * PAGE_SIZE,
+    coursePage * PAGE_SIZE,
+  );
 
   const totalPaymentPages = Math.ceil(payments.length / PAGE_SIZE);
-  const pagedPayments = payments.slice((paymentPage - 1) * PAGE_SIZE, paymentPage * PAGE_SIZE);
+  const pagedPayments = payments.slice(
+    (paymentPage - 1) * PAGE_SIZE,
+    paymentPage * PAGE_SIZE,
+  );
 
   const totalCertPages = Math.ceil(certificates.length / PAGE_SIZE);
-  const pagedCerts = certificates.slice((certPage - 1) * PAGE_SIZE, certPage * PAGE_SIZE);
+  const pagedCerts = certificates.slice(
+    (certPage - 1) * PAGE_SIZE,
+    certPage * PAGE_SIZE,
+  );
 
   const totalWalletPages = Math.ceil(walletTxs.length / PAGE_SIZE);
-  const pagedWalletTxs = walletTxs.slice((walletTxPage - 1) * PAGE_SIZE, walletTxPage * PAGE_SIZE);
+  const pagedWalletTxs = walletTxs.slice(
+    (walletTxPage - 1) * PAGE_SIZE,
+    walletTxPage * PAGE_SIZE,
+  );
 
   return (
     <div className="db-page">
@@ -712,8 +753,20 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       label: "Số tiền",
                       value: formatPrice(paymentDetail.amount, "VND"),
                     },
-                    ...(["refund_requested", "refund_approved", "refunded"].includes(paymentDetail.status)
-                      ? [{ label: "Số tiền hoàn", value: formatPrice((paymentDetail.amount ?? 0) * 0.7, "VND") }]
+                    ...([
+                      "refund_requested",
+                      "refund_approved",
+                      "refunded",
+                    ].includes(paymentDetail.status)
+                      ? [
+                          {
+                            label: "Số tiền hoàn",
+                            value: formatPrice(
+                              (paymentDetail.amount ?? 0) * 0.7,
+                              "VND",
+                            ),
+                          },
+                        ]
                       : []),
                     {
                       label: "Trạng thái",
@@ -725,28 +778,26 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     {
                       label: "Ngày",
                       value: paymentDetail.created_at
-                        ? new Date(
-                            paymentDetail.created_at,
-                          ).toLocaleString("vi-VN")
+                        ? new Date(paymentDetail.created_at).toLocaleString(
+                            "vi-VN",
+                          )
                         : "—",
                     },
                     {
                       label: "Phương thức",
-                      value: METHOD_LABEL[paymentDetail.method] || paymentDetail.method || "—",
+                      value:
+                        METHOD_LABEL[paymentDetail.method] ||
+                        paymentDetail.method ||
+                        "—",
                     },
                     {
                       label: "Mã GD",
-                      value:
-                        paymentDetail.ref_code || paymentDetail.id || "—",
+                      value: paymentDetail.ref_code || paymentDetail.id || "—",
                     },
                   ].map((item) => (
                     <div key={item.label} className="cm-detail-row">
-                      <span className="cm-detail-row__label">
-                        {item.label}
-                      </span>
-                      <span className="cm-detail-row__value">
-                        {item.value}
-                      </span>
+                      <span className="cm-detail-row__label">{item.label}</span>
+                      <span className="cm-detail-row__value">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -754,7 +805,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
             <div className="cm-footer">
               {paymentDetail?.status === "success" &&
-                !paymentDetail?.refund_requested_once && (
+                !paymentDetail?.refund_requested_once &&
+                (paymentDetail?.progress_pct ?? 0) <= 20 && (
                   <button
                     className="cm-btn cm-btn--refund"
                     onClick={() => {
@@ -846,7 +898,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <span className="db-stat-card__label">Khóa đã đăng ký</span>
                 </div>
                 <div className="db-stat-card">
-                                    <span className="db-stat-card__value">
+                  <span className="db-stat-card__value">
                     {loadingCourses ? "…" : `${avgProgress}%`}
                   </span>
                   <span className="db-stat-card__label">
@@ -869,49 +921,54 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </div>
               </div>
 
-              {!loadingPayments && payments.filter((p) => p.status === "success").length > 0 && (
-                <div className="payment-card">
-                  <div className="payment-card-header">
-                    <h3>Giao dịch gần đây</h3>
-                  </div>
-                  <div className="payment-card-body">
-                    <div className="payment-table-head">
-                      <span>Khóa học</span>
-                      <span>Ngày</span>
-                      <span>Số tiền</span>
-                      <span></span>
+              {!loadingPayments &&
+                payments.filter((p) => p.status === "success").length > 0 && (
+                  <div className="payment-card">
+                    <div className="payment-card-header">
+                      <h3>Giao dịch gần đây</h3>
                     </div>
-                    {payments
-                      .filter((p) => p.status === "success")
-                      .slice(0, 3)
-                      .map((p) => (
-                        <div key={p.id} className="payment-row">
-                          <span className="payment-row__title">{p.course_title}</span>
-                          <span className="payment-row__date">
-                            {p.created_at
-                              ? new Date(p.created_at).toLocaleDateString("vi-VN")
-                              : "—"}
-                          </span>
-                          <span className="payment-row__price">
-                            {formatPrice(p.amount, "VND")}
-                          </span>
-                          <button
-                            className="ad-btn-sm ad-btn-sm--view"
-                            onClick={() => openPaymentDetail(p.id)}
-                          >
-                            Xem
-                          </button>
-                        </div>
-                      ))}
-                    <button
-                      className="id-btn-secondary payment-view-all-btn"
-                      onClick={() => setActiveTab("payments")}
-                    >
-                      Xem tất cả →
-                    </button>
+                    <div className="payment-card-body">
+                      <div className="payment-table-head">
+                        <span>Khóa học</span>
+                        <span>Ngày</span>
+                        <span>Số tiền</span>
+                        <span></span>
+                      </div>
+                      {payments
+                        .filter((p) => p.status === "success")
+                        .slice(0, 3)
+                        .map((p) => (
+                          <div key={p.id} className="payment-row">
+                            <span className="payment-row__title">
+                              {p.course_title}
+                            </span>
+                            <span className="payment-row__date">
+                              {p.created_at
+                                ? new Date(p.created_at).toLocaleDateString(
+                                    "vi-VN",
+                                  )
+                                : "—"}
+                            </span>
+                            <span className="payment-row__price">
+                              {formatPrice(p.amount, "VND")}
+                            </span>
+                            <button
+                              className="ad-btn-sm ad-btn-sm--view"
+                              onClick={() => openPaymentDetail(p.id)}
+                            >
+                              Xem
+                            </button>
+                          </div>
+                        ))}
+                      <button
+                        className="id-btn-secondary payment-view-all-btn"
+                        onClick={() => setActiveTab("payments")}
+                      >
+                        Xem tất cả →
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {!loadingCourses && activeCourses.length === 0 && (
                 <div className="id-form-card overview-empty-card">
@@ -1016,7 +1073,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       )}
                     </tbody>
                   </table>
-                  <Pagination page={coursePage} totalPages={totalCoursePages} total={activeCourses.length} pageSize={PAGE_SIZE} onPage={(p) => { setCoursePage(p); scrollToTop(); }} />
+                  <Pagination
+                    page={coursePage}
+                    totalPages={totalCoursePages}
+                    total={activeCourses.length}
+                    pageSize={PAGE_SIZE}
+                    onPage={(p) => {
+                      setCoursePage(p);
+                      scrollToTop();
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -1092,7 +1158,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                   Xem
                                 </button>
                                 {status === "success" &&
-                                  !p.refund_requested_once && (
+                                  !p.refund_requested_once &&
+                                  (p.progress_pct ?? 0) <= 20 && (
                                     <button
                                       className="ad-btn-sm ad-btn-sm--refund"
                                       onClick={() => openRefundModal(p)}
@@ -1119,7 +1186,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     )}
                   </tbody>
                 </table>
-                <Pagination page={paymentPage} totalPages={totalPaymentPages} total={payments.length} pageSize={PAGE_SIZE} onPage={(p) => { setPaymentPage(p); scrollToTop(); }} />
+                <Pagination
+                  page={paymentPage}
+                  totalPages={totalPaymentPages}
+                  total={payments.length}
+                  pageSize={PAGE_SIZE}
+                  onPage={(p) => {
+                    setPaymentPage(p);
+                    scrollToTop();
+                  }}
+                />
               </div>
             </div>
           )}
@@ -1463,7 +1539,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <select
                     className="quiz-filter-select"
                     value={quizSortCourse}
-                    onChange={(e) => { setQuizSortCourse(e.target.value); setQuizPage(1); }}
+                    onChange={(e) => {
+                      setQuizSortCourse(e.target.value);
+                      setQuizPage(1);
+                    }}
                   >
                     <option value="all">Tất cả khóa học</option>
                     {[
@@ -1484,7 +1563,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <select
                     className="quiz-filter-select"
                     value={quizSortResult}
-                    onChange={(e) => { setQuizSortResult(e.target.value as any); setQuizPage(1); }}
+                    onChange={(e) => {
+                      setQuizSortResult(e.target.value as any);
+                      setQuizPage(1);
+                    }}
                   >
                     <option value="all">Tất cả kết quả</option>
                     <option value="passed">Đạt</option>
@@ -1507,7 +1589,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     return true;
                   });
                   const totalQuizPages = Math.ceil(filtered.length / PAGE_SIZE);
-                  const pagedQuiz = filtered.slice((quizPage - 1) * PAGE_SIZE, quizPage * PAGE_SIZE);
+                  const pagedQuiz = filtered.slice(
+                    (quizPage - 1) * PAGE_SIZE,
+                    quizPage * PAGE_SIZE,
+                  );
                   return (
                     <div className="ad-table-wrap">
                       <table className="ad-table">
@@ -1525,10 +1610,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         <tbody>
                           {filtered.length === 0 ? (
                             <tr>
-                              <td
-                                colSpan={7}
-                                className="ad-table__empty-cell"
-                              >
+                              <td colSpan={7} className="ad-table__empty-cell">
                                 {quizAttempts.length === 0
                                   ? "Chưa có lần kiểm tra nào."
                                   : "Không có kết quả phù hợp."}
@@ -1606,7 +1688,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                           )}
                         </tbody>
                       </table>
-                      <Pagination page={quizPage} totalPages={totalQuizPages} total={filtered.length} pageSize={PAGE_SIZE} onPage={(p) => { setQuizPage(p); scrollToTop(); }} />
+                      <Pagination
+                        page={quizPage}
+                        totalPages={totalQuizPages}
+                        total={filtered.length}
+                        pageSize={PAGE_SIZE}
+                        onPage={(p) => {
+                          setQuizPage(p);
+                          scrollToTop();
+                        }}
+                      />
                     </div>
                   );
                 })()
@@ -1768,16 +1859,23 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                 : "—"}
                             </td>
                             <td>
-                              <span className="db-cert__badge">
-                                Hoàn thành
-                              </span>
+                              <span className="db-cert__badge">Hoàn thành</span>
                             </td>
                           </tr>
                         ))
                       )}
                     </tbody>
                   </table>
-                  <Pagination page={certPage} totalPages={totalCertPages} total={certificates.length} pageSize={PAGE_SIZE} onPage={(p) => { setCertPage(p); scrollToTop(); }} />
+                  <Pagination
+                    page={certPage}
+                    totalPages={totalCertPages}
+                    total={certificates.length}
+                    pageSize={PAGE_SIZE}
+                    onPage={(p) => {
+                      setCertPage(p);
+                      scrollToTop();
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -2036,7 +2134,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                             ))}
                           </tbody>
                         </table>
-                        <Pagination page={walletTxPage} totalPages={totalWalletPages} total={walletTxs.length} pageSize={PAGE_SIZE} onPage={(p) => { setWalletTxPage(p); scrollToTop(); }} />
+                        <Pagination
+                          page={walletTxPage}
+                          totalPages={totalWalletPages}
+                          total={walletTxs.length}
+                          pageSize={PAGE_SIZE}
+                          onPage={(p) => {
+                            setWalletTxPage(p);
+                            scrollToTop();
+                          }}
+                        />
                       </div>
                     )}
                   </div>
