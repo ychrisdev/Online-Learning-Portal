@@ -705,9 +705,14 @@ class MomoCreateView(APIView):
             resp = requests.post(settings.MOMO_ENDPOINT, json=payload, timeout=15)
             data = resp.json()
         except Exception as e:
+            import traceback, logging
+            logging.getLogger(__name__).error(traceback.format_exc())
             tx.status = Transaction.Status.FAILED
             tx.save(update_fields=["status"])
-            return Response({'detail': f'Lỗi kết nối MoMo: {str(e)}'}, status=500)
+            return Response(
+                {'detail': 'Không thể kết nối đến MoMo. Vui lòng thử thanh toán bằng ví hoặc thử lại sau.'},
+                status=503
+            )
 
         if data.get('resultCode') != 0:
             tx.status = Transaction.Status.FAILED

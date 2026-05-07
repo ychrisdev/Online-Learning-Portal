@@ -1,6 +1,8 @@
 """
 enrollments/views.py
 """
+import uuid
+
 from django.db import models
 from django.utils import timezone
 from rest_framework import generics, status
@@ -150,16 +152,17 @@ def _check_course_completion(enrollment: Enrollment):
         enrollment.status       = Enrollment.Status.COMPLETED
         enrollment.completed_at = timezone.now()
         enrollment.save(update_fields=['status', 'completed_at'])
-        if not hasattr(enrollment, 'certificate'):
+        if not Certificate.objects.filter(enrollment=enrollment).exists():
             course_code  = enrollment.course.slug[:6].upper().replace('-', '')
             student_code = str(enrollment.student.id)[:4].upper()
             year         = timezone.now().strftime('%y')
-            cert_number  = f'CERT-{year}-{course_code}-{student_code}'
+            unique_suffix = uuid.uuid4().hex[:4].upper()
+            cert_number  = f'CERT-{year}-{course_code}-{student_code}-{unique_suffix}'
             certificate = Certificate.objects.create(
                 enrollment  = enrollment,
                 cert_number = cert_number,
             )
-            send_certificate_email(certificate)
+            send_certificate_email(certificate) 
 
 
 class MyCertificateListView(generics.ListAPIView):

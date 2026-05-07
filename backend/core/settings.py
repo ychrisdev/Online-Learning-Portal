@@ -214,7 +214,7 @@ MOMO_PARTNER_CODE = "MOMO"
 MOMO_ACCESS_KEY   = "F8BBA842ECF85"
 MOMO_SECRET_KEY   = "K951B6PE1waDMi640xX08PD3vg6EkVlz"
 MOMO_ENDPOINT     = "https://test-payment.momo.vn/v2/gateway/api/create"
-MOMO_REDIRECT_URL = "http://localhost:5173/"
+MOMO_REDIRECT_URL = "http://localhost:3000/payment/callback"
 MOMO_IPN_URL      = "https://mop-swarm-banister.ngrok-free.dev/api/payments/momo/ipn/"
 
 # ── Celery ─────────────────────────────────────────────────
