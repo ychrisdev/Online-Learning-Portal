@@ -19,6 +19,7 @@ class Transaction(models.Model):
         FAILED            = 'failed',            'Thất bại'
         REFUND_REQUESTED  = 'refund_requested',  'Yêu cầu hoàn tiền'
         REFUND_APPROVED   = 'refund_approved',   'Admin đã duyệt'
+        REFUND_REJECTED = 'refund_rejected', 'Đã từ chối hoàn tiền'
         REFUNDED          = 'refunded',          'Đã hoàn tiền'
 
     class Method(models.TextChoices):

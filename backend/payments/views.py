@@ -364,7 +364,7 @@ class AdminRejectRefundView(APIView):
             id=id,
             status=Transaction.Status.REFUND_REQUESTED,
         )
-        transaction.status = Transaction.Status.SUCCESS
+        transaction.status = Transaction.Status.REFUND_REJECTED
         transaction.note   = request.data.get('reason', '')
         transaction.save()
         try:

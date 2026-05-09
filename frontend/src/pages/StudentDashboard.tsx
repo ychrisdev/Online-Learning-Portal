@@ -157,6 +157,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refunded: "Đã hoàn tiền",
   refund_approved: "Đã duyệt hoàn",
   refund_requested: "Chờ hoàn tiền",
+  refund_rejected: "Đã từ chối hoàn",
 };
 
 const StudentDashboard: React.FC<StudentDashboardProps> = ({
@@ -819,6 +820,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       "refund_requested",
                       "refund_approved",
                       "refunded",
+                      "refund_rejected",
                     ].includes(paymentDetail.status)
                       ? [
                           {
