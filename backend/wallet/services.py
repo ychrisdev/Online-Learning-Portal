@@ -78,8 +78,9 @@ def refund_to_student(student, amount: int, course_title: str, ref_id: str = '')
 
 
 def withdraw(user, amount: int, bank_name: str, bank_account: str, account_name: str):
-    """Giảng viên yêu cầu rút tiền — trừ ví ngay, tạo WithdrawalRequest pending."""
+    """Giảng viên/sinh viên rút tiền — tự động hoàn thành, không cần admin duyệt."""
     from .models import WithdrawalRequest
+    from django.utils import timezone
     with db_transaction.atomic():
         wallet = Wallet.objects.select_for_update().get_or_create(user=user)[0]
         if wallet.balance < amount:
@@ -91,8 +92,8 @@ def withdraw(user, amount: int, bank_name: str, bank_account: str, account_name:
             tx_type       = WalletTransaction.TxType.WITHDRAWAL,
             amount        = -amount,
             balance_after = wallet.balance,
-            status        = WalletTransaction.Status.PENDING,
-            note          = 'Yêu cầu rút tiền',
+            status        = WalletTransaction.Status.COMPLETED,  # ← COMPLETED luôn
+            note          = f'Rút tiền về {bank_name} - {bank_account}',
         )
         return WithdrawalRequest.objects.create(
             wallet       = wallet,
@@ -100,8 +101,9 @@ def withdraw(user, amount: int, bank_name: str, bank_account: str, account_name:
             bank_name    = bank_name,
             bank_account = bank_account,
             account_name = account_name,
+            status       = WithdrawalRequest.Status.APPROVED,   # ← APPROVED luôn
+            resolved_at  = timezone.now(),                       # ← gán ngay
         )
-    
 def pay_instructor_revenue(course, amount: int, transaction_id: str = '') -> None:
     """Cộng doanh thu cho instructor sau khi thanh toán qua gateway."""
     instructor = course.instructor

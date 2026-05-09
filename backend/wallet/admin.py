@@ -112,7 +112,9 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
                        'account_name', 'get_status_badge', 'created_at', 'resolved_at']
     list_filter     = ['status', 'bank_name']
     search_fields   = ['wallet__user__username', 'wallet__user__full_name', 'bank_account', 'account_name']
-    readonly_fields = ['wallet', 'amount', 'bank_name', 'bank_account', 'account_name', 'created_at']
+    # Tất cả readonly — admin chỉ xem, không can thiệp
+    readonly_fields = ['wallet', 'amount', 'bank_name', 'bank_account',
+                       'account_name', 'status', 'note', 'created_at', 'resolved_at']
     ordering        = ['-created_at']
     fieldsets = (
         ('Thông tin người rút', {
@@ -121,10 +123,18 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
         ('Thông tin ngân hàng', {
             'fields': ('bank_name', 'bank_account', 'account_name'),
         }),
-        ('Xét duyệt', {
+        ('Kết quả', {
             'fields': ('status', 'note', 'resolved_at'),
         }),
     )
+    # Bỏ actions — không cần approve/reject nữa
+    actions = []
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False  # Admin chỉ xem
 
     @admin.display(description='Người dùng')
     def get_user(self, obj):
@@ -143,19 +153,3 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
         }
         color, label = colors.get(obj.status, ('gray', obj.status))
         return format_html('<b style="color:{}">{}</b>', color, label)
-
-    @admin.action(description='Duyệt yêu cầu rút tiền đã chọn')
-    def approve_withdrawals(self, request, queryset):
-        queryset.filter(status=WithdrawalRequest.Status.PENDING).update(
-            status=WithdrawalRequest.Status.APPROVED,
-            resolved_at=timezone.now(),
-        )
-
-    @admin.action(description='Từ chối yêu cầu rút tiền đã chọn')
-    def reject_withdrawals(self, request, queryset):
-        queryset.filter(status=WithdrawalRequest.Status.PENDING).update(
-            status=WithdrawalRequest.Status.REJECTED,
-            resolved_at=timezone.now(),
-        )
-
-    actions = ['approve_withdrawals', 'reject_withdrawals']

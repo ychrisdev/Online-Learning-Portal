@@ -656,8 +656,13 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
         );
         if (mine.ok) {
           const data = await mine.json();
-          setMyReviewId(data?.id ?? null);
-          setAttemptCount(data?.attempt_number ?? 0);
+          const list: any[] = Array.isArray(data) ? data : [];
+          const latest = list[0];
+          if (latest) {
+            setMyReviewId(latest.id);
+            setMyReviewIds(new Set(list.map((r) => r.id)));  // ← thêm dòng này
+            setAttemptCount(latest.attempt_number ?? list.length);
+          }
         }
       } else {
         const err = await res.json();
@@ -1838,14 +1843,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                   {(r.student_name ?? "?")[0]}
                                 </div>
                                 <div>
-                                  <div className="cd-rv-name">
-                                    {r.student_name ?? "—"}
-                                  </div>
+                                  <div className="cd-rv-name">{r.student_name ?? "—"}</div>
                                   <div className="cd-rv-date">
                                     {r.created_at
-                                      ? new Date(
-                                          r.created_at,
-                                        ).toLocaleDateString("vi-VN")
+                                      ? new Date(r.created_at).toLocaleDateString("vi-VN")
                                       : ""}
                                   </div>
                                 </div>
@@ -1853,17 +1854,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({
                                   {"★".repeat(r.rating)}
                                   {"☆".repeat(5 - r.rating)}
                                 </div>
-                                {myReviewIds.has(r.id) && (
-                                  <button
-                                    className="cd-rv-edit-btn"
-                                    onClick={() => handleStartEdit(r)}
-                                    title="Chỉnh sửa"
-                                  >
-                                    Chỉnh sửa
-                                  </button>
-                                )}
                               </div>
                               <p className="cd-rv-comment">{r.comment}</p>
+                              {myReviewIds.has(r.id) && (
+                                <button
+                                  className="cd-rv-edit-btn"
+                                  onClick={() => handleStartEdit(r)}
+                                  title="Chỉnh sửa"
+                                >
+                                  Chỉnh sửa
+                                </button>
+                              )}
                             </>
                           )}
                         </div>

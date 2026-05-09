@@ -74,12 +74,50 @@ interface Review {
   hidden_at?: string;
 }
 
+const BANK_LIST = [
+  { value: "VCB", label: "Vietcombank (VCB)" },
+  { value: "TCB", label: "Techcombank (TCB)" },
+  { value: "MB",  label: "MB Bank" },
+  { value: "ACB", label: "ACB Bank" },
+  { value: "VTB", label: "VietinBank (VTB)" },
+  { value: "BIDV",label: "BIDV" },
+  { value: "VPB", label: "VPBank" },
+  { value: "TPB", label: "TPBank" },
+  { value: "SHB", label: "SHB" },
+  { value: "MSB", label: "MSB" },
+  { value: "OCB", label: "OCB" },
+  { value: "VIB", label: "VIB" },
+  { value: "HDB", label: "HDBank" },
+  { value: "SCB", label: "SCB" },
+  { value: "MOMO",label: "Ví MoMo" },
+];
+
+const MOCK_NAMES = [
+  "NGUYEN THANH TUNG","TRAN HOAI NAM","LE THI HONG",
+  "PHAM VAN HIEU","VU MINH QUAN","DANG THI LAN","BUI XUAN ANH",
+];
+
+const MOCK_FIXED: Record<string, string> = {
+  "0123456789": "NGUYEN VAN A",
+  "9876543210": "TRAN THI B",
+  "1111222233": "LE HOANG C",
+  "0909090909": "PHAM MINH D",
+  "5566778899": "HOANG THI E",
+};
+
+function mockVerifyAccount(stk: string): string | null {
+  if (MOCK_FIXED[stk]) return MOCK_FIXED[stk];
+  if (stk.length >= 9) return MOCK_NAMES[parseInt(stk.slice(-1)) % MOCK_NAMES.length];
+  return null;
+}
+
 const API = "http://127.0.0.1:8000";
 
 const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("access")}`,
   "Content-Type": "application/json",
 });
+
 
 const toList = (data: any): any[] =>
   Array.isArray(data) ? data : (data?.results ?? []);
@@ -484,6 +522,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [walletPanel, setWalletPanel] = useState<"deposit" | "withdraw" | null>(
     null,
   );
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [verifiedName, setVerifiedName] = useState("");
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const PAGE_SIZE = 8;
   const [enrollPage, setEnrollPage] = useState(1);
@@ -765,14 +806,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     (async () => {
       setLoadingWallet(true);
       try {
-        const [walletRes, txRes, wdRes] = await Promise.all([
+        const [walletRes, txRes] = await Promise.all([
           fetch(`${API}/api/wallet/`, { headers: authHeaders() }),
           fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
-          fetch(`${API}/api/wallet/withdrawals/`, { headers: authHeaders() }),
         ]);
         if (walletRes.ok) setWallet(await walletRes.json());
         if (txRes.ok) setWalletTxs(toList(await txRes.json()));
-        if (wdRes.ok) setWithdrawals(toList(await wdRes.json()));
       } catch (_) {}
       setLoadingWallet(false);
     })();
@@ -798,26 +837,29 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   }, [activeTab]);
 
   const handleWithdraw = async () => {
-    const amount = parseInt(withdrawForm.amount);
-    if (!amount || amount < 50000) {
-      setWalletError("Số tiền rút tối thiểu 50,000đ");
-      return;
-    }
-    if (!withdrawForm.bank_name.trim()) {
-      setWalletError("Vui lòng nhập tên ngân hàng");
+    if (!withdrawForm.bank_name) {
+      showToast("Vui lòng chọn ngân hàng", "error");
       return;
     }
     if (!withdrawForm.bank_account.trim()) {
-      setWalletError("Vui lòng nhập số tài khoản");
+      showToast("Vui lòng nhập số tài khoản", "error");
+      return;
+    }
+    if (verifyStatus !== "ok") {
+      showToast("Số tài khoản chưa được xác minh hợp lệ", "error");
       return;
     }
     if (!withdrawForm.account_name.trim()) {
-      setWalletError("Vui lòng nhập tên chủ tài khoản");
+      showToast("Tên chủ tài khoản không hợp lệ", "error");
       return;
     }
+    const amount = parseInt(withdrawForm.amount);
+    if (!amount || amount < 50000) {
+      showToast("Số tiền rút tối thiểu 50,000đ", "error");
+      return;
+    }
+
     setWithdrawing(true);
-    setWalletError("");
-    setWalletSuccess("");
     try {
       const res = await fetch(`${API}/api/wallet/withdraw/`, {
         method: "POST",
@@ -825,31 +867,58 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         body: JSON.stringify({ ...withdrawForm, amount }),
       });
       if (res.ok) {
-        setWalletSuccess("Yêu cầu rút tiền đã được gửi!");
-        setWithdrawForm({
-          amount: "",
-          bank_name: "",
-          bank_account: "",
-          account_name: "",
-        });
-        const [walletRes, txRes, wdRes] = await Promise.all([
+        showToast("Rút tiền thành công!", "success");
+        setWithdrawForm({ amount: "", bank_name: "", bank_account: "", account_name: "" });
+        setVerifyStatus("idle");
+        setVerifiedName("");
+        const [walletRes, txRes] = await Promise.all([
           fetch(`${API}/api/wallet/`, { headers: authHeaders() }),
           fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
-          fetch(`${API}/api/wallet/withdrawals/`, { headers: authHeaders() }),
         ]);
         if (walletRes.ok) setWallet(await walletRes.json());
         if (txRes.ok) setWalletTxs(toList(await txRes.json()));
-        if (wdRes.ok) setWithdrawals(toList(await wdRes.json()));
       } else {
         const err = await res.json();
-        setWalletError(err.detail ?? "Rút tiền thất bại.");
+        showToast(err.detail ?? "Rút tiền thất bại.", "error");
       }
     } catch (_) {
-      setWalletError("Lỗi kết nối.");
+      showToast("Lỗi kết nối.", "error");
     }
     setWithdrawing(false);
   };
 
+  const handleAccountNumberChange = (val: string) => {
+    setWithdrawForm(f => ({ ...f, bank_account: val, account_name: "" }));
+    setVerifiedName("");
+    setVerifyStatus("idle");
+    if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+
+    // ← Thêm check này: chưa chọn ngân hàng thì dừng
+    if (!withdrawForm.bank_name) {
+      setVerifyStatus("idle");
+      return;
+    }
+
+    if (!val.trim() || val.length < 6 || !/^\d+$/.test(val)) return;
+    setVerifyStatus("checking");
+    verifyTimerRef.current = setTimeout(() => {
+      const name = mockVerifyAccount(val.trim());
+      if (name) {
+        setVerifyStatus("ok");
+        setVerifiedName(name);
+        setWithdrawForm(f => ({ ...f, account_name: name }));
+      } else {
+        setVerifyStatus("error");
+      }
+    }, 1200);
+  };
+
+  const handleBankChange = (val: string) => {
+    setWithdrawForm(f => ({ ...f, bank_name: val, bank_account: "", account_name: "" }));
+    setVerifiedName("");
+    setVerifyStatus("idle");
+    if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+  };
   const openViewReview = (r: any) => {
     setSelectedReview(r);
     setReviewModal("view");
@@ -1877,17 +1946,17 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         const data = await res.json();
         setWallet((w: any) => ({ ...w, balance: data.balance }));
         setDepositAmount("");
-        setDepositSuccess("Nạp tiền thành công!");
+        showToast("Nạp tiền thành công!", "success");
         const txRes = await fetch(`${API}/api/wallet/transactions/`, {
           headers: authHeaders(),
         });
         if (txRes.ok) setWalletTxs(toList(await txRes.json()));
       } else {
         const err = await res.json();
-        setDepositError(err.detail ?? "Nạp tiền thất bại.");
+        showToast(err.detail ?? "Nạp tiền thất bại.", "error");
       }
     } catch (_) {
-      setDepositError("Lỗi kết nối.");
+      showToast("Lỗi kết nối.", "error");
     }
     setDepositing(false);
   };
@@ -1912,14 +1981,14 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
           headers: authHeaders(),
         });
         if (walletRes.ok) setWallet(await walletRes.json());
-        showToast("✓ Hoàn tiền thành công!", "success");
+        showToast("Hoàn tiền thành công!", "success");
       } else {
         const err = await res.json();
         setRefundShortage({ id, ...err });
-        showToast("⚠ " + (err.detail ?? "Hoàn tiền thất bại."), "error");
+        showToast((err.detail ?? "Hoàn tiền thất bại."), "error");
       }
     } catch (_) {
-      showToast("⚠ Lỗi kết nối, thử lại sau.", "error");
+      showToast("Lỗi kết nối, thử lại sau.", "error");
     }
     setConfirmingRefund(null);
   };
@@ -6030,7 +6099,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
                   {walletPanel === "deposit" && (
                     <div className="id-form-card id-form-card--mb">
-                      <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
+                      <h3 className="id-form-card__title">Nạp tiền</h3>
                       <div className="id-wallet-form-row">
                         <div className="id-field id-field--flex">
                           <label className="id-field__label">
@@ -6084,95 +6153,95 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   )}
 
                   {walletPanel === "withdraw" && (
-                    <div className="id-form-card id-form-card--mb">
-                      <h3 className="id-form-card__title">Yêu cầu rút tiền</h3>
-                      <div className="id-form-grid">
+                    <div className="id-form-card wallet-panel-card">
+                      <h3 className="id-form-card__title">Rút tiền</h3>
+
+                      {/* Hàng 1: Số tiền + Ngân hàng */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                         <div className="id-field">
-                          <label className="id-field__label">
-                            Số tiền rút (VNĐ)
-                          </label>
+                          <label className="id-field__label">Số tiền (VNĐ)</label>
                           <input
                             className="id-field__input"
                             type="number"
                             min={50000}
                             placeholder="Tối thiểu 50,000đ"
                             value={withdrawForm.amount}
-                            onChange={(e) => {
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                amount: e.target.value,
-                              }));
-                              setWalletError("");
-                              setWalletSuccess("");
+                            onChange={e => setWithdrawForm(f => ({ ...f, amount: e.target.value }))}
+                          />
+                        </div>
+                        <div className="id-field">
+                          <label className="id-field__label">Ngân hàng</label>
+                          <select
+                            className="id-field__input"
+                            value={withdrawForm.bank_name}
+                            onChange={e => handleBankChange(e.target.value)}
+                          >
+                            <option value="">-- Chọn ngân hàng --</option>
+                            {BANK_LIST.map(b => (
+                              <option key={b.value} value={b.value}>{b.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Hàng 2: Số tài khoản + Tên chủ TK */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                        <div className="id-field">
+                          <label className="id-field__label">Số tài khoản</label>
+                          <input
+                            className="id-field__input"
+                            placeholder="Nhập số tài khoản"
+                            value={withdrawForm.bank_account}
+                            onChange={e => handleAccountNumberChange(e.target.value)}
+                            disabled={!withdrawForm.bank_name}
+                          />
+                          <div style={{ marginTop: 6, minHeight: 20 }}>
+                            {!withdrawForm.bank_name && (
+                              <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
+                                Vui lòng chọn ngân hàng trước
+                              </span>
+                            )}
+                            {withdrawForm.bank_name && verifyStatus === "checking" && (
+                              <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                                Đang xác minh…
+                              </span>
+                            )}
+                            {withdrawForm.bank_name && verifyStatus === "ok" && (
+                              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--color-background-success)", color: "var(--color-text-success)" }}>
+                                Tài khoản hợp lệ
+                              </span>
+                            )}
+                            {withdrawForm.bank_name && verifyStatus === "error" && (
+                              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--color-background-danger)", color: "var(--color-text-danger)" }}>
+                                ✕ Không tìm thấy STK
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="id-field">
+                          <label className="id-field__label">Tên chủ tài khoản</label>
+                          <input
+                            className="id-field__input"
+                            placeholder="Tự động điền sau khi xác minh"
+                            value={withdrawForm.account_name}
+                            onChange={e => setWithdrawForm(f => ({ ...f, account_name: e.target.value }))}
+                            style={{
+                              borderColor: verifyStatus === "ok" ? "var(--color-border-success)" : undefined,
                             }}
                           />
                         </div>
-                        <div className="id-field">
-                          <label className="id-field__label">
-                            Tên ngân hàng
-                          </label>
-                          <input
-                            className="id-field__input"
-                            placeholder="VD: Vietcombank"
-                            value={withdrawForm.bank_name}
-                            onChange={(e) =>
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                bank_name: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="id-field">
-                          <label className="id-field__label">
-                            Số tài khoản
-                          </label>
-                          <input
-                            className="id-field__input"
-                            placeholder="0123456789"
-                            value={withdrawForm.bank_account}
-                            onChange={(e) =>
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                bank_account: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="id-field">
-                          <label className="id-field__label">
-                            Tên chủ tài khoản
-                          </label>
-                          <input
-                            className="id-field__input"
-                            placeholder="NGUYEN VAN A"
-                            value={withdrawForm.account_name}
-                            onChange={(e) =>
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                account_name: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
                       </div>
-                      {walletError && (
-                        <p className="id-msg id-msg--error">⚠ {walletError}</p>
-                      )}
-                      {walletSuccess && (
-                        <p className="id-msg id-msg--success">
-                          ✓ {walletSuccess}
-                        </p>
-                      )}
-                      <div className="id-form-actions">
+
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <button
                           className="id-btn-primary"
                           onClick={handleWithdraw}
                           disabled={withdrawing}
                         >
-                          {withdrawing ? "Đang gửi…" : "Gửi yêu cầu rút tiền"}
+                          {withdrawing ? "Đang rút…" : "Rút tiền"}
                         </button>
-                      </div>
+                      </div>                      
                     </div>
                   )}
 

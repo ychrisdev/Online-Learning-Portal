@@ -283,6 +283,7 @@
 }
 .ad-quiz-question__body {
   flex: 1;
+  text-align: left;
 }
 .ad-quiz-question__meta {
   font-size: 12px;

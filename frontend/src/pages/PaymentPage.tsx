@@ -470,7 +470,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     walletBalance < price &&
                     !loadingWallet && (
                       <div className="pm-wallet-box__insufficient">
-                        ⚠ Số dư không đủ — cần nạp thêm{" "}
+                        Số dư không đủ — cần nạp thêm{" "}
                         <strong>
                           {formatPrice(price - walletBalance, "VND")}
                         </strong>

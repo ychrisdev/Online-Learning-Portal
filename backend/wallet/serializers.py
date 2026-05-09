@@ -23,13 +23,11 @@ class DepositSerializer(serializers.Serializer):
 
 
 class WithdrawalRequestSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-
     class Meta:
         model  = WithdrawalRequest
         fields = ['id', 'amount', 'bank_name', 'bank_account', 'account_name',
-                  'status', 'status_display', 'note', 'created_at', 'resolved_at']
-        read_only_fields = ['id', 'status', 'status_display', 'note', 'created_at', 'resolved_at']
+                  'status', 'note', 'created_at', 'resolved_at']
+        read_only_fields = ['id', 'status', 'note', 'created_at', 'resolved_at']
 
     def validate_amount(self, value):
         wallet = self.context['wallet']

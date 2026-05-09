@@ -1148,6 +1148,52 @@ select.db-input {
   border-left: 2px solid rgba(119, 141, 169, 0.25);
   padding-left: 10px;
 }
+.qad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.qad-title {
+  color: #e0e1dd;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 25px;
+}
+
+.qad-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.qad-stat {
+  background: rgba(13, 27, 42, 0.6);
+  border: 1px solid rgba(119, 141, 169, 0.15);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qad-stat__label {
+  font-size: 11px;
+  color: rgba(224, 225, 221, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.qad-stat__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e1dd;
+}
+
+.qad-stat__value--passed { color: #4caf82; }
+.qad-stat__value--failed { color: #e07a5f; }
 
 /* ── Courses tab ────────────────────────────────────────────────── */
 .db-courses__progress-cell { min-width: 160px; }

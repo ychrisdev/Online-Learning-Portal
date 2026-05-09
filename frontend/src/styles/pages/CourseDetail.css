@@ -1021,7 +1021,7 @@
 }
 .cd-rv-card-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
   padding: 0 var(--space-2);
@@ -1055,6 +1055,7 @@
   font-size: var(--text-base);
   letter-spacing: 1px;
   align-self: center;
+  align-self: flex-start;
 }
 .cd-rv-comment {
   font-size: var(--text-base);
@@ -1176,7 +1177,7 @@
 .cd-rv-cancel-btn:hover { color: #e0e1dd; }
 .cd-rv-edit-actions { display: flex; gap: 10px; margin-top: 10px; }
 .cd-rv-edit-btn {
-  margin-left: auto;
+  margin-left: 830px;
   padding: 4px 12px;
   font-size: var(--text-xs);
   font-weight: 500;

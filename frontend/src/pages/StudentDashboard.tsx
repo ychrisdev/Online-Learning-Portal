@@ -86,6 +86,43 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
+const BANK_LIST = [
+  { value: "VCB", label: "Vietcombank (VCB)" },
+  { value: "TCB", label: "Techcombank (TCB)" },
+  { value: "MB",  label: "MB Bank" },
+  { value: "ACB", label: "ACB Bank" },
+  { value: "VTB", label: "VietinBank (VTB)" },
+  { value: "BIDV",label: "BIDV" },
+  { value: "VPB", label: "VPBank" },
+  { value: "TPB", label: "TPBank" },
+  { value: "SHB", label: "SHB" },
+  { value: "MSB", label: "MSB" },
+  { value: "OCB", label: "OCB" },
+  { value: "VIB", label: "VIB" },
+  { value: "HDB", label: "HDBank" },
+  { value: "SCB", label: "SCB" },
+  { value: "MOMO",label: "Ví MoMo" },
+];
+
+const MOCK_NAMES = [
+  "NGUYEN THANH TUNG","TRAN HOAI NAM","LE THI HONG",
+  "PHAM VAN HIEU","VU MINH QUAN","DANG THI LAN","BUI XUAN ANH",
+];
+
+const MOCK_FIXED: Record<string, string> = {
+  "0123456789": "NGUYEN VAN A",
+  "9876543210": "TRAN THI B",
+  "1111222233": "LE HOANG C",
+  "0909090909": "PHAM MINH D",
+  "5566778899": "HOANG THI E",
+};
+
+function mockVerifyAccount(stk: string): string | null {
+  if (MOCK_FIXED[stk]) return MOCK_FIXED[stk];
+  if (stk.length >= 9) return MOCK_NAMES[parseInt(stk.slice(-1)) % MOCK_NAMES.length];
+  return null;
+}
+
 const METHOD_LABEL: Record<string, string> = {
   wallet: "Ví điện tử",
   momo: "MoMo",
@@ -211,6 +248,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [walletPanel, setWalletPanel] = useState<"deposit" | "withdraw" | null>(
     null,
   );
+
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [verifiedName, setVerifiedName] = useState("");
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Pagination states
   const PAGE_SIZE = 10;
   const [coursePage, setCoursePage] = useState(1);
@@ -600,42 +641,32 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         const data = await res.json();
         setWallet((w: any) => ({ ...w, balance: data.balance }));
         setDepositAmount("");
-        setWalletSuccess("Nạp tiền thành công!");
+        showToast("Nạp tiền thành công!");
         const txRes = await fetch(`${API}/api/wallet/transactions/`, {
           headers: authHeaders(),
         });
         if (txRes.ok) setWalletTxs(toList(await txRes.json()));
       } else {
         const err = await res.json();
-        setWalletError(err.detail ?? "Nạp tiền thất bại.");
+        showToast(err.detail ?? "Nạp tiền thất bại.", false);
       }
     } catch (_) {
-      setWalletError("Lỗi kết nối.");
+      showToast("Lỗi kết nối.", false);
     }
     setDepositing(false);
   };
 
   const handleWithdraw = async () => {
+    if (verifyStatus !== "ok") {
+      showToast("Vui lòng xác minh số tài khoản trước.", false);
+      return;
+    }
     const amount = parseInt(withdrawForm.amount);
     if (!amount || amount < 50000) {
-      setWithdrawError("Tối thiểu 50,000đ");
-      return;
-    }
-    if (!withdrawForm.bank_name.trim()) {
-      setWithdrawError("Nhập tên ngân hàng");
-      return;
-    }
-    if (!withdrawForm.bank_account.trim()) {
-      setWithdrawError("Nhập số tài khoản");
-      return;
-    }
-    if (!withdrawForm.account_name.trim()) {
-      setWithdrawError("Nhập tên chủ tài khoản");
+      showToast("Tối thiểu 50,000đ", false);
       return;
     }
     setWithdrawing(true);
-    setWithdrawError("");
-    setWithdrawSuccess("");
     try {
       const res = await fetch(`${API}/api/wallet/withdraw/`, {
         method: "POST",
@@ -643,13 +674,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         body: JSON.stringify({ ...withdrawForm, amount }),
       });
       if (res.ok) {
-        setWithdrawSuccess("Yêu cầu rút tiền đã được gửi!");
-        setWithdrawForm({
-          amount: "",
-          bank_name: "",
-          bank_account: "",
-          account_name: "",
-        });
+        showToast("Rút tiền thành công!");
+        setWithdrawForm({ amount: "", bank_name: "", bank_account: "", account_name: "" });
+        setVerifyStatus("idle");
+        setVerifiedName("");
         const [walletRes, txRes] = await Promise.all([
           fetch(`${API}/api/wallet/`, { headers: authHeaders() }),
           fetch(`${API}/api/wallet/transactions/`, { headers: authHeaders() }),
@@ -658,12 +686,46 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
         if (txRes.ok) setWalletTxs(toList(await txRes.json()));
       } else {
         const err = await res.json();
-        setWithdrawError(err.detail ?? "Rút tiền thất bại.");
+        showToast(err.detail ?? "Rút tiền thất bại.", false);
       }
     } catch (_) {
-      setWithdrawError("Lỗi kết nối.");
+      showToast("Lỗi kết nối.", false);
     }
     setWithdrawing(false);
+  };
+  
+
+  const handleAccountNumberChange = (val: string) => {
+    setWithdrawForm(f => ({ ...f, bank_account: val, account_name: "" }));
+    setVerifiedName("");
+    setVerifyStatus("idle");
+    if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+
+    // ← Thêm check này: chưa chọn ngân hàng thì dừng
+    if (!withdrawForm.bank_name) {
+      setVerifyStatus("idle");
+      return;
+    }
+
+    if (!val.trim() || val.length < 6 || !/^\d+$/.test(val)) return;
+    setVerifyStatus("checking");
+    verifyTimerRef.current = setTimeout(() => {
+      const name = mockVerifyAccount(val.trim());
+      if (name) {
+        setVerifyStatus("ok");
+        setVerifiedName(name);
+        setWithdrawForm(f => ({ ...f, account_name: name }));
+      } else {
+        setVerifyStatus("error");
+      }
+    }, 1200);
+  };
+
+  const handleBankChange = (val: string) => {
+    setWithdrawForm(f => ({ ...f, bank_name: val, bank_account: "", account_name: "" }));
+    setVerifiedName("");
+    setVerifyStatus("idle");
+    if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
   };
 
   const activeCourses = enrolledCourses.filter(
@@ -1602,8 +1664,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                             <th>Khóa học</th>
                             <th>Điểm</th>
                             <th>Kết quả</th>
-                            <th>Thời gian làm</th>
-                            <th>Ngày nộp</th>
                             <th>Thao tác</th>
                           </tr>
                         </thead>
@@ -1664,16 +1724,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                                       {a.passed ? "Đạt" : "Chưa đạt"}
                                     </span>
                                   </td>
-                                  <td className="ad-table__muted">
-                                    {duration !== null
-                                      ? `${Math.floor(duration / 60)} phút ${duration % 60} giây`
-                                      : "—"}
-                                  </td>
-                                  <td className="ad-table__muted">
-                                    {submit
-                                      ? submit.toLocaleString("vi-VN")
-                                      : "—"}
-                                  </td>
+                                  
                                   <td>
                                     <button
                                       className="ad-btn-sm ad-btn-sm--view"
@@ -1716,20 +1767,51 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="qad-header">
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <h2 className="qad-title">
                           {attemptDetail?.quiz_title ?? "Chi tiết bài làm"}
                         </h2>
-                        <p className="qad-subtitle">
-                          {attemptDetail
-                            ? (() => {
-                                const score10 =
-                                  Number(attemptDetail.score) / 10;
-                                return `Điểm: ${Number.isInteger(score10) ? score10 : score10.toFixed(1)}/10 · ${attemptDetail.passed ? "Đạt" : "Chưa đạt"}`;
-                              })()
-                            : "Đang tải..."}
-                        </p>
+
+                        {attemptDetail && (() => {
+                          const score10 = Number(attemptDetail.score) / 10;
+                          const start = attemptDetail.started_at ? new Date(attemptDetail.started_at) : null;
+                          const submit = attemptDetail.submitted_at ? new Date(attemptDetail.submitted_at) : null;
+                          const duration = start && submit
+                            ? Math.round((submit.getTime() - start.getTime()) / 1000)
+                            : null;
+                          return (
+                            <div className="qad-stats">
+                              <div className="qad-stat">
+                                <span className="qad-stat__label">Điểm số</span>
+                                <span className={`qad-stat__value ${attemptDetail.passed ? "qad-stat__value--passed" : "qad-stat__value--failed"}`}>
+                                  {Number.isInteger(score10) ? score10 : score10.toFixed(1)}/10
+                                </span>
+                              </div>
+                              <div className="qad-stat">
+                                <span className="qad-stat__label">Kết quả</span>
+                                <span className={`qad-stat__value ${attemptDetail.passed ? "qad-stat__value--passed" : "qad-stat__value--failed"}`}>
+                                  {attemptDetail.passed ? "Đạt" : "Chưa đạt"}
+                                </span>
+                              </div>
+                              <div className="qad-stat">
+                                <span className="qad-stat__label">Thời gian làm</span>
+                                <span className="qad-stat__value">
+                                  {duration !== null
+                                    ? `${Math.floor(duration / 60)} phút ${duration % 60} giây`
+                                    : "—"}
+                                </span>
+                              </div>
+                              <div className="qad-stat">
+                                <span className="qad-stat__label">Nộp lúc</span>
+                                <span className="qad-stat__value">
+                                  {submit ? submit.toLocaleString("vi-VN") : "—"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
+
                       <button
                         className="qad-close"
                         onClick={() => {
@@ -1933,7 +2015,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
                   {walletPanel === "deposit" && (
                     <div className="id-form-card wallet-panel-card">
-                      <h3 className="id-form-card__title">Nạp tiền (mock)</h3>
+                      <h3 className="id-form-card__title">Nạp tiền</h3>
                       <div className="wallet-deposit-row">
                         <div className="id-field wallet-deposit-input">
                           <label className="id-field__label">
@@ -1991,93 +2073,92 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   {walletPanel === "withdraw" && (
                     <div className="id-form-card wallet-panel-card">
                       <h3 className="id-form-card__title">Rút tiền</h3>
-                      <div className="id-form-grid">
+
+                      {/* Hàng 1: Số tiền + Ngân hàng */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                         <div className="id-field">
-                          <label className="id-field__label">
-                            Số tiền (VNĐ)
-                          </label>
+                          <label className="id-field__label">Số tiền (VNĐ)</label>
                           <input
                             className="id-field__input"
-                            type="number"
-                            min={50000}
+                            type="number" min={50000}
                             placeholder="Tối thiểu 50,000đ"
                             value={withdrawForm.amount}
-                            onChange={(e) => {
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                amount: e.target.value,
-                              }));
-                              setWithdrawError("");
-                              setWithdrawSuccess("");
+                            onChange={e => setWithdrawForm(f => ({ ...f, amount: e.target.value }))}
+                          />
+                        </div>
+                        <div className="id-field">
+                          <label className="id-field__label">Ngân hàng</label>
+                          <select
+                            className="id-field__input"
+                            value={withdrawForm.bank_name}
+                            onChange={e => handleBankChange(e.target.value)}
+                          >
+                            <option value="">-- Chọn ngân hàng --</option>
+                            {BANK_LIST.map(b => (
+                              <option key={b.value} value={b.value}>{b.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Hàng 2: Số tài khoản + Tên chủ TK */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                        <div className="id-field">
+                          <label className="id-field__label">Số tài khoản</label>
+                          <input
+                            className="id-field__input"
+                            placeholder="Nhập số tài khoản"
+                            value={withdrawForm.bank_account}
+                            onChange={e => handleAccountNumberChange(e.target.value)}
+                            // ← disable khi chưa chọn ngân hàng
+                            disabled={!withdrawForm.bank_name}
+                          />
+                          <div style={{ marginTop: 6, minHeight: 20 }}>
+                            {!withdrawForm.bank_name && (
+                              <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
+                                Vui lòng chọn ngân hàng trước
+                              </span>
+                            )}
+                            {withdrawForm.bank_name && verifyStatus === "checking" && (
+                              <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                                Đang xác minh…
+                              </span>
+                            )}
+                            {withdrawForm.bank_name && verifyStatus === "ok" && (
+                              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--color-background-success)", color: "var(--color-text-success)" }}>
+                                ✓ Tài khoản hợp lệ
+                              </span>
+                            )}
+                            {withdrawForm.bank_name && verifyStatus === "error" && (
+                              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--color-background-danger)", color: "var(--color-text-danger)" }}>
+                                ✕ Không tìm thấy STK
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="id-field">
+                          <label className="id-field__label">Tên chủ tài khoản</label>
+                          <input
+                            className="id-field__input"
+                            placeholder="Tự động điền sau khi xác minh"
+                            value={withdrawForm.account_name}
+                            onChange={e => setWithdrawForm(f => ({ ...f, account_name: e.target.value }))}
+                            style={{
+                              // highlight nhẹ khi đã verify xong
+                              borderColor: verifyStatus === "ok" ? "var(--color-border-success)" : undefined,
                             }}
                           />
                         </div>
-                        <div className="id-field">
-                          <label className="id-field__label">
-                            Tên ngân hàng
-                          </label>
-                          <input
-                            className="id-field__input"
-                            placeholder="VD: Vietcombank"
-                            value={withdrawForm.bank_name}
-                            onChange={(e) =>
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                bank_name: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="id-field">
-                          <label className="id-field__label">
-                            Số tài khoản
-                          </label>
-                          <input
-                            className="id-field__input"
-                            placeholder="0123456789"
-                            value={withdrawForm.bank_account}
-                            onChange={(e) =>
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                bank_account: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="id-field">
-                          <label className="id-field__label">
-                            Tên chủ tài khoản
-                          </label>
-                          <input
-                            className="id-field__input"
-                            placeholder="NGUYEN VAN A"
-                            value={withdrawForm.account_name}
-                            onChange={(e) =>
-                              setWithdrawForm((f) => ({
-                                ...f,
-                                account_name: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
                       </div>
-                      {withdrawError && (
-                        <p className="wallet-msg wallet-msg--err">
-                          ⚠ {withdrawError}
-                        </p>
-                      )}
-                      {withdrawSuccess && (
-                        <p className="wallet-msg wallet-msg--ok">
-                          ✓ {withdrawSuccess}
-                        </p>
-                      )}
-                      <div className="id-form-actions">
+
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <button
                           className="id-btn-primary"
                           onClick={handleWithdraw}
-                          disabled={withdrawing}
+                          disabled={withdrawing || verifyStatus !== "ok" || !withdrawForm.account_name.trim()}
                         >
-                          {withdrawing ? "Đang gửi…" : "Gửi yêu cầu rút tiền"}
+                          {withdrawing ? "Đang rút…" : "Rút tiền"}
                         </button>
                       </div>
                     </div>
