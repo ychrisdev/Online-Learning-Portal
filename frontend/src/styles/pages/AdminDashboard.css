@@ -330,7 +330,7 @@
 }
 
 .ad-table__center {
-  text-align: center;
+  text-align: center !important;
 }
 
 .ad-table__sm {
@@ -818,7 +818,10 @@
   width: 18%;
 } /* Học viên */
 .ad-table--reviews th:nth-child(2) {
-  width: 22%;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 } /* Khóa học */
 .ad-table--reviews th:nth-child(3) {
   width: 10%;
@@ -969,6 +972,11 @@
   background: rgba(34, 197, 94, 0.12);
   color: #16a34a;
   border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.ad-badge--pay-refund_rejected {
+  background: rgba(119, 141, 169, 0.12);
+  color: #778da9;
+  border: 0.5px solid rgba(119, 141, 169, 0.22);
 }
 
 .ad-actions {

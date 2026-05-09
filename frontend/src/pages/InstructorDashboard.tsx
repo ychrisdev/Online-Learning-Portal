@@ -56,6 +56,7 @@ const STATUS_LABEL: Record<string, string> = {
   refund_approved: "Đã duyệt hoàn tiền",
   refunded: "Đã hoàn",
   failed: "Thất bại",
+  refund_rejected: "Đã từ chối hoàn",
 };
 
 interface Review {
@@ -789,10 +790,18 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
         if (res.ok) {
           const list = toList(await res.json());
           setRefundRequests(
-            list.filter((p: any) => p.status === "refund_approved"),
+            list.filter(
+              (p: any) =>
+                [
+                  "refund_approved",
+                  "refund_requested",
+                  "refunded",
+                  "refund_rejected",
+                ].includes(p.status) || p.refund_requested_once === true,
+            ),
           );
         }
-      } catch (_) {}
+      } catch {}
       setLoadingRefunds(false);
     })();
   }, [activeTab]);
@@ -5063,7 +5072,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <option value="success">Thành công</option>
                   <option value="pending">Chờ xử lý</option>
                   <option value="refund_requested">Yêu cầu hoàn</option>
+                  <option value="refund_approved">Đã duyệt hoàn</option>
                   <option value="refunded">Đã hoàn tiền</option>
+                  <option value="refund_rejected">Đã từ chối hoàn</option>
                   <option value="failed">Thất bại</option>
                 </select>
                 {(searchPayment || filterPayStatus) && (
@@ -5302,6 +5313,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           <th>Học viên</th>
                           <th>Khóa học</th>
                           <th>Số tiền hoàn</th>
+                          <th>Trạng thái</th>
                           <th>Thao tác</th>
                         </tr>
                       </thead>
@@ -5326,15 +5338,24 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 {formatPrice(r.amount ?? 0, "VND")}
                               </td>
                               <td>
-                                <button
-                                  className="id-btn-primary id-btn-primary--xs"
-                                  onClick={() => handleConfirmRefund(r.id)}
-                                  disabled={confirmingRefund === r.id}
+                                <span
+                                  className={`ad-badge ad-badge--pay-${r.status}`}
                                 >
-                                  {confirmingRefund === r.id
-                                    ? "Đang xử lý…"
-                                    : "Xác nhận hoàn tiền"}
-                                </button>
+                                  {STATUS_LABEL[r.status] ?? r.status}
+                                </span>
+                              </td>
+                              <td>
+                                {r.status === "refund_approved" && (
+                                  <button
+                                    className="id-btn-primary id-btn-primary--xs"
+                                    onClick={() => handleConfirmRefund(r.id)}
+                                    disabled={confirmingRefund === r.id}
+                                  >
+                                    {confirmingRefund === r.id
+                                      ? "Đang xử lý…"
+                                      : "Xác nhận hoàn tiền"}
+                                  </button>
+                                )}
                               </td>
                             </tr>
                             {refundShortage?.id === r.id && (
@@ -6262,7 +6283,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 <p className="id-page-sub">
                   {loadingRefunds
                     ? "Đang tải…"
-                    : `${refundRequests.length} yêu cầu cần xác nhận`}
+                    : `${refundRequests.filter((r) => r.status === "refund_approved").length} cần xác nhận · ${refundRequests.length} tổng`}
                 </p>
               </div>
               {loadingRefunds ? (

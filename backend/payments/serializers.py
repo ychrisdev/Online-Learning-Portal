@@ -35,7 +35,7 @@ class AdminTransactionSerializer(serializers.ModelSerializer):
         model  = Transaction
         fields = [
             'id', 'student_name', 'student_email', 'course_title',
-            'amount', 'status', 'method', 'ref_code', 'created_at', 'paid_at',
+            'amount', 'status', 'method', 'ref_code', 'created_at', 'paid_at', 'refund_requested_once', 'refund_requested_at',
         ]
 
 class AdminTransactionDetailSerializer(serializers.ModelSerializer):

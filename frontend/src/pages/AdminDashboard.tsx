@@ -68,7 +68,7 @@ const STATUS_LABEL: Record<string, string> = {
   draft: "Nháp",
   review: "Chờ duyệt",
   published: "Đã xuất bản",
-  archived: "Đã lưu trữ",
+  archived: "Đã ẩn",
   archive_requested: "Yêu cầu lưu trữ",
 };
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
@@ -78,6 +78,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   failed: "Thất bại",
   refund_approved: "Đã duyệt",
   refund_requested: "Yêu cầu",
+  refund_rejected: "Đã từ chối",
 };
 
 type CourseModalType = "add" | "edit" | "delete" | null;
@@ -1591,12 +1592,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       normalize(p.student_name ?? p.student_email ?? "").includes(q) ||
       normalize(p.course_title ?? p.course?.title ?? "").includes(q);
 
-    const isRefundFlow = [
-      "refund_requested",
-      "refund_approved",
-      "refunded",
-    ].includes(p.status);
-
+    const isRefundFlow = p.refund_requested_once === true;
     const matchStatus = !filterPayStatus || p.status === filterPayStatus;
     return matchSearch && matchStatus && !isRefundFlow;
   });
@@ -1680,17 +1676,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const pgReviews = usePagination(filteredReviews, PAGE_SIZE);
   const pgPayments = usePagination(filteredPayments, PAGE_SIZE);
   const pgRefunds = usePagination(
-    payments.filter((p) => {
-      const inFlow = [
-        "refund_requested",
-        "refund_approved",
-        "refunded",
-      ].includes(p.status);
-      const match = !filterRefundStatus || p.status === filterRefundStatus;
-      return inFlow && match;
-    }),
-    PAGE_SIZE,
-  );
+  payments.filter((p) => {
+    const isRefund = p.refund_requested_once === true;
+    const match = !filterRefundStatus || p.status === filterRefundStatus;
+    return isRefund && match;
+  }),
+  PAGE_SIZE,
+);
 
   const CAT_COLORS: Record<string, string> = {
     A1: "#4CAF82",
@@ -1993,7 +1985,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <option value="draft">Nháp</option>
                       <option value="review">Chờ duyệt</option>
                       <option value="published">Đã xuất bản</option>
-                      <option value="archived">Đã lưu trữ</option>
+                      <option value="archived">Đã ẩn</option>
                     </select>
                   </div>
                 </div>
@@ -4789,7 +4781,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <option value="draft">Nháp</option>
                     <option value="review">Chờ duyệt</option>
                     <option value="published">Đã xuất bản</option>
-                    <option value="archived">Đã lưu trữ</option>
+                    <option value="archived">Đã ẩn</option>
                   </select>
                   <div className="ad-sort-row">
                     <span className="ad-sort-row__label">Học phí:</span>
@@ -6888,6 +6880,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <option value="refund_requested">Chờ duyệt</option>
                   <option value="refund_approved">Đã duyệt</option>
                   <option value="refunded">Đã hoàn tiền</option>
+                  <option value="refund_rejected">Đã từ chối</option>
                 </select>
                 {filterRefundStatus && (
                   <button
@@ -6918,6 +6911,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           "refund_requested",
                           "refund_approved",
                           "refunded",
+                          "refund_rejected",
                         ].includes(p.status);
                         const matchStatus =
                           !filterRefundStatus ||
