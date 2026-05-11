@@ -481,15 +481,14 @@ class InstructorCourseUnarchiveView(APIView):
         course = generics.get_object_or_404(
             Course, id=id, instructor=request.user, status=Course.Status.ARCHIVED
         )
-        # Chỉ cho unarchive nếu đã từng được duyệt (published_at != None)
         if not course.published_at:
             return Response(
-                {'detail': 'Khóa học chưa được duyệt, không thể đăng lại.'},
+                {'detail': 'Khóa học chưa được duyệt, không thể gửi lại.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        course.status = Course.Status.PUBLISHED
+        course.status = Course.Status.REVIEW
         course.save(update_fields=['status'])
-        return Response({'message': 'Đã đăng lại khóa học.'})
+        return Response({'message': 'Đã gửi yêu cầu đăng lại. Vui lòng chờ admin xét duyệt.'})
     
 class InstructorCourseArchiveView(APIView):
     """POST /api/courses/mine/<id>/archive/"""

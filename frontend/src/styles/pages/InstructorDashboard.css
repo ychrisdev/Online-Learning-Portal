@@ -1280,6 +1280,26 @@
   border: 0.5px solid rgba(91, 141, 238, 0.25);
 }
 
+.id-table th:nth-child(4),
+.id-table td:nth-child(4) {
+  text-align: center;
+}
+
+.id-table--courses th:nth-child(2),
+.id-table--courses td:nth-child(2),
+.id-table--courses th:nth-child(3),
+.id-table--courses td:nth-child(3),
+.id-table--courses th:nth-child(4),
+.id-table--courses td:nth-child(4),
+.id-table--courses th:nth-child(5),
+.id-table--courses td:nth-child(5) {
+  text-align: center;
+}
+
+.id-table--courses td:nth-child(4) {
+  vertical-align: middle;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .qad-stats { grid-template-columns: repeat(2, 1fr); }

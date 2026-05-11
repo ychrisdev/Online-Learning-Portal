@@ -246,6 +246,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
 
   const [archiveConfirmCourse, setArchiveConfirmCourse] = useState<any>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [unarchiveConfirmCourse, setUnarchiveConfirmCourse] =
+    useState<any>(null);
+  const [unarchiveLoading, setUnarchiveLoading] = useState(false);
 
   const [adminEditAlerts, setAdminEditAlerts] = useState<any[]>([]);
   const INSTRUCTOR_DISMISS_KEY = `instructor_admin_edit_dismissed_${getUserId()}`;
@@ -290,6 +293,40 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
     }
     setArchiveLoading(false);
     setArchiveConfirmCourse(null);
+  };
+
+  const handleUnarchiveRequest = async () => {
+    if (!unarchiveConfirmCourse) return;
+    setUnarchiveLoading(true);
+    try {
+      const res = await fetch(
+        `${API}/api/courses/mine/${unarchiveConfirmCourse.id}/unarchive/`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+        },
+      );
+
+      if (res.ok) {
+        showToast(
+          "Đã gửi yêu cầu đăng lại. Vui lòng chờ admin xét duyệt.",
+          "success",
+        );
+        // Refresh lại danh sách khóa học
+        const refreshed = await fetch(`${API}/api/courses/mine/`, {
+          headers: authHeaders(),
+        });
+        if (refreshed.ok) setCourses(toList(await refreshed.json()));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err?.detail || "Không thể gửi yêu cầu.", "error");
+      }
+    } catch (_) {
+      showToast("Lỗi kết nối.", "error");
+    } finally {
+      setUnarchiveLoading(false);
+      setUnarchiveConfirmCourse(null); // Đóng modal
+    }
   };
 
   const [sections, setSections] = useState<any[]>([]);
@@ -3125,7 +3162,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                 </p>
               ) : (
                 <div className="id-table-wrap id-table-wrap--borderless">
-                  <table className="id-table">
+                  <table className="id-table id-table--courses">
                     <thead>
                       <tr>
                         <th>Khóa học</th>
@@ -3250,43 +3287,10 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                                 )}
                                 {c.status === "archived" && c.published_at && (
                                   <button
-                                    className="tbl-btn tbl-btn--restore"
-                                    onClick={async () => {
-                                      if (!confirm(`Đăng lại "${c.title}"?`))
-                                        return;
-                                      try {
-                                        const res = await fetch(
-                                          `${API}/api/courses/mine/${c.id}/unarchive/`,
-                                          {
-                                            method: "POST",
-                                            headers: authHeaders(),
-                                          },
-                                        );
-                                        if (res.ok) {
-                                          const refreshed = await fetch(
-                                            `${API}/api/courses/mine/`,
-                                            { headers: authHeaders() },
-                                          );
-                                          if (refreshed.ok)
-                                            setCourses(
-                                              (await refreshed.json())
-                                                .results ?? [],
-                                            );
-                                        } else {
-                                          const err = await res
-                                            .json()
-                                            .catch(() => ({}));
-                                          alert(
-                                            err?.detail ||
-                                              "Không thể đăng lại.",
-                                          );
-                                        }
-                                      } catch (_) {
-                                        alert("Lỗi kết nối.");
-                                      }
-                                    }}
+                                    className="tbl-btn tbl-btn--warn"
+                                    onClick={() => setUnarchiveConfirmCourse(c)}
                                   >
-                                    Đăng lại
+                                    Yêu cầu đăng lại
                                   </button>
                                 )}
                                 {(c.status === "draft" ||
@@ -3378,6 +3382,52 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     className="cm-btn cm-btn--cancel"
                     onClick={() => setArchiveConfirmCourse(null)}
                     disabled={archiveLoading}
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {unarchiveConfirmCourse && (
+            <div className="cm-overlay">
+              <div className="cm-box cm-box--sm">
+                <div className="cm-header">
+                  <h2 className="cm-title">Yêu cầu đăng lại khóa học</h2>
+                  <button
+                    className="cm-close"
+                    onClick={() =>
+                      !unarchiveLoading && setUnarchiveConfirmCourse(null)
+                    }
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="cm-body">
+                  <p className="cm-delete-desc">
+                    Bạn muốn gửi yêu cầu đăng lại khóa học:
+                  </p>
+                  <p className="cm-delete-name">
+                    "{unarchiveConfirmCourse.title}"
+                  </p>
+                  <p className="cm-delete-notify">
+                    Khóa học sẽ chờ admin xét duyệt trước khi hiển thị trở lại
+                    trên trang chủ.
+                  </p>
+                </div>
+                <div className="cm-footer">
+                  <button
+                    className="cm-btn cm-btn--save"
+                    onClick={handleUnarchiveRequest}
+                    disabled={unarchiveLoading}
+                  >
+                    {unarchiveLoading ? "Đang gửi…" : "Xác nhận đăng lại"}
+                  </button>
+                  <button
+                    className="cm-btn cm-btn--cancel"
+                    onClick={() => setUnarchiveConfirmCourse(null)}
+                    disabled={unarchiveLoading}
                   >
                     Hủy
                   </button>
