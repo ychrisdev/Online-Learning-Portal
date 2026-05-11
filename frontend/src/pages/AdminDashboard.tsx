@@ -1676,13 +1676,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const pgReviews = usePagination(filteredReviews, PAGE_SIZE);
   const pgPayments = usePagination(filteredPayments, PAGE_SIZE);
   const pgRefunds = usePagination(
-  payments.filter((p) => {
-    const isRefund = p.refund_requested_once === true;
-    const match = !filterRefundStatus || p.status === filterRefundStatus;
-    return isRefund && match;
-  }),
-  PAGE_SIZE,
-);
+    payments.filter((p) => {
+      const isRefund = p.refund_requested_once === true;
+      const match = !filterRefundStatus || p.status === filterRefundStatus;
+      return isRefund && match;
+    }),
+    PAGE_SIZE,
+  );
 
   const CAT_COLORS: Record<string, string> = {
     A1: "#4CAF82",
@@ -3509,7 +3509,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             if (e.target === e.currentTarget) closeAttemptModal();
           }}
         >
-          <div className="cm-box cm-box--xl">
+          <div className="cm-box cm-box--attempts">
             <div className="cm-header">
               <h2 className="cm-title">
                 Lịch sử làm bài
@@ -3535,43 +3535,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   Chưa có học viên nào làm bài kiểm tra này.
                 </p>
               ) : (
-                <>
-                  <div className="cm-attempt-summary">
-                    <div className="cm-attempt-summary__item">
-                      <span className="cm-attempt-summary__val">
-                        {attempts.length}
-                      </span>
-                      <span className="cm-attempt-summary__lbl">Lượt làm</span>
-                    </div>
-                    <div className="cm-attempt-summary__item">
-                      <span className="cm-attempt-summary__val summary__valG">
-                        {attempts.filter((a) => a.passed).length}
-                      </span>
-                      <span className="cm-attempt-summary__lbl">Đạt</span>
-                    </div>
-                    <div className="cm-attempt-summary__item">
-                      <span className="cm-attempt-summary__val summary__valR">
-                        {attempts.filter((a) => !a.passed).length}
-                      </span>
-                      <span className="cm-attempt-summary__lbl">Chưa đạt</span>
-                    </div>
-                    <div className="cm-attempt-summary__item">
-                      <span className="cm-attempt-summary__val">
-                        {attempts.length > 0
-                          ? (
-                              attempts.reduce(
-                                (s, a) => s + Number(a.score),
-                                0,
-                              ) / attempts.length
-                            ).toFixed(1)
-                          : "—"}
-                        %
-                      </span>
-                      <span className="cm-attempt-summary__lbl">Điểm TB</span>
-                    </div>
-                  </div>
-
-                  <div className="cm-attempt-list">
+                <table className="ad-table ad-table--no-mt">
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Học viên</th>
+                      <th>Điểm</th>
+                      <th>Kết quả</th>
+                      <th>Bắt đầu</th>
+                      <th>Nộp bài</th>
+                      <th>Thời gian làm</th>
+                      <th>Chi tiết</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {attempts.map((a, idx) => {
                       const start = a.started_at
                         ? new Date(a.started_at)
@@ -3589,35 +3566,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         duration !== null ? Math.floor(duration / 60) : null;
                       const ss = duration !== null ? duration % 60 : null;
                       return (
-                        <div
-                          key={a.id}
-                          className={`cm-attempt-row ${a.passed ? "cm-attempt-row--pass" : "cm-attempt-row--fail"}`}
-                          onClick={() => openAttemptDetail(a)}
-                        >
-                          <div className="cm-attempt-row__index">{idx + 1}</div>
-                          <div className="cm-attempt-row__user">
-                            <span className="cm-attempt-row__name">
-                              {a.student_name ??
-                                a.student?.full_name ??
-                                a.student?.username ??
-                                "—"}
-                            </span>
-                            <span className="cm-attempt-row__email">
-                              {a.student_email ?? a.student?.email ?? ""}
-                            </span>
-                          </div>
-                          <div className="cm-attempt-row__score-wrap">
+                        <tr key={a.id}>
+                          <td className="id-td-index">{idx + 1}</td>
+                          <td>
+                            <div className="ad-user-cell">
+                              <span className="ad-user-cell__name">
+                                {a.student_name ??
+                                  a.student?.full_name ??
+                                  a.student?.username ??
+                                  "—"}
+                              </span>
+                              <span className="ad-user-cell__email">
+                                {a.student_email ?? a.student?.email ?? ""}
+                              </span>
+                            </div>
+                          </td>
+                          <td
+                            style={{
+                              fontWeight: 600,
+                              color: a.passed ? "#4caf82" : "#e07a5f",
+                            }}
+                          >
+                            {Number(a.score).toFixed(1)}%
+                          </td>
+                          <td>
                             <span
-                              className="cm-attempt-row__score"
                               style={{
-                                color: a.passed ? "#4caf82" : "#e07a5f",
-                              }}
-                            >
-                              {Number(a.score).toFixed(1)}%
-                            </span>
-                            <span
-                              className="cm-attempt-row__badge"
-                              style={{
+                                display: "inline-block",
+                                fontSize: 11,
+                                padding: "2px 10px",
+                                borderRadius: 5,
+                                fontWeight: 500,
                                 background: a.passed
                                   ? "rgba(76,175,130,0.12)"
                                   : "rgba(224,122,95,0.12)",
@@ -3627,27 +3606,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             >
                               {a.passed ? "Đạt" : "Chưa đạt"}
                             </span>
-                          </div>
-                          <div className="cm-attempt-row__meta">
-                            <span>
-                              {start ? start.toLocaleString("vi-VN") : "—"}
-                            </span>
-                            {duration !== null && (
-                              <span className="cm-attempt-row__duration">
-                                {mm}p {ss}s
-                              </span>
-                            )}
-                          </div>
-                          <div className="cm-attempt-row__action">
-                            <span className="cm-attempt-row__cta">
-                              Xem chi tiết
-                            </span>
-                          </div>
-                        </div>
+                          </td>
+                          <td className="ad-table__muted">
+                            {start ? start.toLocaleString("vi-VN") : "—"}
+                          </td>
+                          <td className="ad-table__muted">
+                            {submit ? submit.toLocaleString("vi-VN") : "—"}
+                          </td>
+                          <td className="ad-table__muted">
+                            {mm !== null && ss !== null
+                              ? `${mm} phút ${ss} giây`
+                              : "—"}
+                          </td>
+                          <td>
+                            <button
+                              className="ad-btn-sm ad-btn-sm--view"
+                              onClick={() => openAttemptDetail(a)}
+                            >
+                              Xem
+                            </button>
+                          </td>
+                        </tr>
                       );
                     })}
-                  </div>
-                </>
+                  </tbody>
+                </table>
               )}
             </div>
 
@@ -3675,6 +3658,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         start && submit
           ? Math.round((submit.getTime() - start.getTime()) / 1000)
           : null;
+
       const rawSnapshot = selectedAttempt.answers_snapshot ?? {};
       const snapshot: Record<string, string[]> = {};
       Object.entries(rawSnapshot).forEach(([k, v]) => {
@@ -3686,263 +3670,132 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const attemptQuestions: any[] =
         selectedAttempt.questions ?? selectedAttempt._questions ?? [];
 
-      // Log sau khi khai báo xong
-      console.log("RAW SNAPSHOT:", JSON.stringify(rawSnapshot, null, 2));
-      console.log(
-        "ATTEMPT QUESTIONS:",
-        JSON.stringify(
-          attemptQuestions.map((q: any) => ({
-            id: q.id,
-            content: q.content?.slice(0, 30),
-            answers: q.answers?.map((a: any) => ({
-              id: a.id,
-              is_correct: a.is_correct,
-              content: a.content?.slice(0, 20),
-            })),
-          })),
-          null,
-          2,
-        ),
-      );
-      const correctCount = attemptQuestions.filter((q) => {
-        const chosen = snapshot[q.id] ?? [];
-        const correctIds =
-          q.answers
-            ?.filter((a: any) => a.is_correct)
-            .map((a: any) => String(a.id)) ?? [];
-        return (
-          chosen.length > 0 &&
-          chosen.every((id: string) => correctIds.includes(id)) &&
-          correctIds.every((id: string) => chosen.includes(id))
-        );
-      }).length;
+      const score10 = Number(selectedAttempt.score) / 10;
 
       return (
         <div
-          className="cm-overlay"
+          className="qad-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeAttemptModal();
           }}
         >
-          <div className="cm-box cm-box--xl">
-            <div className="cm-header">
-              <div className="cm-attempt-row__score-wrap">
-                <div>
-                  <h2 className="cm-title">Chi tiết bài làm</h2>
-                  <p className="cm-text">
-                    {selectedAttempt.student_name ??
-                      selectedAttempt.student?.full_name ??
-                      ""}
-                    {selectedAttempt.student_email
-                      ? ` · ${selectedAttempt.student_email}`
-                      : ""}
-                  </p>
+          <div className="qad-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="qad-header">
+              <div style={{ flex: 1 }}>
+                <h2 className="qad-title">
+                  {selectedAttempt.quiz_title ??
+                    selectedQuizForAttempt?.title ??
+                    "Chi tiết bài làm"}
+                </h2>
+                <div className="qad-stats">
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Điểm số</span>
+                    <span
+                      className={`qad-stat__value ${selectedAttempt.passed ? "qad-stat__value--passed" : "qad-stat__value--failed"}`}
+                    >
+                      {Number.isInteger(score10) ? score10 : score10.toFixed(1)}
+                      /10
+                    </span>
+                  </div>
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Kết quả</span>
+                    <span
+                      className={`qad-stat__value ${selectedAttempt.passed ? "qad-stat__value--passed" : "qad-stat__value--failed"}`}
+                    >
+                      {selectedAttempt.passed ? "Đạt" : "Chưa đạt"}
+                    </span>
+                  </div>
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Thời gian làm</span>
+                    <span className="qad-stat__value">
+                      {duration !== null
+                        ? `${Math.floor(duration / 60)} phút ${duration % 60} giây`
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Học viên</span>
+                    <span className="qad-stat__value" style={{ fontSize: 13 }}>
+                      {selectedAttempt.student_name ??
+                        selectedAttempt.student?.full_name ??
+                        "—"}
+                    </span>
+                  </div>
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Nộp lúc</span>
+                    <span className="qad-stat__value" style={{ fontSize: 12 }}>
+                      {submit ? submit.toLocaleString("vi-VN") : "—"}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <button className="cm-close" onClick={closeAttemptModal}>
-                ✕
+              <button className="qad-close" onClick={closeAttemptModal}>
+                ×
               </button>
             </div>
 
-            <div className="cm-body cm-body--scroll">
-              {/* Stats bar */}
-              <div className="cm-detail-statsbar">
-                {[
-                  {
-                    label: "Điểm",
-                    value: `${Number(selectedAttempt.score).toFixed(1)}%`,
-                    color: selectedAttempt.passed ? "#4caf82" : "#e07a5f",
-                  },
-                  {
-                    label: "Kết quả",
-                    value: selectedAttempt.passed ? "Đạt" : "Chưa đạt",
-                    color: selectedAttempt.passed ? "#4caf82" : "#e07a5f",
-                  },
-                  {
-                    label: "Câu đúng",
-                    value:
-                      attemptQuestions.length > 0
-                        ? `${correctCount}/${attemptQuestions.length}`
-                        : "—",
-                    color: undefined,
-                  },
-                  {
-                    label: "Bắt đầu",
-                    value: start ? start.toLocaleString("vi-VN") : "—",
-                    color: undefined,
-                  },
-                  {
-                    label: "Thời gian",
-                    value:
-                      duration !== null
-                        ? `${Math.floor(duration / 60)}p ${duration % 60}s`
-                        : "—",
-                    color: undefined,
-                  },
-                ].map((item) => (
-                  <div key={item.label} className="cm-detail-stat">
-                    <div className="cm-detail-stat__label">{item.label}</div>
-                    <div
-                      className="cm-detail-stat__val"
-                      style={item.color ? { color: item.color } : undefined}
-                    >
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {attemptQuestions.length > 0 && (
-                <div className="cm-answer-legend">
-                  <span className="cm-legend-item cm-legend-item--correct">
-                    Đúng · đã chọn
-                  </span>
-                  <span className="cm-legend-item cm-legend-item--wrong">
-                    Sai · đã chọn
-                  </span>
-                  <span className="cm-legend-item cm-legend-item--correct">
-                    Đáp án đúng
-                  </span>
-                </div>
-              )}
-              {/* Questions */}
-              {loadingAttemptDetail ? (
-                <div className="cm-loading">
-                  <span className="cm-loading__spinner" />
-                  <span>Đang tải chi tiết câu hỏi…</span>
-                </div>
-              ) : attemptQuestions.length === 0 ? (
-                <div className="cm-snapshot-fallback">
-                  <p className="cm-snapshot-text">Đáp án theo ID:</p>
-                  {Object.entries(snapshot).map(([qId, aIds]) => (
-                    <div key={qId} className="cm-entries">
-                      <span className="cm-entries__s1">
-                        Câu {qId.slice(0, 8)}…:
-                      </span>{" "}
-                      <span className="cm-entries__s2">{aIds.join(", ")}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="cm-questions-list">
-                  {attemptQuestions.map((q: any, idx: number) => {
-                    const chosenIds: string[] =
-                      snapshot[String(q.id)] ?? snapshot[q.id] ?? [];
-                    const correctIds =
-                      q.answers
-                        ?.filter((a: any) => a.is_correct)
-                        .map((a: any) => String(a.id)) ?? [];
-                    const isQuestionCorrect =
-                      chosenIds.length > 0 &&
-                      chosenIds.every((id: string) =>
-                        correctIds.includes(id),
-                      ) &&
-                      correctIds.every((id: string) => chosenIds.includes(id));
-
-                    return (
-                      <div
-                        key={q.id}
-                        className={`cm-question-block ${isQuestionCorrect ? "cm-question-block--correct" : chosenIds.length > 0 ? "cm-question-block--wrong" : "cm-question-block--unanswered"}`}
-                      >
-                        <div className="cm-question-block__header">
-                          <span className="cm-question-block__num">
-                            Câu {idx + 1}
-                          </span>
-                          <span className="cm-question-block__type">
-                            {{
-                              single: "Chọn 1",
-                              multiple: "Chọn nhiều",
-                              true_false: "Đúng/Sai",
-                            }[q.question_type as string] ?? q.question_type}
-                          </span>
-                          <span className="cm-question-block__pts">
-                            {q.points} điểm
-                          </span>
-                          <span
-                            className="cm-question-block__result"
-                            style={{
-                              color: isQuestionCorrect
-                                ? "#4caf82"
-                                : chosenIds.length > 0
-                                  ? "#e07a5f"
-                                  : "rgba(229,232,240,0.35)",
-                            }}
-                          >
-                            {isQuestionCorrect
-                              ? "✓ Đúng"
-                              : chosenIds.length > 0
-                                ? "✗ Sai"
-                                : "Bỏ qua"}
-                          </span>
-                        </div>
-
-                        <p className="cm-question-block__content">
-                          {q.content}
-                        </p>
-
-                        <div className="cm-answers-grid">
-                          {q.answers?.map((ans: any) => {
-                            const ansId = String(ans.id);
-                            const chosen = snapshot[String(q.id)] ?? [];
-                            const isChosen = chosen.some(
-                              (id) => String(id) === ansId,
-                            );
-                            const isCorrect = Boolean(ans.is_correct);
-
-                            // 4 trạng thái rõ ràng
-                            let cls = "cm-ans";
-                            let prefix = "";
-                            let marker = "";
-
-                            if (isCorrect && isChosen) {
-                              // Chọn đúng — xanh lá đậm
-                              cls += " cm-ans--correct-chosen";
-                              prefix = "✓";
-                              marker = "Đúng · đã chọn";
-                            } else if (!isCorrect && isChosen) {
-                              // Chọn sai — đỏ
-                              cls += " cm-ans--wrong-chosen";
-                              prefix = "✗";
-                              marker = "Sai · đã chọn";
-                            } else if (isCorrect && !isChosen) {
-                              // Đúng nhưng bỏ qua — vàng cam, nổi bật
-                              cls += " cm-ans--correct-missed";
-                              prefix = "→";
-                              marker = "Đáp án đúng";
-                            } else {
-                              // Sai, không chọn — mờ
-                              cls += " cm-ans--neutral";
-                            }
-
-                            return (
-                              <div key={ans.id} className={cls}>
-                                <span className="cm-ans__prefix">{prefix}</span>
-                                <span className="cm-ans__text">
-                                  {ans.content}
-                                </span>
-                                {marker && (
-                                  <span className="cm-ans__marker">
-                                    {marker}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {q.explanation && (
-                          <div className="cm-question-block__explain">
-                            {q.explanation}
+            {loadingAttemptDetail && attemptQuestions.length === 0 ? (
+              <p className="qad-loading">Đang tải chi tiết câu hỏi…</p>
+            ) : attemptQuestions.length === 0 ? (
+              <p className="qad-loading">Không có dữ liệu câu hỏi.</p>
+            ) : (
+              attemptQuestions.map((q: any, qi: number) => {
+                const chosenIds: string[] = snapshot[q.id] ?? [];
+                return (
+                  <div key={q.id} className="qad-question">
+                    <p className="qad-question__text">
+                      <span className="qad-question__index">Câu {qi + 1}:</span>
+                      {q.content}
+                    </p>
+                    <div className="qad-answers">
+                      {q.answers?.map((ans: any) => {
+                        const isChosen = chosenIds.includes(String(ans.id));
+                        const isCorrect = ans.is_correct;
+                        let ansClass = "qad-answer qad-answer--default";
+                        let badgeEl: React.ReactNode = null;
+                        if (isCorrect && isChosen) {
+                          ansClass = "qad-answer qad-answer--correct-chosen";
+                          badgeEl = (
+                            <span className="qad-badge qad-badge--correct">
+                              Đúng · đã chọn
+                            </span>
+                          );
+                        } else if (isChosen && !isCorrect) {
+                          ansClass = "qad-answer qad-answer--wrong-chosen";
+                          badgeEl = (
+                            <span className="qad-badge qad-badge--wrong">
+                              Sai · đã chọn
+                            </span>
+                          );
+                        } else if (!isChosen && isCorrect) {
+                          ansClass = "qad-answer qad-answer--correct-missed";
+                          badgeEl = (
+                            <span className="qad-badge qad-badge--missed">
+                              Đáp án đúng
+                            </span>
+                          );
+                        }
+                        return (
+                          <div key={ans.id} className={ansClass}>
+                            <span className="qad-answer__text">
+                              {ans.content}
+                            </span>
+                            {badgeEl}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                        );
+                      })}
+                    </div>
+                    {q.explanation && (
+                      <p className="qad-explanation">
+                        Giải thích: {q.explanation}
+                      </p>
+                    )}
+                  </div>
+                );
+              })
+            )}
 
-            <div className="cm-footer">
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button
                 className="cm-btn cm-btn--cancel"
                 onClick={closeAttemptModal}
