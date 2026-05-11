@@ -1275,9 +1275,9 @@
 }
 
 .ad-badge--status-active {
-  background: rgba(76, 175, 130, 0.12);
-  color: #4caf82;
-  border: 0.5px solid rgba(76, 175, 130, 0.3);
+  background: rgba(91, 141, 238, 0.1);
+  color: #5b8dee;
+  border: 0.5px solid rgba(91, 141, 238, 0.25);
 }
 
 /* Responsive */
