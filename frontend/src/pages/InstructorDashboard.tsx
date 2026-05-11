@@ -78,10 +78,10 @@ interface Review {
 const BANK_LIST = [
   { value: "VCB", label: "Vietcombank (VCB)" },
   { value: "TCB", label: "Techcombank (TCB)" },
-  { value: "MB",  label: "MB Bank" },
+  { value: "MB", label: "MB Bank" },
   { value: "ACB", label: "ACB Bank" },
   { value: "VTB", label: "VietinBank (VTB)" },
-  { value: "BIDV",label: "BIDV" },
+  { value: "BIDV", label: "BIDV" },
   { value: "VPB", label: "VPBank" },
   { value: "TPB", label: "TPBank" },
   { value: "SHB", label: "SHB" },
@@ -90,12 +90,17 @@ const BANK_LIST = [
   { value: "VIB", label: "VIB" },
   { value: "HDB", label: "HDBank" },
   { value: "SCB", label: "SCB" },
-  { value: "MOMO",label: "Ví MoMo" },
+  { value: "MOMO", label: "Ví MoMo" },
 ];
 
 const MOCK_NAMES = [
-  "NGUYEN THANH TUNG","TRAN HOAI NAM","LE THI HONG",
-  "PHAM VAN HIEU","VU MINH QUAN","DANG THI LAN","BUI XUAN ANH",
+  "NGUYEN THANH TUNG",
+  "TRAN HOAI NAM",
+  "LE THI HONG",
+  "PHAM VAN HIEU",
+  "VU MINH QUAN",
+  "DANG THI LAN",
+  "BUI XUAN ANH",
 ];
 
 const MOCK_FIXED: Record<string, string> = {
@@ -108,7 +113,8 @@ const MOCK_FIXED: Record<string, string> = {
 
 function mockVerifyAccount(stk: string): string | null {
   if (MOCK_FIXED[stk]) return MOCK_FIXED[stk];
-  if (stk.length >= 9) return MOCK_NAMES[parseInt(stk.slice(-1)) % MOCK_NAMES.length];
+  if (stk.length >= 9)
+    return MOCK_NAMES[parseInt(stk.slice(-1)) % MOCK_NAMES.length];
   return null;
 }
 
@@ -118,7 +124,6 @@ const authHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("access")}`,
   "Content-Type": "application/json",
 });
-
 
 const toList = (data: any): any[] =>
   Array.isArray(data) ? data : (data?.results ?? []);
@@ -523,7 +528,9 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const [walletPanel, setWalletPanel] = useState<"deposit" | "withdraw" | null>(
     null,
   );
-  const [verifyStatus, setVerifyStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [verifyStatus, setVerifyStatus] = useState<
+    "idle" | "checking" | "ok" | "error"
+  >("idle");
   const [verifiedName, setVerifiedName] = useState("");
   const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -877,7 +884,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       });
       if (res.ok) {
         showToast("Rút tiền thành công!", "success");
-        setWithdrawForm({ amount: "", bank_name: "", bank_account: "", account_name: "" });
+        setWithdrawForm({
+          amount: "",
+          bank_name: "",
+          bank_account: "",
+          account_name: "",
+        });
         setVerifyStatus("idle");
         setVerifiedName("");
         const [walletRes, txRes] = await Promise.all([
@@ -897,7 +909,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   };
 
   const handleAccountNumberChange = (val: string) => {
-    setWithdrawForm(f => ({ ...f, bank_account: val, account_name: "" }));
+    setWithdrawForm((f) => ({ ...f, bank_account: val, account_name: "" }));
     setVerifiedName("");
     setVerifyStatus("idle");
     if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
@@ -915,7 +927,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       if (name) {
         setVerifyStatus("ok");
         setVerifiedName(name);
-        setWithdrawForm(f => ({ ...f, account_name: name }));
+        setWithdrawForm((f) => ({ ...f, account_name: name }));
       } else {
         setVerifyStatus("error");
       }
@@ -923,7 +935,12 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   };
 
   const handleBankChange = (val: string) => {
-    setWithdrawForm(f => ({ ...f, bank_name: val, bank_account: "", account_name: "" }));
+    setWithdrawForm((f) => ({
+      ...f,
+      bank_name: val,
+      bank_account: "",
+      account_name: "",
+    }));
     setVerifiedName("");
     setVerifyStatus("idle");
     if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
@@ -1716,20 +1733,24 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
   const openAttemptDetail = async (attempt: any) => {
     setSelectedAttempt(attempt);
     setAttemptModal("detail");
-    if (!attempt.questions) {
-      setLoadingAttemptDetail(true);
-      try {
-        const res = await fetch(
-          `${API}/api/quizzes/${selectedQuizForAttempt?.id ?? attempt.quiz_id}/questions/`,
-          { headers: authHeaders() },
-        );
-        if (res.ok) {
-          const qs = toList(await res.json());
-          setSelectedAttempt((prev: any) => ({ ...prev, _questions: qs }));
-        }
-      } catch (_) {}
-      setLoadingAttemptDetail(false);
-    }
+    setLoadingAttemptDetail(true);
+
+    try {
+      const res = await fetch(`${API}/api/quizzes/attempts/${attempt.id}/`, {
+        headers: authHeaders(),
+      });
+
+      if (res.ok) {
+        const detail = await res.json();
+
+        setSelectedAttempt({
+          ...attempt,
+          ...detail,
+        });
+      }
+    } catch (_) {}
+
+    setLoadingAttemptDetail(false);
   };
 
   const closeAttemptModal = () => {
@@ -1994,7 +2015,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       } else {
         const err = await res.json();
         setRefundShortage({ id, ...err });
-        showToast((err.detail ?? "Hoàn tiền thất bại."), "error");
+        showToast(err.detail ?? "Hoàn tiền thất bại.", "error");
       }
     } catch (_) {
       showToast("Lỗi kết nối, thử lại sau.", "error");
@@ -2013,7 +2034,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
             if (e.target === e.currentTarget) closeAttemptModal();
           }}
         >
-          <div className="cm-box">
+          <div className="cm-box cm-box--attempts">
             <div className="cm-header">
               <h2 className="cm-title">Lịch sử làm bài</h2>
               <button className="cm-close" onClick={closeAttemptModal}>
@@ -2088,15 +2109,15 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           </td>
                           <td>
                             <span
+                              className="cm-attempt-row__badge"
                               style={{
-                                fontSize: 12,
-                                padding: "2px 8px",
-                                borderRadius: 5,
                                 background: a.passed
-                                  ? "rgba(76,175,130,0.15)"
-                                  : "rgba(224,122,95,0.15)",
+                                  ? "rgba(76,175,130,0.12)"
+                                  : "rgba(224,122,95,0.12)",
                                 color: a.passed ? "#4caf82" : "#e07a5f",
                                 border: `0.5px solid ${a.passed ? "rgba(76,175,130,0.3)" : "rgba(224,122,95,0.3)"}`,
+                                minWidth: 64,
+                                textAlign: "center" as const,
                               }}
                             >
                               {a.passed ? "Đạt" : "Chưa đạt"}
@@ -2146,191 +2167,182 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
       const start = selectedAttempt.started_at
         ? new Date(selectedAttempt.started_at)
         : null;
+
       const submit = selectedAttempt.submitted_at
         ? new Date(selectedAttempt.submitted_at)
         : null;
+
       const duration =
         start && submit
           ? Math.round((submit.getTime() - start.getTime()) / 1000)
           : null;
+
       const snapshot: Record<string, string[]> =
         selectedAttempt.answers_snapshot ?? {};
 
       const questions: any[] =
         selectedAttempt.questions ?? selectedAttempt._questions ?? [];
 
+      const score10 = Number(selectedAttempt.score) / 10;
+
       return (
         <div
-          className="cm-overlay"
+          className="qad-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeAttemptModal();
           }}
         >
-          <div className="cm-box">
-            <div className="cm-header">
-              <div className="id-flex-row">
-                <button
-                  onClick={backToAttemptList}
-                  className="id-icon-btn"
-                  title="Quay lại danh sách"
+          <div className="qad-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="qad-header">
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 4,
+                  }}
                 >
-                  ←
-                </button>
-                <h2 className="cm-title--no-margin">Chi tiết bài làm</h2>
-              </div>
-              <button className="cm-close" onClick={closeAttemptModal}>
-                ✕
-              </button>
-            </div>
+                  <h2 className="qad-title">
+                    {selectedAttempt.quiz_title ??
+                      selectedQuizForAttempt?.title ??
+                      "Chi tiết bài làm"}
+                  </h2>
+                </div>
 
-            <div className="cm-body cm-body--scroll">
-              <div className="id-stat-mini-grid">
-                {[
-                  {
-                    label: "Điểm số",
-                    value: `${Number(selectedAttempt.score).toFixed(1)}%`,
-                    color: selectedAttempt.passed ? "#4caf82" : "#e07a5f",
-                  },
-                  {
-                    label: "Kết quả",
-                    value: selectedAttempt.passed ? "Đạt" : "Chưa đạt",
-                    color: selectedAttempt.passed ? "#4caf82" : "#e07a5f",
-                  },
-                  {
-                    label: "Bắt đầu",
-                    value: start ? start.toLocaleString("vi-VN") : "—",
-                    color: undefined,
-                  },
-                  {
-                    label: "Nộp bài",
-                    value: submit ? submit.toLocaleString("vi-VN") : "—",
-                    color: undefined,
-                  },
-                  {
-                    label: "Thời gian",
-                    value:
-                      duration !== null
-                        ? `${Math.floor(duration / 60)}p ${duration % 60}s`
-                        : "—",
-                    color: undefined,
-                  },
-                ].map((item) => (
-                  <div key={item.label} className="id-stat-mini-card">
-                    <div className="id-stat-mini-card__label">{item.label}</div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: item.color ?? "var(--color-text-primary)",
-                      }}
+                {/* Stats */}
+                <div className="qad-stats">
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Điểm số</span>
+                    <span
+                      className={`qad-stat__value ${
+                        selectedAttempt.passed
+                          ? "qad-stat__value--passed"
+                          : "qad-stat__value--failed"
+                      }`}
                     >
-                      {item.value}
-                    </div>
+                      {Number.isInteger(score10) ? score10 : score10.toFixed(1)}
+                      /10
+                    </span>
                   </div>
-                ))}
+
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Kết quả</span>
+                    <span
+                      className={`qad-stat__value ${
+                        selectedAttempt.passed
+                          ? "qad-stat__value--passed"
+                          : "qad-stat__value--failed"
+                      }`}
+                    >
+                      {selectedAttempt.passed ? "Đạt" : "Chưa đạt"}
+                    </span>
+                  </div>
+
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Thời gian làm</span>
+                    <span className="qad-stat__value">
+                      {duration !== null
+                        ? `${Math.floor(duration / 60)} phút ${duration % 60} giây`
+                        : "—"}
+                    </span>
+                  </div>
+
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Học viên</span>
+                    <span className="qad-stat__value" style={{ fontSize: 13 }}>
+                      {selectedAttempt.student_name ??
+                        selectedAttempt.student?.full_name ??
+                        "—"}
+                    </span>
+                  </div>
+
+                  <div className="qad-stat">
+                    <span className="qad-stat__label">Nộp lúc</span>
+                    <span className="qad-stat__value" style={{ fontSize: 12 }}>
+                      {submit ? submit.toLocaleString("vi-VN") : "—"}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {loadingAttemptDetail ? (
-                <div className="cm-loading">
-                  <span className="cm-loading__spinner" />
-                  <span>Đang tải chi tiết câu hỏi…</span>
-                </div>
-              ) : questions.length === 0 ? (
-                <div>
-                  <p className="id-hint-text">
-                    Đáp án học viên đã chọn (theo ID):
-                  </p>
-                  {Object.entries(snapshot).length === 0 ? (
-                    <p className="id-hint-text">Không có dữ liệu đáp án.</p>
-                  ) : (
-                    Object.entries(snapshot).map(([qId, aIds]) => (
-                      <div key={qId} className="id-snapshot-row">
-                        <span className="id-text-secondary">
-                          Câu {qId.slice(0, 8)}…:
-                        </span>{" "}
-                        <span className="id-text-primary">
-                          {aIds.join(", ")}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <p className="id-hint-text id-hint-text--xs">
-                    {questions.length} câu hỏi — đáp án học viên chọn được tô
-                    màu
-                  </p>
-                  {questions.map((q: any, idx: number) => {
-                    const chosenIds: string[] = snapshot[q.id] ?? [];
-                    return (
-                      <div key={q.id} className="id-question-card">
-                        <div className="id-question-card__header">
-                          <span className="id-question-card__meta">
-                            Câu {idx + 1} · {q.points} điểm
-                          </span>
-                        </div>
-                        <p className="id-question-card__content">{q.content}</p>
-                        <div className="id-answer-list">
-                          {q.answers?.map((ans: any) => {
-                            const isChosen = chosenIds.includes(String(ans.id));
-                            const isCorrect = ans.is_correct;
-                            let bg = "rgba(255,255,255,0.02)";
-                            let border = "0.5px solid rgba(255,255,255,0.06)";
-                            let color = "rgba(224,225,221,0.45)";
-                            let prefix = "";
-                            if (isCorrect && isChosen) {
-                              bg = "rgba(76,175,130,0.18)";
-                              border = "0.5px solid rgba(76,175,130,0.4)";
-                              color = "#4caf82";
-                              prefix = "✓ ";
-                            } else if (!isCorrect && isChosen) {
-                              bg = "rgba(224,122,95,0.18)";
-                              border = "0.5px solid rgba(224,122,95,0.4)";
-                              color = "#e07a5f";
-                              prefix = "✗ ";
-                            } else if (isCorrect && !isChosen) {
-                              border = "0.5px solid rgba(76,175,130,0.25)";
-                              color = "rgba(76,175,130,0.6)";
-                              prefix = "◎ ";
-                            }
-                            return (
-                              <div
-                                key={ans.id}
-                                style={{
-                                  fontSize: 13,
-                                  padding: "6px 10px",
-                                  borderRadius: 6,
-                                  background: bg,
-                                  border,
-                                  color,
-                                }}
-                              >
-                                {prefix}
-                                {ans.content}
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {q.explanation && (
-                          <p className="id-question-card__explanation">
-                            💡 {q.explanation}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <button className="qad-close" onClick={closeAttemptModal}>
+                ×
+              </button>
             </div>
 
-            <div className="cm-footer">
-              <button
-                className="cm-btn cm-btn--cancel"
-                onClick={backToAttemptList}
-              >
-                ← Quay lại
-              </button>
+            {/* Body */}
+            {loadingAttemptDetail && questions.length === 0 ? (
+              <p className="qad-loading">Đang tải chi tiết câu hỏi…</p>
+            ) : questions.length === 0 ? (
+              <p className="qad-loading">Không có dữ liệu câu hỏi.</p>
+            ) : (
+              questions.map((q: any, qi: number) => {
+                const chosenIds: string[] = snapshot[q.id] ?? [];
+                return (
+                  <div key={q.id} className="qad-question">
+                    <p className="qad-question__text">
+                      <span className="qad-question__index">
+                        Question {qi + 1}:
+                      </span>
+                      {q.content}
+                    </p>
+
+                    <div className="qad-answers">
+                      {q.answers?.map((ans: any) => {
+                        const isChosen = chosenIds.includes(String(ans.id));
+                        const isCorrect = ans.is_correct;
+
+                        let ansClass = "qad-answer qad-answer--default";
+                        let badgeEl: React.ReactNode = null;
+
+                        if (isCorrect && isChosen) {
+                          ansClass = "qad-answer qad-answer--correct-chosen";
+                          badgeEl = (
+                            <span className="qad-badge qad-badge--correct">
+                              Đúng - đã chọn
+                            </span>
+                          );
+                        } else if (isChosen && !isCorrect) {
+                          ansClass = "qad-answer qad-answer--wrong-chosen";
+                          badgeEl = (
+                            <span className="qad-badge qad-badge--wrong">
+                              Sai - đã chọn
+                            </span>
+                          );
+                        } else if (!isChosen && isCorrect) {
+                          ansClass = "qad-answer qad-answer--correct-missed";
+                          badgeEl = (
+                            <span className="qad-badge qad-badge--missed">
+                              Đáp án đúng
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <div key={ans.id} className={ansClass}>
+                            <span className="qad-answer__text">
+                              {ans.content}
+                            </span>
+                            {badgeEl}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {q.explanation && (
+                      <p className="qad-explanation">
+                        Explain: {q.explanation}
+                      </p>
+                    )}
+                  </div>
+                );
+              })
+            )}
+
+            {/* Footer */}
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button
                 className="cm-btn cm-btn--cancel"
                 onClick={closeAttemptModal}
@@ -4244,7 +4256,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                     <tr>
                       <th>Tên bài kiểm tra</th>
                       <th>Bài học</th>
-                      <th>Điểm đạt</th>
                       <th>Thời gian</th>
                       <th>thao tác</th>
                     </tr>
@@ -4252,7 +4263,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                   <tbody>
                     {loadingQuizzes ? (
                       <tr>
-                        <td colSpan={6} className="id-td-center">
+                        <td colSpan={5} className="id-td-center">
                           Đang tải…
                         </td>
                       </tr>
@@ -4283,7 +4294,6 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                               <td className="ad-table__muted">
                                 {lesson?.title ?? "—"}
                               </td>
-                              <td>{q.pass_score}%</td>
                               <td>
                                 {q.time_limit > 0
                                   ? `${q.time_limit} phút`
@@ -4498,7 +4508,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         if (e.target === e.currentTarget) closeQuizModal();
                       }}
                     >
-                      <div className="cm-box">
+                      <div className="cm-box cm-box--xl">
                         <div className="cm-header">
                           <h2 className="cm-title">
                             <span
@@ -6178,16 +6188,30 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                       <h3 className="id-form-card__title">Rút tiền</h3>
 
                       {/* Hàng 1: Số tiền + Ngân hàng */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 16,
+                          marginBottom: 16,
+                        }}
+                      >
                         <div className="id-field">
-                          <label className="id-field__label">Số tiền (VNĐ)</label>
+                          <label className="id-field__label">
+                            Số tiền (VNĐ)
+                          </label>
                           <input
                             className="id-field__input"
                             type="number"
                             min={50000}
                             placeholder="Tối thiểu 50,000đ"
                             value={withdrawForm.amount}
-                            onChange={e => setWithdrawForm(f => ({ ...f, amount: e.target.value }))}
+                            onChange={(e) =>
+                              setWithdrawForm((f) => ({
+                                ...f,
+                                amount: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="id-field">
@@ -6195,66 +6219,122 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                           <select
                             className="id-field__input"
                             value={withdrawForm.bank_name}
-                            onChange={e => handleBankChange(e.target.value)}
+                            onChange={(e) => handleBankChange(e.target.value)}
                           >
                             <option value="">-- Chọn ngân hàng --</option>
-                            {BANK_LIST.map(b => (
-                              <option key={b.value} value={b.value}>{b.label}</option>
+                            {BANK_LIST.map((b) => (
+                              <option key={b.value} value={b.value}>
+                                {b.label}
+                              </option>
                             ))}
                           </select>
                         </div>
                       </div>
 
                       {/* Hàng 2: Số tài khoản + Tên chủ TK */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 16,
+                          marginBottom: 20,
+                        }}
+                      >
                         <div className="id-field">
-                          <label className="id-field__label">Số tài khoản</label>
+                          <label className="id-field__label">
+                            Số tài khoản
+                          </label>
                           <input
                             className="id-field__input"
                             placeholder="Nhập số tài khoản"
                             value={withdrawForm.bank_account}
-                            onChange={e => handleAccountNumberChange(e.target.value)}
+                            onChange={(e) =>
+                              handleAccountNumberChange(e.target.value)
+                            }
                             disabled={!withdrawForm.bank_name}
                           />
                           <div style={{ marginTop: 6, minHeight: 20 }}>
                             {!withdrawForm.bank_name && (
-                              <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: "var(--color-text-tertiary)",
+                                }}
+                              >
                                 Vui lòng chọn ngân hàng trước
                               </span>
                             )}
-                            {withdrawForm.bank_name && verifyStatus === "checking" && (
-                              <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                                Đang xác minh…
-                              </span>
-                            )}
-                            {withdrawForm.bank_name && verifyStatus === "ok" && (
-                              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--color-background-success)", color: "var(--color-text-success)" }}>
-                                Tài khoản hợp lệ
-                              </span>
-                            )}
-                            {withdrawForm.bank_name && verifyStatus === "error" && (
-                              <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 4, background: "var(--color-background-danger)", color: "var(--color-text-danger)" }}>
-                                ✕ Không tìm thấy STK
-                              </span>
-                            )}
+                            {withdrawForm.bank_name &&
+                              verifyStatus === "checking" && (
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    color: "var(--color-text-secondary)",
+                                  }}
+                                >
+                                  Đang xác minh…
+                                </span>
+                              )}
+                            {withdrawForm.bank_name &&
+                              verifyStatus === "ok" && (
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    padding: "2px 8px",
+                                    borderRadius: 4,
+                                    background:
+                                      "var(--color-background-success)",
+                                    color: "var(--color-text-success)",
+                                  }}
+                                >
+                                  Tài khoản hợp lệ
+                                </span>
+                              )}
+                            {withdrawForm.bank_name &&
+                              verifyStatus === "error" && (
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    padding: "2px 8px",
+                                    borderRadius: 4,
+                                    background:
+                                      "var(--color-background-danger)",
+                                    color: "var(--color-text-danger)",
+                                  }}
+                                >
+                                  ✕ Không tìm thấy STK
+                                </span>
+                              )}
                           </div>
                         </div>
 
                         <div className="id-field">
-                          <label className="id-field__label">Tên chủ tài khoản</label>
+                          <label className="id-field__label">
+                            Tên chủ tài khoản
+                          </label>
                           <input
                             className="id-field__input"
                             placeholder="Tự động điền sau khi xác minh"
                             value={withdrawForm.account_name}
-                            onChange={e => setWithdrawForm(f => ({ ...f, account_name: e.target.value }))}
+                            onChange={(e) =>
+                              setWithdrawForm((f) => ({
+                                ...f,
+                                account_name: e.target.value,
+                              }))
+                            }
                             style={{
-                              borderColor: verifyStatus === "ok" ? "var(--color-border-success)" : undefined,
+                              borderColor:
+                                verifyStatus === "ok"
+                                  ? "var(--color-border-success)"
+                                  : undefined,
                             }}
                           />
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <div
+                        style={{ display: "flex", justifyContent: "flex-end" }}
+                      >
                         <button
                           className="id-btn-primary"
                           onClick={handleWithdraw}
@@ -6262,7 +6342,7 @@ const InstructorDashboard: React.FC<InstructorDashboardProps> = ({
                         >
                           {withdrawing ? "Đang rút…" : "Rút tiền"}
                         </button>
-                      </div>                      
+                      </div>
                     </div>
                   )}
 
